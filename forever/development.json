@@ -1,0 +1,16 @@
+[
+  {
+    "append": true,
+    "script": "index.js",
+    "sourceDir": ".",
+    "uid": "web",
+    "watch": true
+  },
+  {
+    "append": true,
+    "script": "process-votes.js",
+    "sourceDir": ".",
+    "uid": "votes",
+    "watch": true
+  }
+]
