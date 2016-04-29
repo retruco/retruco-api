@@ -128,7 +128,7 @@ export const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
-    "/statements/{statementLanguage}": {
+    "/statements/{statementLanguageCode}": {
       get: {
         tags: ["statement"],
         summary: "List statements in given language",
@@ -139,7 +139,7 @@ export const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/statementLanguageParam",
+            $ref: "#/parameters/statementLanguageCodeParam",
           },
         ],
         responses: {
@@ -567,7 +567,7 @@ export const SPEC = {
       type: "string",
       pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{8}$",
     },
-    Language: {
+    LanguageCode: {
       type: "string",
       pattern: "^[a-z]{2}$",
     },
@@ -578,15 +578,15 @@ export const SPEC = {
           type: "string",
           format: "date-time",
         },
-        language: {
-          $ref: "#/definitions/language",
+        languageCode: {
+          $ref: "#/definitions/languageCode",
         },
         name: {
           type: "string",
         },
       },
       required: [
-        "language",
+        "languageCode",
         "name",
       ],
     },
@@ -675,10 +675,10 @@ export const SPEC = {
       type: "string",
       pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{8}$",
     },
-    statementLanguageParam: {
+    statementLanguageCodeParam: {
       // description: "",
       in: "path",
-      name: "statementLanguage",
+      name: "statementLanguageCode",
       required: true,
       type: "string",
       pattern: "^[a-z]{2}$",

@@ -57,8 +57,8 @@ let router = routerFactory()
 router.get("/statements", swaggerValidator, statementsController.list)
 router.post("/statements", bodyParser, swaggerValidator, usersController.authenticate(true),
   statementsController.create)
-router.get("/statements/:statementLanguage", swaggerValidator, languagesController.requireLanguage("statementLanguage"),
-  statementsController.listLanguage)
+router.get("/statements/:statementLanguageCode", swaggerValidator,
+  languagesController.requireLanguage("statementLanguageCode"), statementsController.listLanguage)
 router.delete("/statements/:statementId", swaggerValidator, usersController.authenticate(true),
   statementsController.requireStatement, statementsController.del)
 router.get("/statements/:statementId", swaggerValidator, usersController.authenticate(false),
