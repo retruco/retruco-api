@@ -127,52 +127,6 @@ export const SPEC = {
         // schemes: ["http", "https", "ws", "wss"],
         // security: [{apiKey: []}, {basic: []}],
       },
-      // put: {
-      //   tags: ["statement"],
-      //   summary: "Update an existing statement",
-      //   // description: "",
-      //   // externalDocs: {},
-      //   operationId: "statements.update",
-      //   // consumes: ["application/json"],
-      //   // produces: ["application/json"],
-      //   parameters: [
-      //     {
-      //       $ref: "#/parameters/statementParam",
-      //     },
-      //     {
-      //       $ref: "#/parameters/apiKeyRequiredParam",
-      //     },
-      //   ],
-      //   responses: {
-      //     "200": {
-      //       description: "A wrapper containing the updated statement",
-      //       schema: {
-      //         type: "object",
-      //         properties: {
-      //           apiVersion: {
-      //             type: "string",
-      //           },
-      //           data: {
-      //             $ref: "#/definitions/Statement",
-      //           },
-      //         },
-      //         required: [
-      //           "apiVersion",
-      //           "data",
-      //         ],
-      //       },
-      //     },
-      //     default: {
-      //       description: "Error payload",
-      //       schema: {
-      //         $ref: "#/definitions/Error",
-      //       },
-      //     },
-      //   },
-      //   // deprecated: true,
-      //   // schemes: ["http", "https", "ws", "wss"],
-      //   // security: [{apiKey: []}, {basic: []}],
-      // },
     },
     "/statements/{statementLanguage}": {
       get: {
