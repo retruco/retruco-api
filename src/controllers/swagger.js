@@ -235,9 +235,6 @@ export const SPEC = {
           {
             $ref: "#/parameters/statementIdParam",
           },
-          {
-            $ref: "#/parameters/showParam",
-          },
         ],
         responses: {
           "200": {
@@ -579,7 +576,7 @@ export const SPEC = {
           format: "date-time",
         },
         languageCode: {
-          $ref: "#/definitions/languageCode",
+          $ref: "#/definitions/LanguageCode",
         },
         name: {
           type: "string",

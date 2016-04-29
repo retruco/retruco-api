@@ -73,9 +73,9 @@ async function configure() {
     await statementsTable.indexCreate("createdAt")
   }
   try {
-    await statementsTable.indexWait("language")
+    await statementsTable.indexWait("languageCode")
   } catch (e) {
-    await statementsTable.indexCreate("language")
+    await statementsTable.indexCreate("languageCode")
   }
 
   try {
