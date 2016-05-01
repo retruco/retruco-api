@@ -19,6 +19,12 @@ For the first time only:
 npm install
 ```
 
+### Configure the API server
+
+```bash
+npm run configure
+```
+
 ### Launch the API server
 
 ```bash
