@@ -27,7 +27,7 @@ export default {
   },
   db: {
     host: "localhost",
-    name: "Retruco",
+    name: "retruco",
     port: 28015,
   },
   description: "Bring out shared positions from argumented statements",
