@@ -123,15 +123,6 @@ async function create(ctx) {
     delete user.password
   }
 
-  let namespace = {
-    kind: "user",
-    urlName: user.urlName,
-  }
-  let namespaceResult = await r
-    .table("namespaces")
-    .insert(namespace, {returnChanges: true})
-  namespace = namespaceResult.changes[0].new_val
-
   let result = await r
     .table("users")
     .insert(user, {returnChanges: true})
@@ -158,11 +149,7 @@ async function del(ctx) {
     }
     return
   }
-  // TODO: Delete datasets and actions?
-  await r
-    .table("namespaces")
-    .getAll(user.urlName, {index: "urlName"})
-    .delete()
+  // TODO: Delete user statements, etc?
   await r
     .table("users")
     .get(user.id)
