@@ -41,4 +41,31 @@ npm run process-votes
 
 ## API
 
-To read Retruco-API API, open http://petstore.swagger.io/ and explore http://localhost:3000/swagger.json.
+To explore Retruco API, open http://petstore.swagger.io/ and explore http://localhost:3000/swagger.json.
+
+## Example
+
+### Create a user
+
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --data-binary @- "http://localhost:3000/users"
+{
+  "name": "Retruco Admin",
+  "urlName": "retruco-admin",
+  "password": "secret"
+}
+EOF
+```
+
+### Login to retrieve user API key
+
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --data-binary @- "http://localhost:3000/login"
+{
+  "userName": "retruco-admin",
+  "password": "secret"
+}
+EOF
+```
+
+And retrieve the API key in field `data.apiKey` of the response.
