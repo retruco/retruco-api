@@ -68,4 +68,49 @@ cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "A
 EOF
 ```
 
-And retrieve the API key in field `data.apiKey` of the response.
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "apiKey": "ROQuhYRs1drbvthwM8dI/A",
+    "createdAt": "2016-05-01T16:30:01.695Z",
+    "name": "Retruco Admin",
+    "urlName": "retruco-admin"
+  }
+}
+```
+
+Retrieve the API key in field `data.apiKey` of the response.
+
+### Create a statement belonging to this user.
+
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" --data-binary @- "http://localhost:3000/statements"
+{
+  "languageCode": "fr",
+  "name": "Il faut ouvrir le code source des logiciels du secteur public."
+}
+EOF
+```
+
+### List all statements.
+
+```bash
+curl --header "Accept: application/json" "http://localhost:3000/statements"
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": [
+    {
+      "createdAt": "2016-05-01T17:27:41.741Z",
+      "id": "643f83f8-4c6e-41e2-9f41-5e27ae958599",
+      "languageCode": "fr",
+      "name": "Il faut ouvrir le code source des logiciels du secteur public."
+    }
+  ]
+}
+```
