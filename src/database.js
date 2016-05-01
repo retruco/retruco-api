@@ -37,7 +37,7 @@ const versionNumber = 1
 export {checkDatabase}
 async function checkDatabase() {
   const databasesName = await r.dbList()
-  assert(databasesName.includes("retruco"), 'Database is not initialized. Run "node configure" to configure it.')
+  assert(databasesName.includes(config.db.name), 'Database is not initialized. Run "node configure" to configure it.')
   let versions
   try {
     versions = await r.table("version")
@@ -55,8 +55,8 @@ async function checkDatabase() {
 export {configure}
 async function configure() {
   const databasesName = await r.dbList()
-  if (!databasesName.includes("retruco")) {
-    await r.dbCreate("retruco")
+  if (!databasesName.includes(config.db.name)) {
+    await r.dbCreate(config.db.name)
     await r.tableCreate("version")
     await r.table("version").insert({number: versionNumber})
   }
