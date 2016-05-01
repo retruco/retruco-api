@@ -619,14 +619,14 @@ export const SPEC = {
       description: "Secret key used to identify user",
       // format: "password",  Don't use password format to allow key to be visible in Swagger-UI.
       in: "header",
-      name: "Retruco-API-api-key",
+      name: "retruco-api-key",
       type: "string",
     },
     apiKeyRequiredParam: {
       description: "Secret key used to identify user",
       // format: "password",  Don't use password format to allow key to be visible in Swagger-UI.
       in: "header",
-      name: "Retruco-API-api-key",
+      name: "retruco-api-key",
       required: true,
       type: "string",
     },
@@ -713,7 +713,7 @@ export const SPEC = {
   //   apiKey: {
   //     description: "Secret key used to identify user or bot",
   //     in: "header",
-  //     name: "Retruco-API-api-key",
+  //     name: "retruco-api-key",
   //     type: "apiKey",
   //   },
   //   basic: {

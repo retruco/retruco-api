@@ -63,14 +63,14 @@ export function authenticate(require) {
       }
     }
 
-    let apiKey = ctx.get("Retruco-API-api-key")
+    let apiKey = ctx.get("retruco-api-key")
     if (apiKey) {
       if (credentials) {
         ctx.status = 401  // Unauthorized
         ctx.body = {
           apiVersion: "1",
           code: 401,  // Unauthorized
-          message: "HTTP Basic Authentication and Retruco-API-API-Key headers must not be used together." +
+          message: "HTTP Basic Authentication and retruco-api-key headers must not be used together." +
             " Use only one authentication method.",
         }
         return
