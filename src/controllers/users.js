@@ -216,7 +216,7 @@ async function login(ctx) {
   // Log user in.
   let user = ctx.parameter.user
   let password = user.password
-  let urlName = user.urlName
+  let urlName = user.userName
   let users = await r
     .table("users")
     .getAll(urlName, {index: "urlName"})
