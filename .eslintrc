@@ -2,6 +2,9 @@
   "env": {
     "node": true
   },
+  "globals": {
+    "Promise": true
+  },
   "parser": "babel-eslint",
   "rules": {
     "comma-dangle": [2, "always-multiline"],

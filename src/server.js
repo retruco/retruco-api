@@ -29,8 +29,8 @@ import swaggerValidatorFactory from "koa-swagger"
 
 import config from "./config"
 import {checkDatabase} from "./database"
-import * as languagesController from "./controllers/languages"
 import * as statementsController from "./controllers/statements"
+import * as statementsRatingController from "./controllers/statements_rating"
 import * as swaggerController from "./controllers/swagger"
 import * as usersController from "./controllers/users"
 
@@ -57,12 +57,16 @@ let router = routerFactory()
 router.get("/statements", swaggerValidator, statementsController.list)
 router.post("/statements", bodyParser, swaggerValidator, usersController.authenticate(true),
   statementsController.create)
-router.get("/statements/:statementLanguageCode", swaggerValidator,
-  languagesController.requireLanguage("statementLanguageCode"), statementsController.listLanguage)
 router.delete("/statements/:statementId", swaggerValidator, usersController.authenticate(true),
   statementsController.requireStatement, statementsController.del)
 router.get("/statements/:statementId", swaggerValidator, usersController.authenticate(false),
   statementsController.requireStatement, statementsController.get)
+router.delete("/statements/:statementId/rating", swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, statementsRatingController.del)
+router.get("/statements/:statementId/rating", swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, statementsRatingController.get)
+router.post("/statements/:statementId/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, statementsRatingController.upsert)
 
 router.post("/login", bodyParser, swaggerValidator, usersController.login)
 

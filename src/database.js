@@ -31,7 +31,7 @@ export const r = rethinkdbdashFactory({
     port: config.db.port,
   })
 
-const versionNumber = 0
+const versionNumber = 1
 
 
 export {checkDatabase}
@@ -79,6 +79,36 @@ async function configure() {
   }
 
   try {
+    await r.table("statementsRating").count()
+  } catch (e) {
+    await r.tableCreate("statementsRating")
+  }
+  const statementsRatingTable = r.table("statementsRating")
+  try {
+    await statementsRatingTable.indexWait("updatedAt")
+  } catch (e) {
+    await statementsRatingTable.indexCreate("updatedAt")
+  }
+  try {
+    await statementsRatingTable.indexWait("statementId")
+  } catch (e) {
+    await statementsRatingTable.indexCreate("statementId")
+  }
+  try {
+    await statementsRatingTable.indexWait("statementIdAndVoterId")
+  } catch (e) {
+    await statementsRatingTable.indexCreate("statementIdAndVoterId", [
+      r.row("statementId"),
+      r.row("voterId"),
+    ])
+  }
+  try {
+    await statementsRatingTable.indexWait("voterId")
+  } catch (e) {
+    await statementsRatingTable.indexCreate("voterId")
+  }
+
+  try {
     await r.table("users").count()
   } catch (e) {
     await r.tableCreate("users")
@@ -119,11 +149,9 @@ async function configure() {
 
   const previousVersionNumber = version.number
 
-  // if (version.number === 0) {
-  //   // TODO
-  //
-  //   version.number += 1
-  // }
+  if (version.number === 0) {
+    version.number += 1
+  }
 
   assert(version.number <= versionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)

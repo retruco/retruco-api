@@ -47,7 +47,11 @@ export const SPEC = {
         operationId: "statements.list",
         // consumes: ["application/json"],
         // produces: ["application/json"],
-        parameters: [],
+        parameters: [
+          {
+            $ref: "#/parameters/languageCodeParam",
+          },
+        ],
         responses: {
           "200": {
             description: "A wrapper containing statements",
@@ -126,54 +130,6 @@ export const SPEC = {
         // deprecated: true,
         // schemes: ["http", "https", "ws", "wss"],
         // security: [{apiKey: []}, {basic: []}],
-      },
-    },
-    "/statements/{statementLanguageCode}": {
-      get: {
-        tags: ["statement"],
-        summary: "List statements in given language",
-        // description: "",
-        // externalDocs: {},
-        operationId: "statements.listLanguage",
-        // consumes: ["application/json"],
-        // produces: ["application/json"],
-        parameters: [
-          {
-            $ref: "#/parameters/statementLanguageCodeParam",
-          },
-        ],
-        responses: {
-          "200": {
-            description: "A wrapper containing statements",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  type: "array",
-                  items: {
-                    $ref: "#/definitions/Statement",
-                  },
-                },
-              },
-              required: [
-                "apiVersion",
-                "data",
-              ],
-            },
-          },
-          default: {
-            description: "Error payload",
-            schema: {
-              $ref: "#/definitions/Error",
-            },
-          },
-        },
-        // deprecated: true,
-        // schemes: ["http", "https", "ws", "wss"],
-        // security: {},
       },
     },
     "/statements/{statementId}": {
@@ -265,6 +221,183 @@ export const SPEC = {
         // deprecated: true,
         // schemes: ["http", "https", "ws", "wss"],
         // security: {},
+      },
+    },
+    "/statements/{statementId}/rating": {
+      delete: {
+        tags: ["statement rating"],
+        summary: "Delete an existing statement rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statementsRating.del",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the deleted statement rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+      get: {
+        tags: ["statement rating"],
+        summary: "Get a statement rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statementsRating.get",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested statement rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+      post: {
+        tags: ["statement rating"],
+        summary: "Create or update statement rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statementsRating.upsert",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            // description: "",
+            in: "body",
+            name: "ratingData",
+            required: true,
+            schema: {
+              type: "object",
+              properties: {
+                rating: {
+                  type: "integer",
+                  maximum: 1,
+                  minimum: -1,
+                },
+              },
+              required: [
+                "rating",
+              ],
+            },
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the updated statement rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          "201": {
+            description: "A wrapper containing the created statement rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
       },
     },
     "/login": {
@@ -562,7 +695,7 @@ export const SPEC = {
   definitions: {
     Id: {
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{8}$",
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     },
     LanguageCode: {
       type: "string",
@@ -571,6 +704,9 @@ export const SPEC = {
     Statement: {
       type: "object",
       properties: {
+        authorName: {
+          type: "string",
+        },
         createdAt: {
           type: "string",
           format: "date-time",
@@ -585,6 +721,29 @@ export const SPEC = {
       required: [
         "languageCode",
         "name",
+      ],
+    },
+    StatementRating: {
+      type: "object",
+      properties: {
+        rating: {
+          maximum: 1,
+          minimum: -1,
+          type: "integer",
+        },
+        statementId: {
+          $ref: "#/definitions/Id",
+        },
+        updatedAt: {
+          type: "string",
+          format: "date-time",
+        },
+        voterName: {
+          type: "string",
+        },
+      },
+      required: [
+        "statementId",
       ],
     },
     UrlName: {
@@ -648,7 +807,14 @@ export const SPEC = {
       //   $ref: "#/definitions/Id",
       // },
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{8}$",
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    },
+    languageCodeParam: {
+      // description: "",
+      in: "query",
+      name: "languageCode",
+      type: "string",
+      pattern: "^[a-z]{2}$",
     },
     showParam: {
       // description: "",
@@ -670,15 +836,7 @@ export const SPEC = {
       //   $ref: "#/definitions/Id",
       // },
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{8}$",
-    },
-    statementLanguageCodeParam: {
-      // description: "",
-      in: "path",
-      name: "statementLanguageCode",
-      required: true,
-      type: "string",
-      pattern: "^[a-z]{2}$",
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     },
     statementParam: {
       // description: "",

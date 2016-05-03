@@ -27,6 +27,7 @@ async function create(ctx) {
   // Create a new statement.
   let statement = ctx.parameter.statement
 
+  statement.authorId = ctx.authenticatedUser.id
   statement.createdAt = r.now()
   delete statement.id
 
@@ -37,7 +38,7 @@ async function create(ctx) {
   ctx.status = 201  // Created
   ctx.body = {
     apiVersion: "1",
-    data: toStatementJson(statement),
+    data: await toStatementJson(statement, {showAuthorName: true}),
   }
 }
 
@@ -56,7 +57,7 @@ async function del(ctx) {
     .delete()
   ctx.body = {
     apiVersion: "1",
-    data: toStatementJson(statement),
+    data: await toStatementJson(statement, {showAuthorName: true}),
   }
 }
 
@@ -67,34 +68,28 @@ async function get(ctx) {
 
   ctx.body = {
     apiVersion: "1",
-    data: toStatementJson(ctx.statement),
+    data: await toStatementJson(ctx.statement, {showAuthorName: true}),
   }
 }
 
 
 export {list}
 async function list(ctx) {
-  // Respond a list of all statements.
-  let statements = await r
-    .table("statements")
-    .orderBy({index: r.desc("createdAt")})
-  ctx.body = {
-    apiVersion: "1",
-    data: statements.map(toStatementJson),
+  // Respond a list of statements.
+  let languageCode = ctx.parameter.languageCode
+  let statements
+  if (languageCode) {
+    statements = await r
+      .table("statements")
+      .getAll(languageCode, {index: "languageCode"})
+  } else {
+    statements = await r
+      .table("statements")
+      .orderBy({index: r.desc("createdAt")})
   }
-}
-
-
-export {listLanguage}
-async function listLanguage(ctx) {
-  // Respond a list of all statements.
-  let languageCode = ctx.statementLanguageCode
-  let statements = await r
-    .table("statements")
-    .getAll(languageCode, {index: "languageCode"})
   ctx.body = {
     apiVersion: "1",
-    data: statements.map(toStatementJson),
+    data: await Promise.all(statements.map(toStatementJson)),
   }
 }
 
@@ -120,8 +115,15 @@ async function requireStatement(ctx, next) {
 }
 
 
-function toStatementJson(statement) {
+async function toStatementJson(statement, {showAuthorName = false} = {}) {
   let statementJson = {...statement}
+  if (showAuthorName && statement.authorId) {
+    statementJson.authorName = await r
+      .table("users")
+      .get(statement.authorId)
+      .getField("urlName")
+  }
+  delete statementJson.authorId
   statementJson.createdAt = statementJson.createdAt.toISOString()
   return statementJson
 }

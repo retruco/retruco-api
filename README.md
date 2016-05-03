@@ -106,11 +106,41 @@ Returns:
   "apiVersion": "1",
   "data": [
     {
-      "createdAt": "2016-05-01T17:27:41.741Z",
-      "id": "643f83f8-4c6e-41e2-9f41-5e27ae958599",
+      "createdAt": "2016-05-02T13:37:17.070Z",
+      "id": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
       "languageCode": "fr",
       "name": "Il faut ouvrir le code source des logiciels du secteur public."
     }
   ]
 }
+```
+
+### List a specific statement
+
+```bash
+curl --header "Accept: application/json" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe"
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "createdAt": "2016-05-02T13:37:17.070Z",
+    "id": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
+    "languageCode": "fr",
+    "name": "Il faut ouvrir le code source des logiciels du secteur public.",
+    "authorName": "retruco-admin"
+  }
+}
+```
+
+### Rate a statement
+
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" --data-binary @- "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+{
+  "rating": 1
+}
+EOF
 ```
