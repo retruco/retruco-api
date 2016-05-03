@@ -8,9 +8,9 @@
   },
   {
     "append": true,
-    "script": "process-votes.js",
+    "script": "process-events.js",
     "sourceDir": ".",
-    "uid": "votes",
+    "uid": "events",
     "watch": true
   }
 ]

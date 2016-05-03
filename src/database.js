@@ -31,7 +31,7 @@ export const r = rethinkdbdashFactory({
     port: config.db.port,
   })
 
-const versionNumber = 1
+const versionNumber = 2
 
 
 export {checkDatabase}
@@ -62,6 +62,78 @@ async function configure() {
   }
 
   try {
+    await r.table("arguments").count()
+  } catch (e) {
+    // A primaryKey of type array is not supported yet.
+    // await r.tableCreate("arguments", {primaryKey: [
+    //   r.row("claimId"),
+    //   r.row("groundId"),
+    // ]})
+    await r.tableCreate("arguments")
+  }
+  const argumentsTable = r.table("arguments")
+  try {
+    await argumentsTable.indexWait("createdAt")
+  } catch (e) {
+    await argumentsTable.indexCreate("createdAt")
+  }
+
+  try {
+    await r.table("argumentsRating").count()
+  } catch (e) {
+    // A primaryKey of type array is not supported yet.
+    // await r.tableCreate("argumentsRating", {primaryKey: [
+    //   r.row("claimId"),
+    //   r.row("groundId"),
+    //   r.row("voterId"),
+    // ]})
+    await r.tableCreate("argumentsRating")
+  }
+  const argumentsRatingTable = r.table("argumentsRating")
+  try {
+    await argumentsRatingTable.indexWait("argumentId")
+  } catch (e) {
+    await argumentsRatingTable.indexCreate("argumentId", [
+      r.row("claimId"),
+      r.row("groundId"),
+    ])
+  }
+  try {
+    await argumentsRatingTable.indexWait("updatedAt")
+  } catch (e) {
+    await argumentsRatingTable.indexCreate("updatedAt")
+  }
+
+  try {
+    await r.table("events").count()
+  } catch (e) {
+    await r.tableCreate("events")
+  }
+  const eventsTable = r.table("events")
+  try {
+    await eventsTable.indexWait("argumentIdAndType")
+  } catch (e) {
+    await eventsTable.indexCreate("argumentIdAndType", [
+      r.row("claimId"),
+      r.row("groundId"),
+      r.row("type"),
+    ])
+  }
+  try {
+    await eventsTable.indexWait("createdAt")
+  } catch (e) {
+    await eventsTable.indexCreate("createdAt")
+  }
+  try {
+    await eventsTable.indexWait("statementIdAndType")
+  } catch (e) {
+    await eventsTable.indexCreate("statementIdAndType", [
+      r.row("statementId"),
+      r.row("type"),
+    ])
+  }
+
+  try {
     await r.table("statements").count()
   } catch (e) {
     await r.tableCreate("statements")
@@ -81,31 +153,23 @@ async function configure() {
   try {
     await r.table("statementsRating").count()
   } catch (e) {
+    // A primaryKey of type array is not supported yet.
+    // await r.tableCreate("statementsRating", {primaryKey: [
+    //   r.row("statementId"),
+    //   r.row("voterId"),
+    // ]})
     await r.tableCreate("statementsRating")
   }
   const statementsRatingTable = r.table("statementsRating")
-  try {
-    await statementsRatingTable.indexWait("updatedAt")
-  } catch (e) {
-    await statementsRatingTable.indexCreate("updatedAt")
-  }
   try {
     await statementsRatingTable.indexWait("statementId")
   } catch (e) {
     await statementsRatingTable.indexCreate("statementId")
   }
   try {
-    await statementsRatingTable.indexWait("statementIdAndVoterId")
+    await statementsRatingTable.indexWait("updatedAt")
   } catch (e) {
-    await statementsRatingTable.indexCreate("statementIdAndVoterId", [
-      r.row("statementId"),
-      r.row("voterId"),
-    ])
-  }
-  try {
-    await statementsRatingTable.indexWait("voterId")
-  } catch (e) {
-    await statementsRatingTable.indexCreate("voterId")
+    await statementsRatingTable.indexCreate("updatedAt")
   }
 
   try {
@@ -150,6 +214,9 @@ async function configure() {
   const previousVersionNumber = version.number
 
   if (version.number === 0) {
+    version.number += 1
+  }
+  if (version.number === 1) {
     version.number += 1
   }
 

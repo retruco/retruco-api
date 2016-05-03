@@ -22,4 +22,4 @@
 require("babel-polyfill")  //Must be at the top of the entry point to application.
 require("babel-core/register")
 
-require("./src/process-votes")
+require("./src/process-events")

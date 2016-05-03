@@ -22,6 +22,23 @@
 import {r} from "../database"
 
 
+async function addRatingEvent(statementId) {
+  let events = await r
+    .table("events")
+    .getAll([statementId, "statement rating"], {index: "statementIdAndType"})
+    .limit(1)
+  if (events.length < 1) {
+    await r
+      .table("events")
+      .insert({
+        createdAt: r.now(),
+        statementId,
+        type: "statement rating",
+      })
+  }
+}
+
+
 export {create}
 async function create(ctx) {
   // Create a new statement.
@@ -62,6 +79,38 @@ async function del(ctx) {
 }
 
 
+export {deleteRating}
+async function deleteRating(ctx) {
+  // Delete a statement rating.
+  let statement = ctx.statement
+
+  let id = [statement.id, ctx.authenticatedUser.id].join("/")
+  let statementRating = await r
+    .table("statementsRating")
+    .get(id)
+  if (statementRating === null) {
+    statementRating = {
+      id,
+      // rating: null,
+      statementId: statement.id,
+      // updatedAt: r.now(),
+      voterId: ctx.authenticatedUser.id,
+    }
+  } else {
+    await r
+      .table("statementsRating")
+      .get(id)
+      .delete()
+    await addRatingEvent(statement.id)
+  }
+
+  ctx.body = {
+    apiVersion: "1",
+    data: await toStatementRatingJson(statementRating, {showVoterName: true}),
+  }
+}
+
+
 export {get}
 async function get(ctx) {
   // Respond an existing statement.
@@ -69,6 +118,32 @@ async function get(ctx) {
   ctx.body = {
     apiVersion: "1",
     data: await toStatementJson(ctx.statement, {showAuthorName: true}),
+  }
+}
+
+
+export {getRating}
+async function getRating(ctx) {
+  // Respond an existing statement rating.
+  let statement = ctx.statement
+
+  let id = [statement.id, ctx.authenticatedUser.id].join("/")
+  let statementRating = await r
+    .table("statementsRating")
+    .get(id)
+  if (statementRating === null) {
+    statementRating = {
+      id,
+      // rating: null,
+      statementId: statement.id,
+      // updatedAt: r.now(),
+      voterId: ctx.authenticatedUser.id,
+    }
+  }
+
+  ctx.body = {
+    apiVersion: "1",
+    data: await toStatementRatingJson(statementRating, {showVoterName: true}),
   }
 }
 
@@ -126,4 +201,60 @@ async function toStatementJson(statement, {showAuthorName = false} = {}) {
   delete statementJson.authorId
   statementJson.createdAt = statementJson.createdAt.toISOString()
   return statementJson
+}
+
+
+async function toStatementRatingJson(statementRating, {showVoterName = false} = {}) {
+  let statementRatingJson = {...statementRating}
+  delete statementRatingJson.id
+  if (showVoterName && statementRating.voterId) {
+    statementRatingJson.voterName = await r
+      .table("users")
+      .get(statementRating.voterId)
+      .getField("urlName")
+  }
+  delete statementRatingJson.voterId
+  if (statementRatingJson.updatedAt) statementRatingJson.updatedAt = statementRatingJson.updatedAt.toISOString()
+  return statementRatingJson
+}
+
+
+export {upsertRating}
+async function upsertRating(ctx) {
+  // Insert or update a statement rating.
+  let statement = ctx.statement
+  let ratingData = ctx.parameter.ratingData
+
+  let id = [statement.id, ctx.authenticatedUser.id].join("/")
+  let statementRating = await r
+    .table("statementsRating")
+    .get(id)
+  if (statementRating === null) {
+    statementRating = {
+      id,
+      rating: ratingData.rating,
+      statementId: statement.id,
+      updatedAt: r.now(),
+      voterId: ctx.authenticatedUser.id,
+    }
+    let result = await r
+      .table("statementsRating")
+      .insert(statementRating, {returnChanges: true})
+    statementRating = result.changes[0].new_val
+    await addRatingEvent(statement.id)
+    ctx.status = 201  // Created
+  } else if (ratingData.rating !== statementRating.rating) {
+    statementRating.rating = ratingData.rating
+    statementRating.updatedAt = r.now()
+    let result = await r
+      .table("statementsRating")
+      .get(id)
+      .update(statementRating, {returnChanges: true})
+    statementRating = result.changes[0].new_val
+    await addRatingEvent(statement.id)
+  }
+  ctx.body = {
+    apiVersion: "1",
+    data: await toStatementRatingJson(statementRating, {showVoterName: true}),
+  }
 }

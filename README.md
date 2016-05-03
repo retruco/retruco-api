@@ -43,26 +43,28 @@ npm run process-votes
 
 To explore Retruco API, open http://petstore.swagger.io/ and explore http://localhost:3000/swagger.json.
 
-## Example
+## API usage
 
-### Create a user
+### API usage for users
+
+#### Create a user
 
 ```bash
 cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --data-binary @- "http://localhost:3000/users"
 {
-  "name": "Retruco Admin",
-  "urlName": "retruco-admin",
+  "name": "Alice",
+  "urlName": "alice",
   "password": "secret"
 }
 EOF
 ```
 
-### Login to retrieve user API key
+#### Login to retrieve user API key
 
 ```bash
 cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --data-binary @- "http://localhost:3000/login"
 {
-  "userName": "retruco-admin",
+  "userName": "alice",
   "password": "secret"
 }
 EOF
@@ -73,28 +75,39 @@ Returns:
 {
   "apiVersion": "1",
   "data": {
-    "apiKey": "ROQuhYRs1drbvthwM8dI/A",
-    "createdAt": "2016-05-01T16:30:01.695Z",
-    "name": "Retruco Admin",
-    "urlName": "retruco-admin"
+    "apiKey": "HoIw4IqGwymIeP+xRK2MUg",
+    "createdAt": "2016-05-03T21:28:34.447Z",
+    "name": "Alice",
+    "urlName": "alice"
   }
 }
 ```
 
 Retrieve the API key in field `data.apiKey` of the response.
 
-### Create a statement belonging to this user.
+### API usage for statements
+
+#### Create statements belonging to this user.
 
 ```bash
-cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" --data-binary @- "http://localhost:3000/statements"
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements"
 {
   "languageCode": "fr",
-  "name": "Il faut ouvrir le code source des logiciels du secteur public."
+  "name": "Il faut ouvrir le code source des logiciels du secteur public"
 }
 EOF
 ```
 
-### List all statements.
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements"
+{
+  "languageCode": "fr",
+  "name": "Ouvrir le code source est préférable à ouvrir les algorithmes"
+}
+EOF
+```
+
+#### List all statements.
 
 ```bash
 curl --header "Accept: application/json" "http://localhost:3000/statements"
@@ -106,19 +119,25 @@ Returns:
   "apiVersion": "1",
   "data": [
     {
-      "createdAt": "2016-05-02T13:37:17.070Z",
-      "id": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
+      "createdAt": "2016-05-03T21:42:48.226Z",
+      "id": "c671c17e-a272-4a6a-9bc1-2b82db7c7499",
       "languageCode": "fr",
-      "name": "Il faut ouvrir le code source des logiciels du secteur public."
+      "name": "Ouvrir le code source est préférable à ouvrir les algorithmes"
+    },
+    {
+      "createdAt": "2016-05-03T21:31:18.124Z",
+      "id": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+      "languageCode": "fr",
+      "name": "Il faut ouvrir le code source des logiciels du secteur public"
     }
   ]
 }
 ```
 
-### List a specific statement
+#### Get a specific statement
 
 ```bash
-curl --header "Accept: application/json" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe"
+curl --header "Accept: application/json" "http://localhost:3000/statements/82d4e0ac-c234-45eb-8ba2-02d4d6a41979"
 ```
 
 Returns:
@@ -126,19 +145,19 @@ Returns:
 {
   "apiVersion": "1",
   "data": {
-    "createdAt": "2016-05-02T13:37:17.070Z",
-    "id": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
+    "createdAt": "2016-05-03T21:31:18.124Z",
+    "id": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
     "languageCode": "fr",
-    "name": "Il faut ouvrir le code source des logiciels du secteur public.",
-    "authorName": "retruco-admin"
+    "name": "Il faut ouvrir le code source des logiciels du secteur public",
+    "authorName": "alice"
   }
 }
 ```
 
-### Rate a statement
+#### Rate a statement
 
 ```bash
-cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" --data-binary @- "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/rating"
 {
   "rating": 1
 }
@@ -151,17 +170,17 @@ Returns:
   "apiVersion": "1",
   "data": {
     "rating": 1,
-    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
-    "updatedAt": "2016-05-03T04:53:30.991Z",
-    "voterName": "retruco-admin"
+    "statementId": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+    "updatedAt": "2016-05-03T21:33:34.282Z",
+    "voterName": "alice"
   }
 }
 ```
 
-### Get an existing statement rating
+#### Get an existing statement rating
 
 ```bash
-curl --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+curl --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" "http://localhost:3000/statements/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/rating"
 ```
 
 Returns:
@@ -170,17 +189,17 @@ Returns:
   "apiVersion": "1",
   "data": {
     "rating": 1,
-    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
-    "updatedAt": "2016-05-03T04:53:30.991Z",
-    "voterName": "retruco-admin"
+    "statementId": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+    "updatedAt": "2016-05-03T21:33:34.282Z",
+    "voterName": "alice"
   }
 }
 ```
 
-### Delete an exiting statement rating
+#### Delete an exiting statement rating
 
 ```bash
-curl -X DELETE --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+curl -X DELETE --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" "http://localhost:3000/statements/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/rating"
 ```
 
 Returns:
@@ -189,17 +208,17 @@ Returns:
   "apiVersion": "1",
   "data": {
     "rating": 1,
-    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
-    "updatedAt": "2016-05-03T04:53:30.991Z",
-    "voterName": "retruco-admin"
+    "statementId": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+    "updatedAt": "2016-05-03T21:33:34.282Z",
+    "voterName": "alice"
   }
 }
 ```
 
-### Get a non-existing statement rating
+#### Get a non-existing statement rating
 
 ```bash
-curl --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+curl --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" "http://localhost:3000/statements/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/rating"
 ```
 
 Returns:
@@ -207,16 +226,16 @@ Returns:
 {
   "apiVersion": "1",
   "data": {
-    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
-    "voterName": "retruco-admin"
+    "statementId": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+    "voterName": "alice"
   }
 }
 ```
 
-### Delete a non-exiting statement rating
+#### Delete a non-exiting statement rating
 
 ```bash
-curl -X DELETE --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+curl -X DELETE --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" "http://localhost:3000/statements/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/rating"
 ```
 
 Returns:
@@ -224,8 +243,71 @@ Returns:
 {
   "apiVersion": "1",
   "data": {
-    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
-    "voterName": "retruco-admin"
+    "statementId": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+    "voterName": "alice"
+  }
+}
+```
+
+### API usage for arguments
+
+#### Get a specific argument
+
+```bash
+curl --header "Accept: application/json" "http://localhost:3000/arguments/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/c671c17e-a272-4a6a-9bc1-2b82db7c7499"
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "claimId": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+    "createdAt": "2016-05-03T21:46:01.291Z",
+    "groundId": "c671c17e-a272-4a6a-9bc1-2b82db7c7499"
+  }
+}
+```
+
+#### Rate an argument
+
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/arguments/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/c671c17e-a272-4a6a-9bc1-2b82db7c7499/rating"
+{
+  "rating": 1
+}
+EOF
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "claimId": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+    "groundId": "c671c17e-a272-4a6a-9bc1-2b82db7c7499",
+    "rating": 1,
+    "updatedAt": "2016-05-03T21:56:56.194Z",
+    "voterName": "alice"
+  }
+}
+```
+
+#### Get the now rated argument
+
+```bash
+curl --header "Accept: application/json" "http://localhost:3000/arguments/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/c671c17e-a272-4a6a-9bc1-2b82db7c7499"
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "claimId": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
+    "createdAt": "2016-05-03T21:46:01.291Z",
+    "groundId": "c671c17e-a272-4a6a-9bc1-2b82db7c7499",
+    "rating": 1
   }
 }
 ```
