@@ -134,7 +134,6 @@ async function toStatementRatingJson(statementRating, {showVoterName = false} = 
       .getField("urlName")
   }
   delete statementRatingJson.voterId
-  statementRatingJson.updatedAt = statementRatingJson.updatedAt.toISOString()
-  console.log(statementRatingJson)
+  if (statementRatingJson.updatedAt) statementRatingJson.updatedAt = statementRatingJson.updatedAt.toISOString()
   return statementRatingJson
 }
