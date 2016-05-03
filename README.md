@@ -144,3 +144,88 @@ cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "A
 }
 EOF
 ```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "rating": 1,
+    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
+    "updatedAt": "2016-05-03T04:53:30.991Z",
+    "voterName": "retruco-admin"
+  }
+}
+```
+
+### Get an existing statement rating
+
+```bash
+curl --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "rating": 1,
+    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
+    "updatedAt": "2016-05-03T04:53:30.991Z",
+    "voterName": "retruco-admin"
+  }
+}
+```
+
+### Delete an exiting statement rating
+
+```bash
+curl -X DELETE --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "rating": 1,
+    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
+    "updatedAt": "2016-05-03T04:53:30.991Z",
+    "voterName": "retruco-admin"
+  }
+}
+```
+
+### Get a non-existing statement rating
+
+```bash
+curl --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
+    "voterName": "retruco-admin"
+  }
+}
+```
+
+### Delete a non-exiting statement rating
+
+```bash
+curl -X DELETE --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: ROQuhYRs1drbvthwM8dI/A" "http://localhost:3000/statements/7ebd3fab-3ad5-49c2-9eca-c6e272109ffe/rating"
+```
+
+Returns:
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "statementId": "7ebd3fab-3ad5-49c2-9eca-c6e272109ffe",
+    "voterName": "retruco-admin"
+  }
+}
+```
