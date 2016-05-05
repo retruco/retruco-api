@@ -270,7 +270,7 @@ export const SPEC = {
     },
     "/statements/{statementId}/abuse/rating": {
       delete: {
-        tags: ["abuse rating"],
+        tags: ["abuse", "rating"],
         summary: "Delete an existing abuse rating",
         // description: "",
         // externalDocs: {},
@@ -316,7 +316,7 @@ export const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
       get: {
-        tags: ["abuse rating"],
+        tags: ["abuse", "rating"],
         summary: "Get an abuse rating",
         // description: "",
         // externalDocs: {},
@@ -362,7 +362,7 @@ export const SPEC = {
         // security: {},
       },
       post: {
-        tags: ["abuse rating"],
+        tags: ["abuse", "rating"],
         summary: "Create or update abuse rating",
         // description: "",
         // externalDocs: {},
@@ -479,7 +479,7 @@ export const SPEC = {
     },
     "/statements/{statementId}/arguments/{groundId}/rating": {
       delete: {
-        tags: ["argument rating"],
+        tags: ["argument", "rating"],
         summary: "Delete an argument rating",
         // description: "",
         // externalDocs: {},
@@ -528,7 +528,7 @@ export const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
       get: {
-        tags: ["argument rating"],
+        tags: ["argument", "rating"],
         summary: "Get a argument rating",
         // description: "",
         // externalDocs: {},
@@ -577,7 +577,7 @@ export const SPEC = {
         // security: {},
       },
       post: {
-        tags: ["argument rating"],
+        tags: ["argument", "rating"],
         summary: "Create or update argument rating",
         // description: "",
         // externalDocs: {},
@@ -649,7 +649,7 @@ export const SPEC = {
     },
     "/statements/{statementId}/rating": {
       delete: {
-        tags: ["statement rating"],
+        tags: ["statement", "rating"],
         summary: "Delete an existing statement rating",
         // description: "",
         // externalDocs: {},
@@ -695,7 +695,7 @@ export const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
       get: {
-        tags: ["statement rating"],
+        tags: ["statement", "rating"],
         summary: "Get a statement rating",
         // description: "",
         // externalDocs: {},
@@ -741,7 +741,7 @@ export const SPEC = {
         // security: {},
       },
       post: {
-        tags: ["statement rating"],
+        tags: ["statement", "rating"],
         summary: "Create or update statement rating",
         // description: "",
         // externalDocs: {},
