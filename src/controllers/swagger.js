@@ -1209,6 +1209,10 @@ export const SPEC = {
             groundId: {
               $ref: "#/definitions/Id",
             },
+            isAbuse: {
+              type: "boolean",
+              default: false,
+            },
           },
           required: [
             "claimId",

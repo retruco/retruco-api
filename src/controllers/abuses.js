@@ -25,7 +25,7 @@ import {r} from "../database"
 export {requireAbuse}
 async function requireAbuse(ctx, next) {
   let statement = ctx.statement
-  if (statement.type === "Abuse") {
+  if (! ["Argument", "PlainStatement"].includes(statement.type)) {
     ctx.status = 404
     ctx.body = {
       apiVersion: "1",

@@ -27,9 +27,11 @@ async function createStatement(ctx) {
   // Create a new statement.
   let statement = ctx.parameter.statement
 
-  if (statement.type === "PlainStatement") {
+  if (statement.type === "Argument") {
     delete statement.isAbuse
+  } else if (statement.type === "PlainStatement") {
     statement.authorId = ctx.authenticatedUser.id  
+    delete statement.isAbuse
   }
   statement.createdAt = r.now()
   delete statement.id
