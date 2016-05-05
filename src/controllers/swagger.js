@@ -374,23 +374,7 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            // description: "",
-            in: "body",
-            name: "ratingData",
-            required: true,
-            schema: {
-              type: "object",
-              properties: {
-                rating: {
-                  type: "integer",
-                  maximum: 1,
-                  minimum: -1,
-                },
-              },
-              required: [
-                "rating",
-              ],
-            },
+            $ref: "#/parameters/ratingDataParam",
           },
           {
             $ref: "#/parameters/apiKeyRequiredParam",
@@ -608,23 +592,7 @@ export const SPEC = {
             $ref: "#/parameters/groundIdParam",
           },
           {
-            // description: "",
-            in: "body",
-            name: "ratingData",
-            required: true,
-            schema: {
-              type: "object",
-              properties: {
-                rating: {
-                  type: "integer",
-                  maximum: 1,
-                  minimum: -1,
-                },
-              },
-              required: [
-                "rating",
-              ],
-            },
+            $ref: "#/parameters/ratingDataParam",
           },
           {
             $ref: "#/parameters/apiKeyRequiredParam",
@@ -785,23 +753,7 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            // description: "",
-            in: "body",
-            name: "ratingData",
-            required: true,
-            schema: {
-              type: "object",
-              properties: {
-                rating: {
-                  type: "integer",
-                  maximum: 1,
-                  minimum: -1,
-                },
-              },
-              required: [
-                "rating",
-              ],
-            },
+            $ref: "#/parameters/ratingDataParam",
           },
           {
             $ref: "#/parameters/apiKeyRequiredParam",
@@ -1362,6 +1314,25 @@ export const SPEC = {
       name: "languageCode",
       type: "string",
       pattern: "^[a-z]{2}$",
+    },
+    ratingDataParam: {
+      // description: "",
+      in: "body",
+      name: "ratingData",
+      required: true,
+      schema: {
+        type: "object",
+        properties: {
+          rating: {
+            type: "integer",
+            maximum: 1,
+            minimum: -1,
+          },
+        },
+        required: [
+          "rating",
+        ],
+      },
     },
     showParam: {
       // description: "",
