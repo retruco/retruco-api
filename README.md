@@ -409,3 +409,76 @@ Returns:
 ```bash
 curl -X DELETE --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" "http://localhost:3000/statements/1630eafd-e387-44bf-abbb-70c5bf9fdfc8/abuse/rating"
 ```
+
+### API usage for tags
+
+#### Get a specific tag of a statement
+
+```bash
+curl --header "Accept: application/json" "http://localhost:3000/statements/1630eafd-e387-44bf-abbb-70c5bf9fdfc8/tags/logiciel_libre"
+```
+
+Returns:
+
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "createdAt": "2016-05-05T22:46:54.069Z",
+    "id": "dd3fd0ad-206e-495f-be47-3d4952f44a8d",
+    "name": "logiciel_libre",
+    "statementId": "1630eafd-e387-44bf-abbb-70c5bf9fdfc8",
+    "type": "Tag"
+  }
+}
+```
+
+#### Rate a tag of a statement
+
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements/1630eafd-e387-44bf-abbb-70c5bf9fdfc8/tags/logiciel_libre/rating"
+{
+  "rating": 1
+}
+EOF
+```
+
+Returns:
+
+```json
+{
+  "apiVersion": "1",
+  "data": {
+    "rating": 1,
+    "statementId": "dd3fd0ad-206e-495f-be47-3d4952f44a8d",
+    "updatedAt": "2016-05-05T22:48:58.320Z",
+    "voterName": "alice"
+  }
+}
+```
+
+#### List the tags of a statement
+
+```bash
+curl --header "Accept: application/json" "http://localhost:3000/statements/1630eafd-e387-44bf-abbb-70c5bf9fdfc8/tags"
+```
+
+Returns:
+
+```json
+{
+  "apiVersion": "1",
+  "data": [
+    {
+      "createdAt": "2016-05-05T22:46:54.069Z",
+      "id": "dd3fd0ad-206e-495f-be47-3d4952f44a8d",
+      "name": "logiciel_libre",
+      "rating": 1,
+      "ratingCount": 1,
+      "ratingSum": 1,
+      "statementId": "1630eafd-e387-44bf-abbb-70c5bf9fdfc8",
+      "type": "Tag"
+    }
+  ]
+}
+```

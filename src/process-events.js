@@ -44,6 +44,12 @@ async function describe(statement) {
     return `argument for ${claimDescription} based on ${groundDescription}` 
   } else if (type === "PlainStatement") {
     return `plain statement ${statement.languageCode}"${statement.name}"`
+  } else if (type === "Tag") {
+    const taggedStatement = await r
+      .table("statements")
+      .get(statement.statementId)
+    const taggedDescription = await describe(taggedStatement)
+    return `tag "${statement.name}" of ${taggedDescription}` 
   } else {
     return `statement of unknown type ${type}` 
   }

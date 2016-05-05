@@ -808,6 +808,272 @@ export const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/statements/{statementId}/tags": {
+      get: {
+        tags: ["tag"],
+        summary: "List tags of statement",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statements.listTags",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing tags",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  type: "array",
+                  items: {
+                    $ref: "#/definitions/Tag",
+                  },
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
+    "/statements/{statementId}/tags/{tagName}": {
+      get: {
+        tags: ["tag"],
+        summary: "Get tag of statement",
+        // description: "",
+        // externalDocs: {},
+        operationId: "tags.get",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/tagNameParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested tag",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/Tag",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
+    "/statements/{statementId}/tags/{tagName}/rating": {
+      delete: {
+        tags: ["rating", "tag"],
+        summary: "Delete a tag rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "tags.deleteRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/tagNameParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the deleted tag rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+      get: {
+        tags: ["rating", "tag"],
+        summary: "Get a tag rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "tags.getRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/tagNameParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested tag rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+      post: {
+        tags: ["rating", "tag"],
+        summary: "Create or update tag rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "tags.upsertRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/tagNameParam",
+          },
+          {
+            $ref: "#/parameters/ratingDataParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the updated tag rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          "201": {
+            description: "A wrapper containing the created tag rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+    },
     "/login": {
       post: {
         tags: ["user"],
@@ -1233,6 +1499,28 @@ export const SPEC = {
         "statementId",
       ],
     },
+    Tag: {
+      allOf: [
+        {
+          $ref: "#/definitions/AbstractStatement",
+        },
+        {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+            },
+            statementId: {
+              $ref: "#/definitions/Id",
+            },
+          },
+          required: [
+            "name",
+            "statementId",
+          ],
+        },
+      ],
+    },
     UrlName: {
       type: "string",
     },
@@ -1364,6 +1652,13 @@ export const SPEC = {
       schema: {
         $ref: "#/definitions/AbstractStatement",
       },
+    },
+    tagNameParam: {
+      // description: "",
+      in: "path",
+      name: "tagName",
+      required: true,
+      type: "string",
     },
     userNameParam: {
       // description: "",

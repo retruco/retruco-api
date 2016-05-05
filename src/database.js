@@ -31,7 +31,7 @@ export const r = rethinkdbdashFactory({
     port: config.db.port,
   })
 
-const versionNumber = 3
+const versionNumber = 4
 
 
 export {checkDatabase}
@@ -138,6 +138,15 @@ async function configure() {
     await statementsTable.indexCreate("languageCode")
   }
   try {
+    await statementsTable.indexWait("statementIdAndNameAndType")
+  } catch (e) {
+    await statementsTable.indexCreate("statementIdAndNameAndType", [
+      r.row("statementId"),
+      r.row("name"),
+      r.row("type"),
+    ])
+  }
+  try {
     await statementsTable.indexWait("statementIdAndType")
   } catch (e) {
     await statementsTable.indexCreate("statementIdAndType", [
@@ -210,6 +219,9 @@ async function configure() {
           type: "PlainStatement",
         })
     }
+    version.number += 1
+  }
+  if (version.number === 3) {
     version.number += 1
   }
 

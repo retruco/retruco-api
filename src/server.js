@@ -34,6 +34,7 @@ import * as argumentsController from "./controllers/arguments"
 import * as ratingsController from "./controllers/ratings"
 import * as statementsController from "./controllers/statements"
 import * as swaggerController from "./controllers/swagger"
+import * as tagsController from "./controllers/tags"
 import * as usersController from "./controllers/users"
 
 
@@ -90,6 +91,18 @@ router.get("/statements/:statementId/rating", swaggerValidator, usersController.
   statementsController.requireStatement, ratingsController.getRating)
 router.post("/statements/:statementId/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
   statementsController.requireStatement, ratingsController.upsertRating)
+
+router.get("/statements/:statementId/tags", swaggerValidator, usersController.authenticate(false),
+  statementsController.requireStatement, tagsController.listStatementTags)
+router.get("/statements/:statementId/tags/:tagName", swaggerValidator, usersController.authenticate(false),
+  statementsController.requireStatement, tagsController.requireTag, statementsController.getStatement)
+router.delete("/statements/:statementId/tags/:tagName/rating", swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, tagsController.requireTag, ratingsController.deleteRating)
+router.get("/statements/:statementId/tags/:tagName/rating", swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, tagsController.requireTag, ratingsController.getRating)
+router.post("/statements/:statementId/tags/:tagName/rating", bodyParser, swaggerValidator,
+  usersController.authenticate(true), statementsController.requireStatement, tagsController.requireTag,
+  ratingsController.upsertRating)
 
 router.post("/login", bodyParser, swaggerValidator, usersController.login)
 

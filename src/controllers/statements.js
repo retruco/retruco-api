@@ -20,6 +20,7 @@
 
 
 import {r} from "../database"
+import {toStatementJson} from "../model"
 
 
 export {createStatement}
@@ -120,20 +121,4 @@ async function requireStatement(ctx, next) {
   ctx.statement = statement
 
   await next()
-}
-
-
-async function toStatementJson(statement, {showAuthorName = false} = {}) {
-  let statementJson = {...statement}
-  if (statement.type === "PlainStatement") {
-    if (showAuthorName && statement.authorId) {
-      statementJson.authorName = await r
-        .table("users")
-        .get(statement.authorId)
-        .getField("urlName")
-    }
-    delete statementJson.authorId
-  }
-  statementJson.createdAt = statementJson.createdAt.toISOString()
-  return statementJson
 }

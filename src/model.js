@@ -45,3 +45,20 @@ export function ownsUser(user, otherUser) {
   if (user.isAdmin) return true
   return user.id === otherUser.id
 }
+
+
+export {toStatementJson}
+async function toStatementJson(statement, {showAuthorName = false} = {}) {
+  let statementJson = {...statement}
+  if (statement.type === "PlainStatement") {
+    if (showAuthorName && statement.authorId) {
+      statementJson.authorName = await r
+        .table("users")
+        .get(statement.authorId)
+        .getField("urlName")
+    }
+    delete statementJson.authorId
+  }
+  statementJson.createdAt = statementJson.createdAt.toISOString()
+  return statementJson
+}
