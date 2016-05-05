@@ -29,7 +29,9 @@ import swaggerValidatorFactory from "koa-swagger"
 
 import config from "./config"
 import {checkDatabase} from "./database"
+import * as abusesController from "./controllers/abuses"
 import * as argumentsController from "./controllers/arguments"
+import * as ratingsController from "./controllers/ratings"
 import * as statementsController from "./controllers/statements"
 import * as swaggerController from "./controllers/swagger"
 import * as usersController from "./controllers/users"
@@ -54,41 +56,53 @@ let swaggerValidator = convert(swaggerValidatorFactory(patchedSwaggerSpec))
 
 let router = routerFactory()
 
-router.get("/arguments/:claimId/:groundId", swaggerValidator, usersController.authenticate(false),
-  argumentsController.requireArgument, argumentsController.get)
-router.delete("/arguments/:claimId/:groundId/rating", swaggerValidator, usersController.authenticate(true),
-  argumentsController.requireArgument, argumentsController.deleteRating)
-router.get("/arguments/:claimId/:groundId/rating", swaggerValidator, usersController.authenticate(true),
-  argumentsController.requireArgument, argumentsController.getRating)
-router.post("/arguments/:claimId/:groundId/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
-  argumentsController.requireArgument, argumentsController.upsertRating)
-
-router.get("/statements", swaggerValidator, statementsController.list)
+router.get("/statements", swaggerValidator, statementsController.listStatements)
 router.post("/statements", bodyParser, swaggerValidator, usersController.authenticate(true),
-  statementsController.create)
+  statementsController.createStatement)
 router.delete("/statements/:statementId", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, statementsController.del)
+  statementsController.requireStatement, statementsController.deleteStatement)
 router.get("/statements/:statementId", swaggerValidator, usersController.authenticate(false),
-  statementsController.requireStatement, statementsController.get)
+  statementsController.requireStatement, statementsController.getStatement)
+
+router.get("/statements/:statementId/abuse", swaggerValidator, usersController.authenticate(false),
+  statementsController.requireStatement, abusesController.requireAbuse, statementsController.getStatement)
+router.delete("/statements/:statementId/abuse/rating", swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, abusesController.requireAbuse, ratingsController.deleteRating)
+router.get("/statements/:statementId/abuse/rating", swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, abusesController.requireAbuse, ratingsController.getRating)
+router.post("/statements/:statementId/abuse/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, abusesController.requireAbuse, ratingsController.upsertRating)
+
+router.get("/statements/:statementId/arguments/:groundId", swaggerValidator, usersController.authenticate(false),
+  statementsController.requireStatement, argumentsController.requireArgument, statementsController.getStatement)
+router.delete("/statements/:statementId/arguments/:groundId/rating", swaggerValidator,
+  usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
+  ratingsController.deleteRating)
+router.get("/statements/:statementId/arguments/:groundId/rating", swaggerValidator, usersController.authenticate(true),
+  statementsController.requireStatement, argumentsController.requireArgument, ratingsController.getRating)
+router.post("/statements/:statementId/arguments/:groundId/rating", bodyParser, swaggerValidator,
+  usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
+  ratingsController.upsertRating)
+
 router.delete("/statements/:statementId/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, statementsController.deleteRating)
+  statementsController.requireStatement, ratingsController.deleteRating)
 router.get("/statements/:statementId/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, statementsController.getRating)
+  statementsController.requireStatement, ratingsController.getRating)
 router.post("/statements/:statementId/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, statementsController.upsertRating)
+  statementsController.requireStatement, ratingsController.upsertRating)
 
 router.post("/login", bodyParser, swaggerValidator, usersController.login)
 
-router.get("/swagger.json", swaggerController.get)
+router.get("/swagger.json", swaggerController.getSwagger)
 
-router.get("/users", swaggerValidator, usersController.listUrlNames)
-router.post("/users", bodyParser, swaggerValidator, usersController.create)
-// router.put("/users", bodyParser, swaggerValidator, usersController.update)
+router.get("/users", swaggerValidator, usersController.listUsersUrlName)
+router.post("/users", bodyParser, swaggerValidator, usersController.createUser)
+// router.put("/users", bodyParser, swaggerValidator, usersController.updateUser)
 router.delete("/users/:userName", swaggerValidator, usersController.requireUser, usersController.authenticate(true),
-  usersController.del)
+  usersController.deleteUser)
 router.get("/users/:userName", swaggerValidator, usersController.requireUser, usersController.authenticate(false),
-  usersController.get)
-// router.patch("/users/:userName", swaggerValidator, usersController.requireUser, usersController.patch)
+  usersController.getUser)
+// router.patch("/users/:userName", swaggerValidator, usersController.requireUser, usersController.patchUser)
 
 let app = new Koa()
 app.keys = config.keys

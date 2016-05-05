@@ -22,182 +22,45 @@
 import {r} from "../database"
 
 
-async function addRatingEvent(claimId, groundId) {
-  let events = await r
-    .table("events")
-    .getAll([claimId, groundId, "argument rating"], {index: "argumentIdAndType"})
-    .limit(1)
-  if (events.length < 1) {
-    await r
-      .table("events")
-      .insert({
-        claimId,
-        createdAt: r.now(),
-        groundId,
-        type: "argument rating",
-      })
-  }
-}
-
-
-export {deleteRating}
-async function deleteRating(ctx) {
-  // Delete an argument rating.
-  let argument = ctx.argument
-
-  let id = [argument.claimId, argument.groundId, ctx.authenticatedUser.id].join("/")
-  let argumentRating = await r
-    .table("argumentsRating")
-    .get(id)
-  if (argumentRating === null) {
-    argumentRating = {
-      claimId: argument.claimId,
-      groundId: argument.groundId,
-      id,
-      // rating: null,
-      // updatedAt: r.now(),
-      voterId: ctx.authenticatedUser.id,
-    }
-  } else {
-    await r
-      .table("argumentsRating")
-      .get(id)
-      .delete()
-    await addRatingEvent(argument.claimId, argument.groundId)
-  }
-
-  ctx.body = {
-    apiVersion: "1",
-    data: await toArgumentRatingJson(argumentRating, {showVoterName: true}),
-  }
-}
-
-
-export {get}
-async function get(ctx) {
-  // Respond an existing argument.
-
-  ctx.body = {
-    apiVersion: "1",
-    data: await toArgumentJson(ctx.argument),
-  }
-}
-
-
-export {getRating}
-async function getRating(ctx) {
-  // Respond an argument rating.
-  let argument = ctx.argument
-
-  let id = [argument.claimId, argument.groundId, ctx.authenticatedUser.id].join("/")
-  let argumentRating = await r
-    .table("argumentsRating")
-    .get(id)
-  if (argumentRating === null) {
-    argumentRating = {
-      claimId: argument.claimId,
-      groundId: argument.groundId,
-      id,
-      // rating: null,
-      // updatedAt: r.now(),
-      voterId: ctx.authenticatedUser.id,
-    }
-  }
-
-  ctx.body = {
-    apiVersion: "1",
-    data: await toArgumentRatingJson(argumentRating, {showVoterName: true}),
-  }
-}
-
-
 export {requireArgument}
 async function requireArgument(ctx, next) {
-  let claimId = ctx.parameter.claimId
+  let statement = ctx.statement
+
   let groundId = ctx.parameter.groundId
-  let id = [claimId, groundId].join("/")
-  let argument = await r
-    .table("arguments")
-    .get(id)
-  // Create an argument when it is missing. Never return a 404.
-  if (argument === null) {
+  let ground = await r
+    .table("statements")
+    .get(groundId)
+  if (ground === null) {
+    ctx.status = 404
+    ctx.body = {
+      apiVersion: "1",
+      code: 404,
+      message: `No ground statement with ID "${groundId}".`,
+    }
+    return
+  }
+
+  let args = await r
+    .table("statements")
+    .getAll([statement.id, ground.id], {index: "claimIdAndGroundId"})
+    .limit(1)
+  let argument
+  if (args.length < 1) {
+    // Create an argument when it is missing. Never return a 404.
     argument = {
-      claimId,
+      claimId: statement.id,
       createdAt: r.now(),
-      groundId,
-      id,
+      groundId: ground.id,
+      type: "Argument",
     }
     let result = await r
-      .table("arguments")
+      .table("statements")
       .insert(argument, {returnChanges: true})
     argument = result.changes[0].new_val
+  } else {
+    argument = args[0]
   }
-  ctx.argument = argument
+  ctx.statement = argument
 
   await next()
-}
-
-
-async function toArgumentJson(argument) {
-  let argumentJson = {...argument}
-  argumentJson.createdAt = argumentJson.createdAt.toISOString()
-  delete argumentJson.id
-  return argumentJson
-}
-
-
-async function toArgumentRatingJson(argumentRating, {showVoterName = false} = {}) {
-  let argumentRatingJson = {...argumentRating}
-  delete argumentRatingJson.id
-  if (showVoterName && argumentRating.voterId) {
-    argumentRatingJson.voterName = await r
-      .table("users")
-      .get(argumentRating.voterId)
-      .getField("urlName")
-  }
-  delete argumentRatingJson.voterId
-  if (argumentRatingJson.updatedAt) argumentRatingJson.updatedAt = argumentRatingJson.updatedAt.toISOString()
-  return argumentRatingJson
-}
-
-
-export {upsertRating}
-async function upsertRating(ctx) {
-  // Insert or update a argument rating.
-  let argument = ctx.argument
-  let ratingData = ctx.parameter.ratingData
-
-  let id = [argument.claimId, argument.groundId, ctx.authenticatedUser.id].join("/")
-  let argumentRating = await r
-    .table("argumentsRating")
-    .get(id)
-  if (argumentRating === null) {
-    argumentRating = {
-      claimId: argument.claimId,
-      groundId: argument.groundId,
-      id,
-      rating: ratingData.rating,
-      updatedAt: r.now(),
-      voterId: ctx.authenticatedUser.id,
-    }
-    let result = await r
-      .table("argumentsRating")
-      .insert(argumentRating, {returnChanges: true})
-    argumentRating = result.changes[0].new_val
-    await addRatingEvent(argument.claimId, argument.groundId)
-    ctx.status = 201  // Created
-  } else if (ratingData.rating !== argumentRating.rating) {
-    argumentRating.rating = ratingData.rating
-    argumentRating.updatedAt = r.now()
-    let result = await r
-      .table("argumentsRating")
-      .get(id)
-      .update(argumentRating, {returnChanges: true})
-    argumentRating = result.changes[0].new_val
-    await addRatingEvent(argument.claimId, argument.groundId)
-  }
-  ctx.body = {
-    apiVersion: "1",
-    data: await toArgumentRatingJson(argumentRating, {showVoterName: true}),
-  }
 }

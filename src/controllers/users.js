@@ -107,8 +107,8 @@ export function authenticate(require) {
 }
 
 
-export {create}
-async function create(ctx) {
+export {createUser}
+async function createUser(ctx) {
   // Create a new user.
   let user = ctx.parameter.user
   user.createdAt = r.now()
@@ -135,8 +135,8 @@ async function create(ctx) {
 }
 
 
-export {del}
-async function del(ctx) {
+export {deleteUser}
+async function deleteUser(ctx) {
   // Delete an existing user.
   let authenticatedUser = ctx.authenticatedUser
   let user = ctx.user
@@ -161,8 +161,8 @@ async function del(ctx) {
 }
 
 
-export {get}
-async function get(ctx) {
+export {getUser}
+async function getUser(ctx) {
   // Respond an existing user.
   let authenticatedUser = ctx.authenticatedUser
   let show = ctx.parameter.show || []
@@ -184,8 +184,8 @@ async function get(ctx) {
 }
 
 
-// export {list}
-// async function list(ctx) {
+// export {listUsers}
+// async function listUsers(ctx) {
 //   // Respond a list of all users.
 //   let users = await r
 //     .table("users")
@@ -197,8 +197,8 @@ async function get(ctx) {
 // }
 
 
-export {listUrlNames}
-async function listUrlNames(ctx) {
+export {listUsersUrlName}
+async function listUsersUrlName(ctx) {
   // Respond a list of the urlNames of all users.
   let usersUrlName = await r
     .table("users")
@@ -281,8 +281,8 @@ async function toUserJson(user, {showApiKey = false} = {}) {
 }
 
 
-// export {update}
-// async function update(ctx) {
+// export {updateUser}
+// async function updateUser(ctx) {
 //   // Update an existing user.
 //   let user = ctx.parameter.user
 //   if (user === null || user.id === null) throw new Error('User must have an "id" field.')

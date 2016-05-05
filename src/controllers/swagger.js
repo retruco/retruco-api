@@ -38,240 +38,6 @@ export const SPEC = {
   consumes: ["application/json"],
   produces: ["application/json"],
   paths: {
-    "/arguments/{claimId}/{groundId}": {
-      get: {
-        tags: ["argument"],
-        summary: "Get an argument",
-        // description: "",
-        // externalDocs: {},
-        operationId: "arguments.get",
-        // consumes: ["application/json"],
-        // produces: ["application/json"],
-        parameters: [
-          {
-            $ref: "#/parameters/claimIdParam",
-          },
-          {
-            $ref: "#/parameters/groundIdParam",
-          },
-        ],
-        responses: {
-          "200": {
-            description: "A wrapper containing the requested argument",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  $ref: "#/definitions/Argument",
-                },
-              },
-              required: [
-                "apiVersion",
-                "data",
-              ],
-            },
-          },
-          default: {
-            description: "Error payload",
-            schema: {
-              $ref: "#/definitions/Error",
-            },
-          },
-        },
-        // deprecated: true,
-        // schemes: ["http", "https", "ws", "wss"],
-        // security: {},
-      },
-    },
-    "/arguments/{claimId}/{groundId}/rating": {
-      delete: {
-        tags: ["argument rating"],
-        summary: "Delete an argument rating",
-        // description: "",
-        // externalDocs: {},
-        operationId: "arguments.deleteRating",
-        // consumes: ["application/json"],
-        // produces: ["application/json"],
-        parameters: [
-          {
-            $ref: "#/parameters/claimIdParam",
-          },
-          {
-            $ref: "#/parameters/groundIdParam",
-          },
-          {
-            $ref: "#/parameters/apiKeyRequiredParam",
-          },
-        ],
-        responses: {
-          "200": {
-            description: "A wrapper containing the deleted argument rating",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  $ref: "#/definitions/ArgumentRating",
-                },
-              },
-              required: [
-                "apiVersion",
-                "data",
-              ],
-            },
-          },
-          default: {
-            description: "Error payload",
-            schema: {
-              $ref: "#/definitions/Error",
-            },
-          },
-        },
-        // deprecated: true,
-        // schemes: ["http", "https", "ws", "wss"],
-        // security: [{apiKey: []}, {basic: []}],
-      },
-      get: {
-        tags: ["argument rating"],
-        summary: "Get a argument rating",
-        // description: "",
-        // externalDocs: {},
-        operationId: "arguments.getRating",
-        // consumes: ["application/json"],
-        // produces: ["application/json"],
-        parameters: [
-          {
-            $ref: "#/parameters/claimIdParam",
-          },
-          {
-            $ref: "#/parameters/groundIdParam",
-          },
-          {
-            $ref: "#/parameters/apiKeyRequiredParam",
-          },
-        ],
-        responses: {
-          "200": {
-            description: "A wrapper containing the requested argument rating",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  $ref: "#/definitions/ArgumentRating",
-                },
-              },
-              required: [
-                "apiVersion",
-                "data",
-              ],
-            },
-          },
-          default: {
-            description: "Error payload",
-            schema: {
-              $ref: "#/definitions/Error",
-            },
-          },
-        },
-        // deprecated: true,
-        // schemes: ["http", "https", "ws", "wss"],
-        // security: {},
-      },
-      post: {
-        tags: ["argument rating"],
-        summary: "Create or update argument rating",
-        // description: "",
-        // externalDocs: {},
-        operationId: "arguments.upsertRating",
-        // consumes: ["application/json"],
-        // produces: ["application/json"],
-        parameters: [
-          {
-            $ref: "#/parameters/claimIdParam",
-          },
-          {
-            $ref: "#/parameters/groundIdParam",
-          },
-          {
-            // description: "",
-            in: "body",
-            name: "ratingData",
-            required: true,
-            schema: {
-              type: "object",
-              properties: {
-                rating: {
-                  type: "integer",
-                  maximum: 1,
-                  minimum: -1,
-                },
-              },
-              required: [
-                "rating",
-              ],
-            },
-          },
-          {
-            $ref: "#/parameters/apiKeyRequiredParam",
-          },
-        ],
-        responses: {
-          "200": {
-            description: "A wrapper containing the updated argument rating",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  $ref: "#/definitions/ArgumentRating",
-                },
-              },
-              required: [
-                "apiVersion",
-                "data",
-              ],
-            },
-          },
-          "201": {
-            description: "A wrapper containing the created argument rating",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  $ref: "#/definitions/ArgumentRating",
-                },
-              },
-              required: [
-                "apiVersion",
-                "data",
-              ],
-            },
-          },
-          default: {
-            description: "Error payload",
-            schema: {
-              $ref: "#/definitions/Error",
-            },
-          },
-        },
-        // deprecated: true,
-        // schemes: ["http", "https", "ws", "wss"],
-        // security: [{apiKey: []}, {basic: []}],
-      },
-    },
     "/statements": {
       get: {
         tags: ["statement"],
@@ -298,7 +64,7 @@ export const SPEC = {
                 data: {
                   type: "array",
                   items: {
-                    $ref: "#/definitions/Statement",
+                    $ref: "#/definitions/AbstractStatement",
                   },
                 },
               },
@@ -345,7 +111,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Statement",
+                  $ref: "#/definitions/AbstractStatement",
                 },
               },
               required: [
@@ -372,7 +138,7 @@ export const SPEC = {
         summary: "Delete an existing statement",
         // description: "",
         // externalDocs: {},
-        operationId: "statements.del",
+        operationId: "statements.delete",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -393,7 +159,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Statement",
+                  $ref: "#/definitions/AbstractStatement",
                 },
               },
               required: [
@@ -436,7 +202,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Statement",
+                  $ref: "#/definitions/AbstractStatement",
                 },
               },
               required: [
@@ -455,6 +221,462 @@ export const SPEC = {
         // deprecated: true,
         // schemes: ["http", "https", "ws", "wss"],
         // security: {},
+      },
+    },
+    "/statements/{statementId}/abuse": {
+      get: {
+        tags: ["abuse", "statement"],
+        summary: "Get a statement abuse",
+        // description: "",
+        // externalDocs: {},
+        operationId: "abuses.get",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested abuse",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/Abuse",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
+    "/statements/{statementId}/abuse/rating": {
+      delete: {
+        tags: ["abuse rating"],
+        summary: "Delete an existing abuse rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "abuses.deleteRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the deleted abuse rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+      get: {
+        tags: ["abuse rating"],
+        summary: "Get an abuse rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "abuses.getRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested abuse rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+      post: {
+        tags: ["abuse rating"],
+        summary: "Create or update abuse rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "abuses.upsertRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            // description: "",
+            in: "body",
+            name: "ratingData",
+            required: true,
+            schema: {
+              type: "object",
+              properties: {
+                rating: {
+                  type: "integer",
+                  maximum: 1,
+                  minimum: -1,
+                },
+              },
+              required: [
+                "rating",
+              ],
+            },
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the updated abuse rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          "201": {
+            description: "A wrapper containing the created abuse rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+    },
+    "/statements/{statementId}/arguments/{groundId}": {
+      get: {
+        tags: ["argument"],
+        summary: "Get an argument",
+        // description: "",
+        // externalDocs: {},
+        operationId: "arguments.get",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/groundIdParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested argument",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/Argument",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
+    "/statements/{statementId}/arguments/{groundId}/rating": {
+      delete: {
+        tags: ["argument rating"],
+        summary: "Delete an argument rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "arguments.deleteRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/groundIdParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the deleted argument rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+      get: {
+        tags: ["argument rating"],
+        summary: "Get a argument rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "arguments.getRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/groundIdParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested argument rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+      post: {
+        tags: ["argument rating"],
+        summary: "Create or update argument rating",
+        // description: "",
+        // externalDocs: {},
+        operationId: "arguments.upsertRating",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/groundIdParam",
+          },
+          {
+            // description: "",
+            in: "body",
+            name: "ratingData",
+            required: true,
+            schema: {
+              type: "object",
+              properties: {
+                rating: {
+                  type: "integer",
+                  maximum: 1,
+                  minimum: -1,
+                },
+              },
+              required: [
+                "rating",
+              ],
+            },
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the updated argument rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          "201": {
+            description: "A wrapper containing the created argument rating",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementRating",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
       },
     },
     "/statements/{statementId}/rating": {
@@ -836,7 +1058,7 @@ export const SPEC = {
         summary: "Delete an existing user",
         // description: "",
         // externalDocs: {},
-        operationId: "users.del",
+        operationId: "users.delete",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -927,55 +1149,72 @@ export const SPEC = {
     // parameters: {},
   },
   definitions: {
-    Argument: {
+    AbstractStatement: {
       type: "object",
+      discriminator: "type",
       properties: {
-        claimId: {
-          $ref: "#/definitions/Id",
-        },
         createdAt: {
           type: "string",
           format: "date-time",
-        },
-        groundId: {
-          $ref: "#/definitions/Id",
         },
         rating: {
           maximum: 1,
           minimum: -1,
           type: "number",
         },
-      },
-      required: [
-        "claimId",
-        "groundId",
-      ],
-    },
-    ArgumentRating: {
-      type: "object",
-      properties: {
-        claimId: {
-          $ref: "#/definitions/Id",
-        },
-        groundId: {
-          $ref: "#/definitions/Id",
-        },
-        rating: {
-          maximum: 1,
-          minimum: -1,
+        ratingCount: {
+          minimum: 0,
           type: "integer",
         },
-        updatedAt: {
-          type: "string",
-          format: "date-time",
+        ratingSum: {
+          type: "integer",
         },
-        voterName: {
+        type: {
           type: "string",
         },
       },
       required: [
-        "claimId",
-        "groundId",
+        "type",
+      ],
+    },
+    Abuse: {
+      allOf: [
+        {
+          $ref: "#/definitions/AbstractStatement",
+        },
+        {
+          type: "object",
+          properties: {
+            statementId: {
+              $ref: "#/definitions/Id",
+            },
+          },
+          required: [
+            "statementId",
+          ],
+        },
+      ],
+    },
+    Argument: {
+      allOf: [
+        {
+          $ref: "#/definitions/AbstractStatement",
+        },
+        {
+          type: "object",
+          properties: {
+            claimId: {
+              $ref: "#/definitions/Id",
+            },
+            groundId: {
+              $ref: "#/definitions/Id",
+            },
+          },
+          required: [
+            "claimId",
+            "groundId",
+          ],
+        },
       ],
     },
     Id: {
@@ -986,31 +1225,33 @@ export const SPEC = {
       type: "string",
       pattern: "^[a-z]{2}$",
     },
-    Statement: {
-      type: "object",
-      properties: {
-        authorName: {
-          type: "string",
+    PlainStatement: {
+      allOf: [
+        {
+          $ref: "#/definitions/AbstractStatement",
         },
-        createdAt: {
-          type: "string",
-          format: "date-time",
+        {
+          type: "object",
+          properties: {
+            authorName: {
+              type: "string",
+            },
+            isAbuse: {
+              type: "boolean",
+              default: false,
+            },
+            languageCode: {
+              $ref: "#/definitions/LanguageCode",
+            },
+            name: {
+              type: "string",
+            },
+          },
+          required: [
+            "languageCode",
+            "name",
+          ],
         },
-        languageCode: {
-          $ref: "#/definitions/LanguageCode",
-        },
-        name: {
-          type: "string",
-        },
-        rating: {
-          maximum: 1,
-          minimum: -1,
-          type: "number",
-        },
-      },
-      required: [
-        "languageCode",
-        "name",
       ],
     },
     StatementRating: {
@@ -1079,18 +1320,6 @@ export const SPEC = {
       required: true,
       type: "string",
     },
-    claimIdParam: {
-      // description: "",
-      in: "path",
-      name: "claimId",
-      required: true,
-      // A reference to a non-object definition doesn't work for a parameter that is not in request body.
-      // schema: {
-      //   $ref: "#/definitions/Id",
-      // },
-      type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    },
     createdAtParam: {
       // description: "",
       in: "path",
@@ -1158,7 +1387,7 @@ export const SPEC = {
       name: "statement",
       required: true,
       schema: {
-        $ref: "#/definitions/Statement",
+        $ref: "#/definitions/AbstractStatement",
       },
     },
     userNameParam: {
@@ -1197,7 +1426,7 @@ export const SPEC = {
 }
 
 
-export {get}
-async function get(ctx){
+export {getSwagger}
+async function getSwagger(ctx){
   ctx.body = JSON.stringify(SPEC)
 }

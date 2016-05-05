@@ -20,6 +20,34 @@
 
 
 import {checkDatabase, r} from "./database"
+import {addStatementRatingEvent} from "./model"
+
+
+async function describe(statement) {
+  if (statement === null) return "missing statement" 
+  const type = statement.type
+  if (type === "Abuse") {
+    const flaggedStatement = await r
+      .table("statements")
+      .get(statement.statementId)
+    const flaggedDescription = await describe(flaggedStatement)
+    return `abuse for ${flaggedDescription}` 
+  } else if (type === "Argument") {
+    const claim = await r
+      .table("statements")
+      .get(statement.claimId)
+    const claimDescription = await describe(claim)
+    const ground = await r
+      .table("statements")
+      .get(statement.groundId)
+    const groundDescription = await describe(ground)
+    return `argument for ${claimDescription} based on ${groundDescription}` 
+  } else if (type === "PlainStatement") {
+    return `plain statement ${statement.languageCode}"${statement.name}"`
+  } else {
+    return `statement of unknown type ${type}` 
+  }
+}
 
 
 async function processEvent(event) {
@@ -27,53 +55,94 @@ async function processEvent(event) {
     .table("events")
     .get(event.id)
     .delete()
-  if (event.type === "argument rating") {
-    let claim = await r
-      .table("statements")
-      .get(event.claimId)
-    let ground = await r
-      .table("statements")
-      .get(event.groundId)
-    console.log(`Processing event ${event.type} of ${event.createdAt.toISOString()} for claim` +
-      ` ${claim.languageCode}"${claim.name}" based on ground ${ground.languageCode}"${ground.name}"...`)
-    let argumentsRating = await r
-      .table("argumentsRating")
-      .getAll([claim.id, ground.id], {index: "argumentId"})
-    let ratingCount = 0
-    let ratingSum = 0
-    for (let argumentRating of argumentsRating) {
-      if (argumentRating.rating) {
-        ratingCount += 1
-        ratingSum += argumentRating.rating
-      }
-    }
-    let rating = ratingCount === 0 ? null : ratingSum / ratingCount
-    await r
-      .table("arguments")
-      .get([claim.id, ground.id].join("/"))
-      .update({rating})
-  } else if (event.type === "statement rating") {
+  if (event.type === "rating") {
     let statement = await r
       .table("statements")
       .get(event.statementId)
-    console.log(`Processing event ${event.type} of ${event.createdAt.toISOString()} for statement` +
-      ` ${statement.languageCode}"${statement.name}"...`)
-    let statementsRating = await r
-      .table("statementsRating")
-      .getAll(statement.id, {index: "statementId"})
+    if (statement === null) return
+    let description = await describe(statement)
+    console.log(`Processing event ${event.type} of ${event.createdAt.toISOString()} for ${description}...`)
     let ratingCount = 0
     let ratingSum = 0
-    for (let statementRating of statementsRating) {
+    let ratings = await r
+      .table("ratings")
+      .getAll(statement.id, {index: "statementId"})
+    for (let statementRating of ratings) {
       if (statementRating.rating) {
         ratingCount += 1
         ratingSum += statementRating.rating
       }
     }
-    let rating = ratingCount === 0 ? null : ratingSum / ratingCount
-    await r
+    let groundArguments = await r
       .table("statements")
-      .get(statement.id)
-      .update({rating})
+      .getAll(statement.id, {index: "claimId"})
+    for (let argument of groundArguments) {
+      if (! argument.isAbuse) {
+        let ground = await r
+          .table("statements")
+          .get(argument.groundId)
+        if (! ground.isAbuse && ground.ratingCount) {
+          ratingCount += ground.ratingCount
+          let roundedArgumentRating = argument.rating < -1 / 3 ? -1 : argument.rating <= 1 / 3 ? 0 : 1
+          ratingSum += roundedArgumentRating * ground.ratingSum
+        }
+      }
+    }
+    if (ratingCount != statement.ratingCount || ratingSum != statement.ratingSum) {
+      let rating
+      if (ratingCount === 0) {
+        rating = null
+        await r
+          .table("statements")
+          .get(statement.id)
+          .replace(r.row.without("rating", "ratingCount", "ratingSum"))
+      } else {
+        rating = ratingSum / ratingCount
+        await r
+          .table("statements")
+          .get(statement.id)
+          .update({
+            rating,
+            ratingCount,
+            ratingSum,        
+          })
+      }
+      let claimArguments = await r
+        .table("statements")
+        .getAll(statement.id, {index: "groundId"})
+      for (let argument of claimArguments) {
+        addStatementRatingEvent(argument.claimId)
+      }
+      if (statement.type === "Abuse") {
+        let flaggedStatement = await r
+          .table("statements")
+          .get(statement.statementId)
+        if (flaggedStatement !== null) {
+          let isAbuse = rating !== null && rating > 0
+          if (isAbuse !== Boolean(flaggedStatement.isAbuse)) {
+            if (isAbuse) {
+              await r
+                .table("statements")
+                .get(flaggedStatement.id)
+                .update({isAbuse})
+            } else {
+              await r
+                .table("statements")
+                .get(flaggedStatement.id)
+                .replace(r.row.without("isAbuse"))
+            }
+            claimArguments = await r
+              .table("statements")
+              .getAll(flaggedStatement.id, {index: "groundId"})
+            for (let argument of claimArguments) {
+              addStatementRatingEvent(argument.claimId)
+            }
+          }
+        }
+      } else if (statement.type === "Argument") {
+        await addStatementRatingEvent(statement.claimId)
+      }
+    }
   } else {
     console.warn(`Unexpected event ${event.type} of ${event.createdAt.toISOString()}.`)
     // Reinsert event.

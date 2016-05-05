@@ -1,4 +1,4 @@
-// Retruco-API -- HTTP API to bring out shared positions from argumented statements
+// Retruco-API -- HTTP API to bring out shared positions from argumented arguments
 // By: Paula Forteza <paula@gouv2.fr>
 //     Emmanuel Raviart <emmanuel@gouv2.fr>
 //
@@ -19,29 +19,40 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {r} from "./database"
+import {r} from "../database"
 
 
-export {addStatementRatingEvent}
-async function addStatementRatingEvent(statementId) {
-  let events = await r
-    .table("events")
-    .getAll([statementId, "rating"], {index: "statementIdAndType"})
-    .limit(1)
-  if (events.length < 1) {
-    await r
-      .table("events")
-      .insert({
-        createdAt: r.now(),
-        statementId,
-        type: "rating",
-      })
+export {requireAbuse}
+async function requireAbuse(ctx, next) {
+  let statement = ctx.statement
+  if (statement.type === "Abuse") {
+    ctx.status = 404
+    ctx.body = {
+      apiVersion: "1",
+      code: 404,
+      message: "An abuse statement can't have its own abuse statement.",
+    }
+    return
   }
-}
+  let abuses = await r
+    .table("statements")
+    .getAll([statement.id, "Abuse"], {index: "statementIdAndType"})
+    .limit(1)
+  let abuse
+  if (abuses.length < 1) {
+    abuse = {
+      createdAt: r.now(),
+      statementId: statement.id,
+      type: "Abuse",
+    }
+    let result = await r
+      .table("statements")
+      .insert(abuse, {returnChanges: true})
+    abuse = result.changes[0].new_val
+  } else {
+    abuse = abuses[0]
+  }
+  ctx.statement = abuse
 
-
-export function ownsUser(user, otherUser) {
-  if (!user) return false
-  if (user.isAdmin) return true
-  return user.id === otherUser.id
+  await next()
 }

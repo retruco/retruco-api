@@ -31,7 +31,7 @@ export const r = rethinkdbdashFactory({
     port: config.db.port,
   })
 
-const versionNumber = 2
+const versionNumber = 3
 
 
 export {checkDatabase}
@@ -62,63 +62,11 @@ async function configure() {
   }
 
   try {
-    await r.table("arguments").count()
-  } catch (e) {
-    // A primaryKey of type array is not supported yet.
-    // await r.tableCreate("arguments", {primaryKey: [
-    //   r.row("claimId"),
-    //   r.row("groundId"),
-    // ]})
-    await r.tableCreate("arguments")
-  }
-  const argumentsTable = r.table("arguments")
-  try {
-    await argumentsTable.indexWait("createdAt")
-  } catch (e) {
-    await argumentsTable.indexCreate("createdAt")
-  }
-
-  try {
-    await r.table("argumentsRating").count()
-  } catch (e) {
-    // A primaryKey of type array is not supported yet.
-    // await r.tableCreate("argumentsRating", {primaryKey: [
-    //   r.row("claimId"),
-    //   r.row("groundId"),
-    //   r.row("voterId"),
-    // ]})
-    await r.tableCreate("argumentsRating")
-  }
-  const argumentsRatingTable = r.table("argumentsRating")
-  try {
-    await argumentsRatingTable.indexWait("argumentId")
-  } catch (e) {
-    await argumentsRatingTable.indexCreate("argumentId", [
-      r.row("claimId"),
-      r.row("groundId"),
-    ])
-  }
-  try {
-    await argumentsRatingTable.indexWait("updatedAt")
-  } catch (e) {
-    await argumentsRatingTable.indexCreate("updatedAt")
-  }
-
-  try {
     await r.table("events").count()
   } catch (e) {
     await r.tableCreate("events")
   }
   const eventsTable = r.table("events")
-  try {
-    await eventsTable.indexWait("argumentIdAndType")
-  } catch (e) {
-    await eventsTable.indexCreate("argumentIdAndType", [
-      r.row("claimId"),
-      r.row("groundId"),
-      r.row("type"),
-    ])
-  }
   try {
     await eventsTable.indexWait("createdAt")
   } catch (e) {
@@ -134,42 +82,73 @@ async function configure() {
   }
 
   try {
+    await r.table("ratings").count()
+  } catch (e) {
+    // A primaryKey of type array is not supported yet.
+    // await r.tableCreate("ratings", {primaryKey: [
+    //   r.row("statementId"),
+    //   r.row("voterId"),
+    // ]})
+    await r.tableCreate("ratings")
+  }
+  const ratingsTable = r.table("ratings")
+  try {
+    await ratingsTable.indexWait("statementId")
+  } catch (e) {
+    await ratingsTable.indexCreate("statementId")
+  }
+  try {
+    await ratingsTable.indexWait("updatedAt")
+  } catch (e) {
+    await ratingsTable.indexCreate("updatedAt")
+  }
+
+  try {
     await r.table("statements").count()
   } catch (e) {
     await r.tableCreate("statements")
   }
   const statementsTable = r.table("statements")
   try {
+    await statementsTable.indexWait("claimId")
+  } catch (e) {
+    await statementsTable.indexCreate("claimId")
+  }
+  try {
+    await statementsTable.indexWait("claimIdAndGroundId")
+  } catch (e) {
+    await statementsTable.indexCreate("claimIdAndGroundId", [
+      r.row("claimId"),
+      r.row("groundId"),
+    ])
+  }
+  try {
     await statementsTable.indexWait("createdAt")
   } catch (e) {
     await statementsTable.indexCreate("createdAt")
+  }
+  try {
+    await statementsTable.indexWait("groundId")
+  } catch (e) {
+    await statementsTable.indexCreate("groundId")
   }
   try {
     await statementsTable.indexWait("languageCode")
   } catch (e) {
     await statementsTable.indexCreate("languageCode")
   }
-
   try {
-    await r.table("statementsRating").count()
+    await statementsTable.indexWait("statementIdAndType")
   } catch (e) {
-    // A primaryKey of type array is not supported yet.
-    // await r.tableCreate("statementsRating", {primaryKey: [
-    //   r.row("statementId"),
-    //   r.row("voterId"),
-    // ]})
-    await r.tableCreate("statementsRating")
-  }
-  const statementsRatingTable = r.table("statementsRating")
-  try {
-    await statementsRatingTable.indexWait("statementId")
-  } catch (e) {
-    await statementsRatingTable.indexCreate("statementId")
+    await statementsTable.indexCreate("statementIdAndType", [
+      r.row("statementId"),
+      r.row("type"),
+    ])
   }
   try {
-    await statementsRatingTable.indexWait("updatedAt")
+    await statementsTable.indexWait("type")
   } catch (e) {
-    await statementsRatingTable.indexCreate("updatedAt")
+    await statementsTable.indexCreate("type")
   }
 
   try {
@@ -217,6 +196,20 @@ async function configure() {
     version.number += 1
   }
   if (version.number === 1) {
+    version.number += 1
+  }
+  if (version.number === 2) {
+    // Add type to statements.
+    let statementsId = await statementsTable
+      .filter(r.row.hasFields("type").not())
+      .getField("id")
+    for (let statementId of statementsId) {
+      await statementsTable
+        .get(statementId)
+        .update({
+          type: "PlainStatement",
+        })
+    }
     version.number += 1
   }
 
