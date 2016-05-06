@@ -86,16 +86,36 @@ export {listStatements}
 async function listStatements(ctx) {
   // Respond a list of statements.
   let languageCode = ctx.parameter.languageCode
-  let statements
-  if (languageCode) {
-    statements = await r
-      .table("statements")
-      .getAll(languageCode, {index: "languageCode"})
-  } else {
-    statements = await r
-      .table("statements")
-      .orderBy({index: r.desc("createdAt")})
+  let tagsName = ctx.parameter.tag || []
+
+  let index = null
+  let statements = r.table("statements")
+  if (tagsName.length > 0) {
+    statements = statements
+      .getAll(...tagsName, {index: "tags"})
+      .distinct()
+    index = "tags"
   }
+  if (languageCode) {
+    if (index === null) {
+      statements = statements
+        .getAll(languageCode, {index: "languageCode"})
+      index = "languageCode"
+    } else {
+      statements = statements
+        .filter({languageCode})
+    }
+  }
+  if (index === null) {
+    statements = statements
+      .orderBy({index: r.desc("createdAt")})
+    index = "createdAt"
+  } else {
+    statements = statements
+      .orderBy(r.desc("createdAt"))
+  }
+  statements = await statements
+
   ctx.body = {
     apiVersion: "1",
     data: await Promise.all(statements.map(toStatementJson)),

@@ -51,6 +51,9 @@ export const SPEC = {
           {
             $ref: "#/parameters/languageCodeParam",
           },
+          {
+            $ref: "#/parameters/tagsNameQueryParam",
+          },
         ],
         responses: {
           "200": {
@@ -870,7 +873,7 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            $ref: "#/parameters/tagNameParam",
+            $ref: "#/parameters/tagNamePathParam",
           },
         ],
         responses: {
@@ -918,7 +921,7 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            $ref: "#/parameters/tagNameParam",
+            $ref: "#/parameters/tagNamePathParam",
           },
           {
             $ref: "#/parameters/apiKeyRequiredParam",
@@ -967,7 +970,7 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            $ref: "#/parameters/tagNameParam",
+            $ref: "#/parameters/tagNamePathParam",
           },
           {
             $ref: "#/parameters/apiKeyRequiredParam",
@@ -1016,7 +1019,7 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            $ref: "#/parameters/tagNameParam",
+            $ref: "#/parameters/tagNamePathParam",
           },
           {
             $ref: "#/parameters/ratingDataParam",
@@ -1387,6 +1390,12 @@ export const SPEC = {
         ratingSum: {
           type: "integer",
         },
+        tags: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+        },
         type: {
           type: "string",
         },
@@ -1653,12 +1662,22 @@ export const SPEC = {
         $ref: "#/definitions/AbstractStatement",
       },
     },
-    tagNameParam: {
+    tagNamePathParam: {
       // description: "",
       in: "path",
       name: "tagName",
       required: true,
       type: "string",
+    },
+    tagsNameQueryParam: {
+      // description: "",
+      in: "query",
+      name: "tag",
+      type: "array",
+      items: {
+        type: "string",
+      },
+      collectionFormat: "multi",
     },
     userNameParam: {
       // description: "",

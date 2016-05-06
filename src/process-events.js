@@ -147,6 +147,34 @@ async function processEvent(event) {
         }
       } else if (statement.type === "Argument") {
         await addStatementRatingEvent(statement.claimId)
+      } else if (statement.type === "Tag") {
+        let taggedStatement = await r
+          .table("statements")
+          .get(statement.statementId)
+        if (taggedStatement !== null) {
+          let addTag = rating !== null && rating > 0
+          let tagExists = Boolean(taggedStatement.tags && taggedStatement.tags.includes(statement.name))
+          if (addTag !== tagExists) {
+            if (addTag) {
+              if (! taggedStatement.tags) taggedStatement.tags = []
+              taggedStatement.tags.push(statement.name)
+              taggedStatement.tags.sort()
+            } else {
+              taggedStatement.tags.splice(taggedStatement.tags.indexOf(statement.name), 1)
+            }
+            if (taggedStatement.tags.length > 0) {
+              await r
+                .table("statements")
+                .get(taggedStatement.id)
+                .update({tags: taggedStatement.tags})
+            } else {
+              await r
+                .table("statements")
+                .get(taggedStatement.id)
+                .replace(r.row.without("tags"))
+            }
+          }
+        }
       }
     }
   } else {

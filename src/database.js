@@ -31,7 +31,7 @@ export const r = rethinkdbdashFactory({
     port: config.db.port,
   })
 
-const versionNumber = 4
+const versionNumber = 5
 
 
 export {checkDatabase}
@@ -155,6 +155,11 @@ async function configure() {
     ])
   }
   try {
+    await statementsTable.indexWait("tags")
+  } catch (e) {
+    await statementsTable.indexCreate("tags", {multi: true})
+  }
+  try {
     await statementsTable.indexWait("type")
   } catch (e) {
     await statementsTable.indexCreate("type")
@@ -201,12 +206,8 @@ async function configure() {
 
   const previousVersionNumber = version.number
 
-  if (version.number === 0) {
-    version.number += 1
-  }
-  if (version.number === 1) {
-    version.number += 1
-  }
+  if (version.number === 0) version.number += 1
+  if (version.number === 1) version.number += 1
   if (version.number === 2) {
     // Add type to statements.
     let statementsId = await statementsTable
@@ -221,9 +222,8 @@ async function configure() {
     }
     version.number += 1
   }
-  if (version.number === 3) {
-    version.number += 1
-  }
+  if (version.number === 3) version.number += 1
+  if (version.number === 4) version.number += 1
 
   assert(version.number <= versionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)
