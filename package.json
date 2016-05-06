@@ -30,8 +30,8 @@
     "watch": "nodemon index.js"
   },
   "authors": [
-    "Paula Forteza <paula@gouv2.fr>",
-    "Emmanuel Raviart <emmanuel@gouv2.fr>"
+    "Paula Forteza <paula@retruco.org>",
+    "Emmanuel Raviart <emmanuel@retruco.org>"
   ],
   "license": "AGPL-3.0+",
   "main": "index.js",

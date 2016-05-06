@@ -1,6 +1,6 @@
 > Retruco-API -- HTTP API to bring out shared positions from argumented statements
-> By: Paula Forteza <paula@gouv2.fr>
->     Emmanuel Raviart <emmanuel@gouv2.fr>
+> By: Paula Forteza <paula@retruco.org>
+>     Emmanuel Raviart <emmanuel@retruco.org>
 >
 > Copyright (C) 2016 Paula Forteza & Emmanuel Raviart
 > https://git.framasoft.org/retruco/retruco-api
