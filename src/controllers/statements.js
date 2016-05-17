@@ -20,12 +20,13 @@
 
 
 import {r} from "../database"
-import {toStatementJson} from "../model"
+import {toStatementData, toStatementsData} from "../model"
 
 
 export {createStatement}
 async function createStatement(ctx) {
   // Create a new statement.
+  let show = ctx.parameter.show || []
   let statement = ctx.parameter.statement
 
   if (statement.type === "Argument") {
@@ -47,7 +48,12 @@ async function createStatement(ctx) {
   ctx.status = 201  // Created
   ctx.body = {
     apiVersion: "1",
-    data: await toStatementJson(statement, {showAuthorName: true}),
+    data: await toStatementData(statement, {
+      depth: ctx.parameter.depth || 0,
+      showAuthor: show.includes("author"),
+      showGrounds: show.includes("grounds"),
+      showTags: show.includes("tags"),
+    }),
   }
 }
 
@@ -55,18 +61,25 @@ async function createStatement(ctx) {
 export {deleteStatement}
 async function deleteStatement(ctx) {
   // Delete an existing statement.
+  let show = ctx.parameter.show || []
   let statement = ctx.statement
 
-  // TODO: Instead of deleting statement, add a vote to flag it (using a given reason).
+  // TODO: Instead of deleting statement, add a vote to flag it (using a given reason)?
 
-  // Delete statement.
+  const data = await toStatementData(statement, {
+    depth: ctx.parameter.depth || 0,
+    showAuthor: show.includes("author"),
+    showGrounds: show.includes("grounds"),
+    showTags: show.includes("tags"),
+  })
+  // TODO: If delete is kept, also remove all other linked statements (grounds, tags, abuse, etc).
   await r
     .table("statements")
     .get(statement.id)
     .delete()
   ctx.body = {
     apiVersion: "1",
-    data: await toStatementJson(statement, {showAuthorName: true}),
+    data: data,
   }
 }
 
@@ -75,9 +88,15 @@ export {getStatement}
 async function getStatement(ctx) {
   // Respond an existing statement.
 
+  let show = ctx.parameter.show || []
   ctx.body = {
     apiVersion: "1",
-    data: await toStatementJson(ctx.statement, {showAuthorName: true}),
+    data: await toStatementData(ctx.statement, {
+      depth: ctx.parameter.depth || 0,
+      showAuthor: show.includes("author"),
+      showGrounds: show.includes("grounds"),
+      showTags: show.includes("tags"),
+    }),
   }
 }
 
@@ -86,6 +105,7 @@ export {listStatements}
 async function listStatements(ctx) {
   // Respond a list of statements.
   let languageCode = ctx.parameter.languageCode
+  let show = ctx.parameter.show || []
   let tagsName = ctx.parameter.tag || []
 
   let index = null
@@ -118,7 +138,12 @@ async function listStatements(ctx) {
 
   ctx.body = {
     apiVersion: "1",
-    data: await Promise.all(statements.map(toStatementJson)),
+    data: await toStatementsData(statements, {
+      depth: ctx.parameter.depth || 0,
+      showAuthor: show.includes("author"),
+      showGrounds: show.includes("grounds"),
+      showTags: show.includes("tags"),
+    }),
   }
 }
 

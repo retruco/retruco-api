@@ -25,6 +25,7 @@ import {pbkdf2, randomBytes} from "mz/crypto"
 import config from "../config"
 import {r} from "../database"
 import {ownsUser} from "../model"
+import {toUserJson} from "../model"
 
 
 export function authenticate(require) {
@@ -130,7 +131,7 @@ async function createUser(ctx) {
   ctx.status = 201  // Created
   ctx.body = {
     apiVersion: "1",
-    data: await toUserJson(user, {showApiKey: true}),
+    data: toUserJson(user, {showApiKey: true}),
   }
 }
 
@@ -156,7 +157,7 @@ async function deleteUser(ctx) {
     .delete()
   ctx.body = {
     apiVersion: "1",
-    data: await toUserJson(user),
+    data: toUserJson(user),
   }
 }
 
@@ -179,7 +180,7 @@ async function getUser(ctx) {
   }
   ctx.body = {
     apiVersion: "1",
-    data: await toUserJson(user, {showApiKey}),
+    data: toUserJson(user, {showApiKey}),
   }
 }
 
@@ -243,7 +244,7 @@ async function login(ctx) {
   }
   ctx.body = {
     apiVersion: "1",
-    data: await toUserJson(user, {showApiKey: true}),
+    data: toUserJson(user, {showApiKey: true}),
   }
 }
 
@@ -267,17 +268,6 @@ async function requireUser(ctx, next) {
   ctx.user = users[0]
 
   await next()
-}
-
-
-async function toUserJson(user, {showApiKey = false} = {}) {
-  let userJson = {...user}
-  if (!showApiKey) delete userJson.apiKey
-  userJson.createdAt = userJson.createdAt.toISOString()
-  delete userJson.id
-  delete userJson.passwordDigest
-  delete userJson.salt
-  return userJson
 }
 
 

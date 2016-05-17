@@ -49,7 +49,13 @@ export const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/languageCodeParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
           },
           {
             $ref: "#/parameters/tagsNameQueryParam",
@@ -65,10 +71,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  type: "array",
-                  items: {
-                    $ref: "#/definitions/AbstractStatement",
-                  },
+                  $ref: "#/definitions/DataIdsList",
                 },
               },
               required: [
@@ -98,6 +101,12 @@ export const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/statementParam",
           },
           {
@@ -114,7 +123,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/AbstractStatement",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -149,6 +158,12 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -162,7 +177,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/AbstractStatement",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -194,6 +209,12 @@ export const SPEC = {
           {
             $ref: "#/parameters/statementIdParam",
           },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
         ],
         responses: {
           "200": {
@@ -205,7 +226,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/AbstractStatement",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -1378,6 +1399,12 @@ export const SPEC = {
           type: "string",
           format: "date-time",
         },
+        groundIds: {
+          type: "array",
+          items: {
+            $ref: "#/definitions/Id",
+          },
+        },
         rating: {
           maximum: 1,
           minimum: -1,
@@ -1389,6 +1416,12 @@ export const SPEC = {
         },
         ratingSum: {
           type: "integer",
+        },
+        tagIds: {
+          type: "array",
+          items: {
+            $ref: "#/definitions/Id",
+          },
         },
         tags: {
           type: "array",
@@ -1448,6 +1481,76 @@ export const SPEC = {
         },
       ],
     },
+    DataId: {
+      type: "object",
+      properties: {
+        id: {
+          $ref: "#/definitions/Id",
+        },
+        statements: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/AbstractStatement",
+          },
+        },
+        users: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/User",
+          },
+        },
+      },
+      required: [
+        "id",
+      ],
+    },
+    DataIdsList: {
+      type: "object",
+      properties: {
+        ids: {
+          type: "array",
+          items: {
+            $ref: "#/definitions/Id",
+          },
+        },
+        statements: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/AbstractStatement",
+          },
+        },
+        users: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/User",
+          },
+        },
+      },
+      required: [
+        "ids",
+      ],
+    },
+    // Error: {
+    //   type: "object",
+    //   properties: {
+    //     apiVersion: {
+    //       type: "string",
+    //     },
+    //     code: {
+    //       type: "integer",
+    //       minimum: 100,
+    //       maximum: 600,
+    //     },
+    //     message: {
+    //       type: "string",
+    //     },
+    //   },
+    //   required: [
+    //     "apiVersion",
+    //     "code",
+    //     "message",
+    //   ],
+    // },
     Id: {
       type: "string",
       pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
@@ -1580,6 +1683,13 @@ export const SPEC = {
       required: true,
       type: "string",
       format: "date-time",
+    },
+    depthParam: {
+      // description: "",
+      in: "query",
+      minimum: 0,
+      name: "depth",
+      type: "integer",
     },
     groundIdParam: {
       // description: "",
