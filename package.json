@@ -37,7 +37,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://git.framasoft.org/retruco/retruco-api"
+    "url": "https://git.framasoft.org/retruco/retruco-api.git"
   },
   "keywords": [
     "argument",
