@@ -83,11 +83,11 @@ async function processEvent(event) {
       .table("statements")
       .getAll(statement.id, {index: "claimId"})
     for (let argument of groundArguments) {
-      if (! argument.isAbuse) {
+      if (!argument.isAbuse) {
         let ground = await r
           .table("statements")
           .get(argument.groundId)
-        if (! ground.isAbuse && ground.ratingCount) {
+        if (!ground.isAbuse && ground.ratingCount) {
           ratingCount += ground.ratingCount
           let roundedArgumentRating = argument.rating < -1 / 3 ? -1 : argument.rating <= 1 / 3 ? 0 : 1
           ratingSum += roundedArgumentRating * ground.ratingSum
@@ -156,7 +156,7 @@ async function processEvent(event) {
           let tagExists = Boolean(taggedStatement.tags && taggedStatement.tags.includes(statement.name))
           if (addTag !== tagExists) {
             if (addTag) {
-              if (! taggedStatement.tags) taggedStatement.tags = []
+              if (!taggedStatement.tags) taggedStatement.tags = []
               taggedStatement.tags.push(statement.name)
               taggedStatement.tags.sort()
             } else {
