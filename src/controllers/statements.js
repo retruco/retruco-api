@@ -48,9 +48,10 @@ async function createStatement(ctx) {
   ctx.status = 201  // Created
   ctx.body = {
     apiVersion: "1",
-    data: await toStatementData(statement, {
+    data: await toStatementData(statement,  ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
       showAuthor: show.includes("author"),
+      showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),
@@ -66,9 +67,10 @@ async function deleteStatement(ctx) {
 
   // TODO: Instead of deleting statement, add a vote to flag it (using a given reason)?
 
-  const data = await toStatementData(statement, {
+  const data = await toStatementData(statement, ctx.authenticatedUser, {
     depth: ctx.parameter.depth || 0,
     showAuthor: show.includes("author"),
+    showBallot: show.includes("ballot"),
     showGrounds: show.includes("grounds"),
     showTags: show.includes("tags"),
   })
@@ -91,9 +93,10 @@ async function getStatement(ctx) {
   let show = ctx.parameter.show || []
   ctx.body = {
     apiVersion: "1",
-    data: await toStatementData(ctx.statement, {
+    data: await toStatementData(ctx.statement,  ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
       showAuthor: show.includes("author"),
+      showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),
@@ -138,9 +141,10 @@ async function listStatements(ctx) {
 
   ctx.body = {
     apiVersion: "1",
-    data: await toStatementsData(statements, {
+    data: await toStatementsData(statements, ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
       showAuthor: show.includes("author"),
+      showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),

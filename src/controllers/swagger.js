@@ -1395,6 +1395,9 @@ export const SPEC = {
       type: "object",
       discriminator: "type",
       properties: {
+        ballotId: {
+          $ref: "#/definitions/Id",
+        },
         createdAt: {
           type: "string",
           format: "date-time",
@@ -1486,6 +1489,12 @@ export const SPEC = {
       properties: {
         id: {
           $ref: "#/definitions/Id",
+        },
+        ballots: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/StatementRating",
+          },
         },
         statements: {
           type: "object",
