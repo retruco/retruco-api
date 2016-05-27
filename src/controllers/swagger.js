@@ -1414,7 +1414,7 @@ export const SPEC = {
       discriminator: "type",
       properties: {
         ballotId: {
-          $ref: "#/definitions/Id",
+          $ref: "#/definitions/StatementRatingId",
         },
         createdAt: {
           type: "string",
@@ -1618,6 +1618,9 @@ export const SPEC = {
     StatementRating: {
       type: "object",
       properties: {
+        id: {
+          $ref: "#/definitions/StatementRatingId",
+        },
         rating: {
           maximum: 1,
           minimum: -1,
@@ -1637,6 +1640,10 @@ export const SPEC = {
       required: [
         "statementId",
       ],
+    },
+    StatementRatingId: {
+      type: "string",
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     },
     Tag: {
       allOf: [
