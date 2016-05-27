@@ -1537,6 +1537,12 @@ export const SPEC = {
     DataIdsList: {
       type: "object",
       properties: {
+        ballots: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/StatementRating",
+          },
+        },
         ids: {
           type: "array",
           items: {
