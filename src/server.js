@@ -57,7 +57,7 @@ let swaggerValidator = convert(swaggerValidatorFactory(patchedSwaggerSpec))
 
 let router = routerFactory()
 
-router.get("/statements", swaggerValidator, statementsController.listStatements)
+router.get("/statements", swaggerValidator, usersController.authenticate(false), statementsController.listStatements)
 router.post("/statements", bodyParser, swaggerValidator, usersController.authenticate(true),
   statementsController.createStatement)
 router.delete("/statements/:statementId", swaggerValidator, usersController.authenticate(true),

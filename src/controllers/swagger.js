@@ -60,6 +60,9 @@ export const SPEC = {
           {
             $ref: "#/parameters/tagsNameQueryParam",
           },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
         ],
         responses: {
           "200": {
@@ -215,6 +218,9 @@ export const SPEC = {
           {
             $ref: "#/parameters/showParam",
           },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
         ],
         responses: {
           "200": {
@@ -259,6 +265,9 @@ export const SPEC = {
         parameters: [
           {
             $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
           },
         ],
         responses: {
@@ -468,6 +477,9 @@ export const SPEC = {
           },
           {
             $ref: "#/parameters/groundIdParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
           },
         ],
         responses: {
@@ -845,6 +857,9 @@ export const SPEC = {
           {
             $ref: "#/parameters/statementIdParam",
           },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
         ],
         responses: {
           "200": {
@@ -895,6 +910,9 @@ export const SPEC = {
           },
           {
             $ref: "#/parameters/tagNamePathParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
           },
         ],
         responses: {
