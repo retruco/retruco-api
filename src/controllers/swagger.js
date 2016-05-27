@@ -1603,8 +1603,8 @@ export const SPEC = {
         {
           type: "object",
           properties: {
-            authorName: {
-              type: "string",
+            authorId: {
+              $ref: "#/definitions/Id",
             },
             isAbuse: {
               type: "boolean",
@@ -1642,8 +1642,8 @@ export const SPEC = {
           type: "string",
           format: "date-time",
         },
-        voterName: {
-          type: "string",
+        voterId: {
+          $ref: "#/definitions/Id",
         },
       },
       required: [
