@@ -128,7 +128,7 @@ async function toStatementData1(data, statement, user, {depth = 0, showAuthor = 
         .table("ratings")
         .get(statementRatingId)
       statementJson.ballotId = statementRatingId
-      if (statementRating !== null) ballotJsonById[statementRatingId] = statementRating
+      if (statementRating !== null) ballotJsonById[statementRatingId] = toStatementRatingJson(statementRating)
     }
   }
 }
@@ -156,6 +156,14 @@ function toStatementJsonSync(statement) {
   let statementJson = {...statement}
   statementJson.createdAt = statementJson.createdAt.toISOString()
   return statementJson
+}
+
+
+export {toStatementRatingJson}
+function toStatementRatingJson(statementRating) {
+  let statementRatingJson = {...statementRating}
+  statementRatingJson.updatedAt = statementRatingJson.updatedAt.toISOString()
+  return statementRatingJson
 }
 
 
