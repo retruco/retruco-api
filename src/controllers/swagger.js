@@ -1426,6 +1426,9 @@ export const SPEC = {
             $ref: "#/definitions/Id",
           },
         },
+        id: {
+          $ref: "#/definitions/Id",
+        },
         rating: {
           maximum: 1,
           minimum: -1,
@@ -1505,14 +1508,14 @@ export const SPEC = {
     DataId: {
       type: "object",
       properties: {
-        id: {
-          $ref: "#/definitions/Id",
-        },
         ballots: {
           type: "object",
           additionalProperties: {
             $ref: "#/definitions/StatementRating",
           },
+        },
+        id: {
+          $ref: "#/definitions/Id",
         },
         statements: {
           type: "object",
