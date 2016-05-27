@@ -168,8 +168,8 @@ function toStatementRatingJson(statementRating) {
 
 
 export {toStatementsData}
-async function toStatementsData(statements, {depth = 0, showAuthor = false, showBallot = false, showGrounds = false,
-  showTags = false} = {}) {
+async function toStatementsData(statements, user, {depth = 0, showAuthor = false, showBallot = false,
+  showGrounds = false, showTags = false} = {}) {
   let data = {
     ballots: {},
     ids: statements.map(statement => statement.id),
@@ -178,7 +178,7 @@ async function toStatementsData(statements, {depth = 0, showAuthor = false, show
   }
 
   for (let statement of statements) {
-    await toStatementData1(data, statement, {depth, showAuthor, showBallot, showGrounds, showTags})
+    await toStatementData1(data, statement, user, {depth, showAuthor, showBallot, showGrounds, showTags})
   }
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
