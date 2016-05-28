@@ -23,8 +23,8 @@ import {r} from "../database"
 import {addBallotEvent, toBallotJson} from "../model"
 
 
-export {deleteRating}
-async function deleteRating(ctx) {
+export {deleteBallot}
+async function deleteBallot(ctx) {
   // Delete a statement rating.
   let statement = ctx.statement
 
@@ -55,8 +55,8 @@ async function deleteRating(ctx) {
 }
 
 
-export {getRating}
-async function getRating(ctx) {
+export {getBallot}
+async function getBallot(ctx) {
   // Respond an existing statement rating.
   let statement = ctx.statement
 
@@ -81,8 +81,8 @@ async function getRating(ctx) {
 }
 
 
-export {upsertRating}
-async function upsertRating(ctx) {
+export {upsertBallot}
+async function upsertBallot(ctx) {
   // Insert or update a statement rating.
   let statement = ctx.statement
   let ratingData = ctx.parameter.ratingData

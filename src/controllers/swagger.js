@@ -307,7 +307,7 @@ export const SPEC = {
         summary: "Delete an existing abuse rating",
         // description: "",
         // externalDocs: {},
-        operationId: "abuses.deleteRating",
+        operationId: "abuses.deleteBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -353,7 +353,7 @@ export const SPEC = {
         summary: "Get an abuse rating",
         // description: "",
         // externalDocs: {},
-        operationId: "abuses.getRating",
+        operationId: "abuses.getBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -399,7 +399,7 @@ export const SPEC = {
         summary: "Create or update abuse rating",
         // description: "",
         // externalDocs: {},
-        operationId: "abuses.upsertRating",
+        operationId: "abuses.upsertBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -519,7 +519,7 @@ export const SPEC = {
         summary: "Delete an argument rating",
         // description: "",
         // externalDocs: {},
-        operationId: "arguments.deleteRating",
+        operationId: "arguments.deleteBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -568,7 +568,7 @@ export const SPEC = {
         summary: "Get a argument rating",
         // description: "",
         // externalDocs: {},
-        operationId: "arguments.getRating",
+        operationId: "arguments.getBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -617,7 +617,7 @@ export const SPEC = {
         summary: "Create or update argument rating",
         // description: "",
         // externalDocs: {},
-        operationId: "arguments.upsertRating",
+        operationId: "arguments.upsertBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -689,7 +689,7 @@ export const SPEC = {
         summary: "Delete an existing statement rating",
         // description: "",
         // externalDocs: {},
-        operationId: "statements.deleteRating",
+        operationId: "statements.deleteBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -735,7 +735,7 @@ export const SPEC = {
         summary: "Get a statement rating",
         // description: "",
         // externalDocs: {},
-        operationId: "statements.getRating",
+        operationId: "statements.getBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -781,7 +781,7 @@ export const SPEC = {
         summary: "Create or update statement rating",
         // description: "",
         // externalDocs: {},
-        operationId: "statements.upsertRating",
+        operationId: "statements.upsertBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -952,7 +952,7 @@ export const SPEC = {
         summary: "Delete a tag rating",
         // description: "",
         // externalDocs: {},
-        operationId: "tags.deleteRating",
+        operationId: "tags.deleteBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -1001,7 +1001,7 @@ export const SPEC = {
         summary: "Get a tag rating",
         // description: "",
         // externalDocs: {},
-        operationId: "tags.getRating",
+        operationId: "tags.getBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -1050,7 +1050,7 @@ export const SPEC = {
         summary: "Create or update tag rating",
         // description: "",
         // externalDocs: {},
-        operationId: "tags.upsertRating",
+        operationId: "tags.upsertBallot",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
