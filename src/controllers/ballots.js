@@ -20,12 +20,13 @@
 
 
 import {r} from "../database"
-import {addBallotEvent, toBallotJson} from "../model"
+import {addBallotEvent, toBallotData} from "../model"
 
 
 export {deleteBallot}
 async function deleteBallot(ctx) {
   // Delete a statement rating.
+  let show = ctx.parameter.show || []
   let statement = ctx.statement
 
   let id = [statement.id, ctx.authenticatedUser.id].join("/")
@@ -48,9 +49,17 @@ async function deleteBallot(ctx) {
     await addBallotEvent(statement.id)
   }
 
+  ballot.deleted = true
+  const data = await toBallotData(ballot, statement, ctx.authenticatedUser, {
+    depth: ctx.parameter.depth || 0,
+    showAuthor: show.includes("author"),
+    showBallot: show.includes("ballot"),
+    showGrounds: show.includes("grounds"),
+    showTags: show.includes("tags"),
+  })
   ctx.body = {
     apiVersion: "1",
-    data: toBallotJson(ballot),
+    data: data,
   }
 }
 
@@ -58,6 +67,7 @@ async function deleteBallot(ctx) {
 export {getBallot}
 async function getBallot(ctx) {
   // Respond an existing statement rating.
+  let show = ctx.parameter.show || []
   let statement = ctx.statement
 
   let id = [statement.id, ctx.authenticatedUser.id].join("/")
@@ -76,7 +86,13 @@ async function getBallot(ctx) {
 
   ctx.body = {
     apiVersion: "1",
-    data: toBallotJson(ballot),
+    data: await toBallotData(ballot, statement, ctx.authenticatedUser, {
+      depth: ctx.parameter.depth || 0,
+      showAuthor: show.includes("author"),
+      showBallot: show.includes("ballot"),
+      showGrounds: show.includes("grounds"),
+      showTags: show.includes("tags"),
+    }),
   }
 }
 
@@ -84,6 +100,7 @@ async function getBallot(ctx) {
 export {upsertBallot}
 async function upsertBallot(ctx) {
   // Insert or update a statement rating.
+  let show = ctx.parameter.show || []
   let statement = ctx.statement
   let ratingData = ctx.parameter.ratingData
 
@@ -117,6 +134,12 @@ async function upsertBallot(ctx) {
   }
   ctx.body = {
     apiVersion: "1",
-    data: toBallotJson(ballot),
+    data: await toBallotData(ballot, statement, ctx.authenticatedUser, {
+      depth: ctx.parameter.depth || 0,
+      showAuthor: show.includes("author"),
+      showBallot: show.includes("ballot"),
+      showGrounds: show.includes("grounds"),
+      showTags: show.includes("tags"),
+    }),
   }
 }

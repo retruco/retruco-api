@@ -47,7 +47,25 @@ export function ownsUser(user, otherUser) {
 }
 
 
-export {toBallotJson}
+export {toBallotData}
+async function toBallotData(ballot, statement, user, {depth = 0, showAuthor = false, showBallot = false,
+  showGrounds = false, showTags = false} = {}) {
+  let data = {
+    ballots: {[ballot.id]: toBallotJson(ballot)},
+    id: ballot.id,
+    statements: {},
+    users: {},
+  }
+
+  await toStatementData1(data, statement, user, {depth, showAuthor, showBallot, showGrounds, showTags})
+
+  if (Object.keys(data.ballots).length === 0) delete data.ballots
+  if (Object.keys(data.statements).length === 0) delete data.statements
+  if (Object.keys(data.users).length === 0) delete data.users
+  return data
+}
+
+
 function toBallotJson(ballot) {
   let ballotJson = {...ballot}
   ballotJson.updatedAt = ballotJson.updatedAt.toISOString()

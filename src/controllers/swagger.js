@@ -315,6 +315,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -328,7 +331,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -361,6 +364,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -374,7 +380,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -407,6 +413,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/ratingDataParam",
           },
           {
@@ -423,7 +432,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -441,7 +450,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -530,6 +539,9 @@ export const SPEC = {
             $ref: "#/parameters/groundIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -543,7 +555,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -579,6 +591,9 @@ export const SPEC = {
             $ref: "#/parameters/groundIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -592,7 +607,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -628,6 +643,9 @@ export const SPEC = {
             $ref: "#/parameters/groundIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/ratingDataParam",
           },
           {
@@ -644,7 +662,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -662,7 +680,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -697,6 +715,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -710,7 +731,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -743,6 +764,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -756,7 +780,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -789,6 +813,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/ratingDataParam",
           },
           {
@@ -805,7 +832,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -823,7 +850,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -963,6 +990,9 @@ export const SPEC = {
             $ref: "#/parameters/tagNamePathParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -976,7 +1006,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -1012,6 +1042,9 @@ export const SPEC = {
             $ref: "#/parameters/tagNamePathParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyRequiredParam",
           },
         ],
@@ -1025,7 +1058,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -1061,6 +1094,9 @@ export const SPEC = {
             $ref: "#/parameters/tagNamePathParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/ratingDataParam",
           },
           {
@@ -1077,7 +1113,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -1095,7 +1131,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Ballot",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
@@ -1512,6 +1548,10 @@ export const SPEC = {
     Ballot: {
       type: "object",
       properties: {
+        deleted: {
+          type: "boolean",
+          default: false,
+        },
         id: {
           $ref: "#/definitions/BallotId",
         },
@@ -1549,7 +1589,7 @@ export const SPEC = {
           },
         },
         id: {
-          $ref: "#/definitions/Id",
+          $ref: "#/definitions/IdOrBallotId",
         },
         statements: {
           type: "object",
@@ -1580,7 +1620,7 @@ export const SPEC = {
         ids: {
           type: "array",
           items: {
-            $ref: "#/definitions/Id",
+            $ref: "#/definitions/IdOrBallotId",
           },
         },
         statements: {
@@ -1624,6 +1664,10 @@ export const SPEC = {
     Id: {
       type: "string",
       pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    },
+    IdOrBallotId: {
+      type: "string",
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$",
     },
     LanguageCode: {
       type: "string",
