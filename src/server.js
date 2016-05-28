@@ -31,7 +31,7 @@ import config from "./config"
 import {checkDatabase} from "./database"
 import * as abusesController from "./controllers/abuses"
 import * as argumentsController from "./controllers/arguments"
-import * as ratingsController from "./controllers/ratings"
+import * as ballotsController from "./controllers/ballots"
 import * as statementsController from "./controllers/statements"
 import * as swaggerController from "./controllers/swagger"
 import * as tagsController from "./controllers/tags"
@@ -68,41 +68,41 @@ router.get("/statements/:statementId", swaggerValidator, usersController.authent
 router.get("/statements/:statementId/abuse", swaggerValidator, usersController.authenticate(false),
   statementsController.requireStatement, abusesController.requireAbuse, statementsController.getStatement)
 router.delete("/statements/:statementId/abuse/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, abusesController.requireAbuse, ratingsController.deleteRating)
+  statementsController.requireStatement, abusesController.requireAbuse, ballotsController.deleteRating)
 router.get("/statements/:statementId/abuse/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, abusesController.requireAbuse, ratingsController.getRating)
+  statementsController.requireStatement, abusesController.requireAbuse, ballotsController.getRating)
 router.post("/statements/:statementId/abuse/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, abusesController.requireAbuse, ratingsController.upsertRating)
+  statementsController.requireStatement, abusesController.requireAbuse, ballotsController.upsertRating)
 
 router.get("/statements/:statementId/arguments/:groundId", swaggerValidator, usersController.authenticate(false),
   statementsController.requireStatement, argumentsController.requireArgument, statementsController.getStatement)
 router.delete("/statements/:statementId/arguments/:groundId/rating", swaggerValidator,
   usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
-  ratingsController.deleteRating)
+  ballotsController.deleteRating)
 router.get("/statements/:statementId/arguments/:groundId/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, argumentsController.requireArgument, ratingsController.getRating)
+  statementsController.requireStatement, argumentsController.requireArgument, ballotsController.getRating)
 router.post("/statements/:statementId/arguments/:groundId/rating", bodyParser, swaggerValidator,
   usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
-  ratingsController.upsertRating)
+  ballotsController.upsertRating)
 
 router.delete("/statements/:statementId/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, ratingsController.deleteRating)
+  statementsController.requireStatement, ballotsController.deleteRating)
 router.get("/statements/:statementId/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, ratingsController.getRating)
+  statementsController.requireStatement, ballotsController.getRating)
 router.post("/statements/:statementId/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, ratingsController.upsertRating)
+  statementsController.requireStatement, ballotsController.upsertRating)
 
 router.get("/statements/:statementId/tags", swaggerValidator, usersController.authenticate(false),
   statementsController.requireStatement, tagsController.listStatementTags)
 router.get("/statements/:statementId/tags/:tagName", swaggerValidator, usersController.authenticate(false),
   statementsController.requireStatement, tagsController.requireTag, statementsController.getStatement)
 router.delete("/statements/:statementId/tags/:tagName/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, tagsController.requireTag, ratingsController.deleteRating)
+  statementsController.requireStatement, tagsController.requireTag, ballotsController.deleteRating)
 router.get("/statements/:statementId/tags/:tagName/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, tagsController.requireTag, ratingsController.getRating)
+  statementsController.requireStatement, tagsController.requireTag, ballotsController.getRating)
 router.post("/statements/:statementId/tags/:tagName/rating", bodyParser, swaggerValidator,
   usersController.authenticate(true), statementsController.requireStatement, tagsController.requireTag,
-  ratingsController.upsertRating)
+  ballotsController.upsertRating)
 
 router.post("/login", bodyParser, swaggerValidator, usersController.login)
 

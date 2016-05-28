@@ -20,7 +20,7 @@
 
 
 import {r} from "../database"
-import {addStatementRatingEvent} from "../model"
+import {addBallotEvent, toBallotJson} from "../model"
 
 
 export {deleteRating}
@@ -29,11 +29,11 @@ async function deleteRating(ctx) {
   let statement = ctx.statement
 
   let id = [statement.id, ctx.authenticatedUser.id].join("/")
-  let statementRating = await r
-    .table("ratings")
+  let ballot = await r
+    .table("ballots")
     .get(id)
-  if (statementRating === null) {
-    statementRating = {
+  if (ballot === null) {
+    ballot = {
       id,
       // rating: null,
       statementId: statement.id,
@@ -42,15 +42,15 @@ async function deleteRating(ctx) {
     }
   } else {
     await r
-      .table("ratings")
+      .table("ballots")
       .get(id)
       .delete()
-    await addStatementRatingEvent(statement.id)
+    await addBallotEvent(statement.id)
   }
 
   ctx.body = {
     apiVersion: "1",
-    data: await toRatingJson(statementRating, {showVoterName: true}),
+    data: await toBallotJson(ballot),
   }
 }
 
@@ -61,11 +61,11 @@ async function getRating(ctx) {
   let statement = ctx.statement
 
   let id = [statement.id, ctx.authenticatedUser.id].join("/")
-  let statementRating = await r
-    .table("ratings")
+  let ballot = await r
+    .table("ballots")
     .get(id)
-  if (statementRating === null) {
-    statementRating = {
+  if (ballot === null) {
+    ballot = {
       id,
       // rating: null,
       statementId: statement.id,
@@ -76,23 +76,8 @@ async function getRating(ctx) {
 
   ctx.body = {
     apiVersion: "1",
-    data: await toRatingJson(statementRating, {showVoterName: true}),
+    data: await toBallotJson(ballot),
   }
-}
-
-
-async function toRatingJson(statementRating, {showVoterName = false} = {}) {
-  let statementRatingJson = {...statementRating}
-  delete statementRatingJson.id
-  if (showVoterName && statementRating.voterId) {
-    statementRatingJson.voterName = await r
-      .table("users")
-      .get(statementRating.voterId)
-      .getField("urlName")
-  }
-  delete statementRatingJson.voterId
-  if (statementRatingJson.updatedAt) statementRatingJson.updatedAt = statementRatingJson.updatedAt.toISOString()
-  return statementRatingJson
 }
 
 
@@ -103,11 +88,11 @@ async function upsertRating(ctx) {
   let ratingData = ctx.parameter.ratingData
 
   let id = [statement.id, ctx.authenticatedUser.id].join("/")
-  let statementRating = await r
-    .table("ratings")
+  let ballot = await r
+    .table("ballots")
     .get(id)
-  if (statementRating === null) {
-    statementRating = {
+  if (ballot === null) {
+    ballot = {
       id,
       rating: ratingData.rating,
       statementId: statement.id,
@@ -115,23 +100,23 @@ async function upsertRating(ctx) {
       voterId: ctx.authenticatedUser.id,
     }
     let result = await r
-      .table("ratings")
-      .insert(statementRating, {returnChanges: true})
-    statementRating = result.changes[0].new_val
-    await addStatementRatingEvent(statement.id)
+      .table("ballots")
+      .insert(ballot, {returnChanges: true})
+    ballot = result.changes[0].new_val
+    await addBallotEvent(statement.id)
     ctx.status = 201  // Created
-  } else if (ratingData.rating !== statementRating.rating) {
-    statementRating.rating = ratingData.rating
-    statementRating.updatedAt = r.now()
+  } else if (ratingData.rating !== ballot.rating) {
+    ballot.rating = ratingData.rating
+    ballot.updatedAt = r.now()
     let result = await r
-      .table("ratings")
+      .table("ballots")
       .get(id)
-      .update(statementRating, {returnChanges: true})
-    statementRating = result.changes[0].new_val
-    await addStatementRatingEvent(statement.id)
+      .update(ballot, {returnChanges: true})
+    ballot = result.changes[0].new_val
+    await addBallotEvent(statement.id)
   }
   ctx.body = {
     apiVersion: "1",
-    data: await toRatingJson(statementRating, {showVoterName: true}),
+    data: await toBallotJson(ballot),
   }
 }

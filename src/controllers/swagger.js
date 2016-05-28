@@ -328,7 +328,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -374,7 +374,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -423,7 +423,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -441,7 +441,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -543,7 +543,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -592,7 +592,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -644,7 +644,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -662,7 +662,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -710,7 +710,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -756,7 +756,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -805,7 +805,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -823,7 +823,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -976,7 +976,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -1025,7 +1025,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -1077,7 +1077,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -1095,7 +1095,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/StatementRating",
+                  $ref: "#/definitions/Ballot",
                 },
               },
               required: [
@@ -1414,7 +1414,7 @@ export const SPEC = {
       discriminator: "type",
       properties: {
         ballotId: {
-          $ref: "#/definitions/StatementRatingId",
+          $ref: "#/definitions/BallotId",
         },
         createdAt: {
           type: "string",
@@ -1505,13 +1505,43 @@ export const SPEC = {
         },
       ],
     },
+    Ballot: {
+      type: "object",
+      properties: {
+        id: {
+          $ref: "#/definitions/BallotId",
+        },
+        rating: {
+          maximum: 1,
+          minimum: -1,
+          type: "integer",
+        },
+        statementId: {
+          $ref: "#/definitions/Id",
+        },
+        updatedAt: {
+          type: "string",
+          format: "date-time",
+        },
+        voterId: {
+          $ref: "#/definitions/Id",
+        },
+      },
+      required: [
+        "statementId",
+      ],
+    },
+    BallotId: {
+      type: "string",
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    },
     DataId: {
       type: "object",
       properties: {
         ballots: {
           type: "object",
           additionalProperties: {
-            $ref: "#/definitions/StatementRating",
+            $ref: "#/definitions/Ballot",
           },
         },
         id: {
@@ -1540,7 +1570,7 @@ export const SPEC = {
         ballots: {
           type: "object",
           additionalProperties: {
-            $ref: "#/definitions/StatementRating",
+            $ref: "#/definitions/Ballot",
           },
         },
         ids: {
@@ -1623,36 +1653,6 @@ export const SPEC = {
           ],
         },
       ],
-    },
-    StatementRating: {
-      type: "object",
-      properties: {
-        id: {
-          $ref: "#/definitions/StatementRatingId",
-        },
-        rating: {
-          maximum: 1,
-          minimum: -1,
-          type: "integer",
-        },
-        statementId: {
-          $ref: "#/definitions/Id",
-        },
-        updatedAt: {
-          type: "string",
-          format: "date-time",
-        },
-        voterId: {
-          $ref: "#/definitions/Id",
-        },
-      },
-      required: [
-        "statementId",
-      ],
-    },
-    StatementRatingId: {
-      type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     },
     Tag: {
       allOf: [

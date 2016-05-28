@@ -62,6 +62,28 @@ async function configure() {
   }
 
   try {
+    await r.table("ballots").count()
+  } catch (e) {
+    // A primaryKey of type array is not supported yet.
+    // await r.tableCreate("ballots", {primaryKey: [
+    //   r.row("statementId"),
+    //   r.row("voterId"),
+    // ]})
+    await r.tableCreate("ballots")
+  }
+  const ballotsTable = r.table("ballots")
+  try {
+    await ballotsTable.indexWait("statementId")
+  } catch (e) {
+    await ballotsTable.indexCreate("statementId")
+  }
+  try {
+    await ballotsTable.indexWait("updatedAt")
+  } catch (e) {
+    await ballotsTable.indexCreate("updatedAt")
+  }
+
+  try {
     await r.table("events").count()
   } catch (e) {
     await r.tableCreate("events")
@@ -79,28 +101,6 @@ async function configure() {
       r.row("statementId"),
       r.row("type"),
     ])
-  }
-
-  try {
-    await r.table("ratings").count()
-  } catch (e) {
-    // A primaryKey of type array is not supported yet.
-    // await r.tableCreate("ratings", {primaryKey: [
-    //   r.row("statementId"),
-    //   r.row("voterId"),
-    // ]})
-    await r.tableCreate("ratings")
-  }
-  const ratingsTable = r.table("ratings")
-  try {
-    await ratingsTable.indexWait("statementId")
-  } catch (e) {
-    await ratingsTable.indexCreate("statementId")
-  }
-  try {
-    await ratingsTable.indexWait("updatedAt")
-  } catch (e) {
-    await ratingsTable.indexCreate("updatedAt")
   }
 
   try {

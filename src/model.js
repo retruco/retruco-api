@@ -22,8 +22,8 @@
 import {r} from "./database"
 
 
-export {addStatementRatingEvent}
-async function addStatementRatingEvent(statementId) {
+export {addBallotEvent}
+async function addBallotEvent(statementId) {
   let events = await r
     .table("events")
     .getAll([statementId, "rating"], {index: "statementIdAndType"})
@@ -44,6 +44,14 @@ export function ownsUser(user, otherUser) {
   if (!user) return false
   if (user.isAdmin) return true
   return user.id === otherUser.id
+}
+
+
+export {toBallotJson}
+function toBallotJson(ballot) {
+  let ballotJson = {...ballot}
+  ballotJson.updatedAt = ballotJson.updatedAt.toISOString()
+  return ballotJson
 }
 
 
@@ -122,13 +130,13 @@ async function toStatementData1(data, statement, user, {depth = 0, showAuthor = 
 
   if (showBallot && user) {
     let ballotJsonById = data.ballots
-    let statementRatingId = [statement.id, user.id].join("/")
-    if (!ballotJsonById[statementRatingId]) {
-      let statementRating = await r
-        .table("ratings")
-        .get(statementRatingId)
-      statementJson.ballotId = statementRatingId
-      if (statementRating !== null) ballotJsonById[statementRatingId] = toStatementRatingJson(statementRating)
+    let ballotId = [statement.id, user.id].join("/")
+    if (!ballotJsonById[ballotId]) {
+      let ballot = await r
+        .table("ballots")
+        .get(ballotId)
+      statementJson.ballotId = ballotId
+      if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
     }
   }
 }
@@ -156,14 +164,6 @@ function toStatementJsonSync(statement) {
   let statementJson = {...statement}
   statementJson.createdAt = statementJson.createdAt.toISOString()
   return statementJson
-}
-
-
-export {toStatementRatingJson}
-function toStatementRatingJson(statementRating) {
-  let statementRatingJson = {...statementRating}
-  statementRatingJson.updatedAt = statementRatingJson.updatedAt.toISOString()
-  return statementRatingJson
 }
 
 

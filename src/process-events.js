@@ -20,7 +20,7 @@
 
 
 import {checkDatabase, r} from "./database"
-import {addStatementRatingEvent} from "./model"
+import {addBallotEvent} from "./model"
 
 
 async function describe(statement) {
@@ -70,13 +70,13 @@ async function processEvent(event) {
     console.log(`Processing event ${event.type} of ${event.createdAt.toISOString()} for ${description}...`)
     let ratingCount = 0
     let ratingSum = 0
-    let ratings = await r
-      .table("ratings")
+    let ballots = await r
+      .table("ballots")
       .getAll(statement.id, {index: "statementId"})
-    for (let statementRating of ratings) {
-      if (statementRating.rating) {
+    for (let ballot of ballots) {
+      if (ballot.rating) {
         ratingCount += 1
-        ratingSum += statementRating.rating
+        ratingSum += ballot.rating
       }
     }
     let groundArguments = await r
@@ -117,7 +117,7 @@ async function processEvent(event) {
         .table("statements")
         .getAll(statement.id, {index: "groundId"})
       for (let argument of claimArguments) {
-        addStatementRatingEvent(argument.claimId)
+        addBallotEvent(argument.claimId)
       }
       if (statement.type === "Abuse") {
         let flaggedStatement = await r
@@ -141,12 +141,12 @@ async function processEvent(event) {
               .table("statements")
               .getAll(flaggedStatement.id, {index: "groundId"})
             for (let argument of claimArguments) {
-              addStatementRatingEvent(argument.claimId)
+              addBallotEvent(argument.claimId)
             }
           }
         }
       } else if (statement.type === "Argument") {
-        await addStatementRatingEvent(statement.claimId)
+        await addBallotEvent(statement.claimId)
       } else if (statement.type === "Tag") {
         let taggedStatement = await r
           .table("statements")
