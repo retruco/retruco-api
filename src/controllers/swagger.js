@@ -1420,6 +1420,10 @@ export const SPEC = {
           type: "string",
           format: "date-time",
         },
+        deleted: {
+          type: "boolean",
+          default: false,
+        },
         groundIds: {
           type: "array",
           items: {

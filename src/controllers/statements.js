@@ -67,6 +67,7 @@ async function deleteStatement(ctx) {
 
   // TODO: Instead of deleting statement, add a vote to flag it (using a given reason)?
 
+  statement.deleted = true
   const data = await toStatementData(statement, ctx.authenticatedUser, {
     depth: ctx.parameter.depth || 0,
     showAuthor: show.includes("author"),
