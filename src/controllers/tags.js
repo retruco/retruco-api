@@ -20,11 +20,12 @@
 
 
 import {r} from "../database"
-import {toStatementJson} from "../model"
+import {toStatementsData} from "../model"
 
 
 export {listStatementTags}
 async function listStatementTags(ctx) {
+  let show = ctx.parameter.show || []
   let statement = ctx.statement
 
   let tags = await r
@@ -32,7 +33,13 @@ async function listStatementTags(ctx) {
     .getAll([statement.id, "Tag"], {index: "statementIdAndType"})
   ctx.body = {
     apiVersion: "1",
-    data: await Promise.all(tags.map(toStatementJson)),
+    data: await toStatementsData(tags, ctx.authenticatedUser, {
+      depth: ctx.parameter.depth || 0,
+      showAuthor: show.includes("author"),
+      showBallot: show.includes("ballot"),
+      showGrounds: show.includes("grounds"),
+      showTags: show.includes("tags"),
+    }),
   }
 }
 

@@ -79,7 +79,7 @@ async function toStatementData1(data, statement, user, {depth = 0, showAuthor = 
   let statementJsonById = data.statements
   if (statementJsonById[statement.id]) return
 
-  const statementJson = toStatementJsonSync(statement)
+  const statementJson = toStatementJson(statement)
   statementJsonById[statement.id] = statementJson
   if (showGrounds) {
     const groundArguments = await r
@@ -142,25 +142,7 @@ async function toStatementData1(data, statement, user, {depth = 0, showAuthor = 
 }
 
 
-export {toStatementJson}
-async function toStatementJson(statement, {showAuthorName = false} = {}) {
-  let statementJson = {...statement}
-  if (statement.type === "PlainStatement") {
-    if (showAuthorName && statement.authorId) {
-      statementJson.authorName = await r
-        .table("users")
-        .get(statement.authorId)
-        .getField("urlName")
-    }
-    delete statementJson.authorId
-  }
-  statementJson.createdAt = statementJson.createdAt.toISOString()
-  return statementJson
-}
-
-
-// TODO: Remove toStatementJson and rename toStatementJsonSync to toStatementJson.
-function toStatementJsonSync(statement) {
+function toStatementJson(statement) {
   let statementJson = {...statement}
   statementJson.createdAt = statementJson.createdAt.toISOString()
   return statementJson

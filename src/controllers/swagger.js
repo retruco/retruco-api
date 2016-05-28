@@ -858,6 +858,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyOptionalParam",
           },
         ],
@@ -871,10 +874,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  type: "array",
-                  items: {
-                    $ref: "#/definitions/Tag",
-                  },
+                  $ref: "#/definitions/DataIdsList",
                 },
               },
               required: [
