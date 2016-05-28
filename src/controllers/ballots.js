@@ -50,7 +50,7 @@ async function deleteBallot(ctx) {
 
   ctx.body = {
     apiVersion: "1",
-    data: await toBallotJson(ballot),
+    data: toBallotJson(ballot),
   }
 }
 
@@ -76,7 +76,7 @@ async function getBallot(ctx) {
 
   ctx.body = {
     apiVersion: "1",
-    data: await toBallotJson(ballot),
+    data: toBallotJson(ballot),
   }
 }
 
@@ -117,6 +117,6 @@ async function upsertBallot(ctx) {
   }
   ctx.body = {
     apiVersion: "1",
-    data: await toBallotJson(ballot),
+    data: toBallotJson(ballot),
   }
 }
