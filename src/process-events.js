@@ -74,10 +74,8 @@ async function processEvent(event) {
       .table("ballots")
       .getAll(statement.id, {index: "statementId"})
     for (let ballot of ballots) {
-      if (ballot.rating) {
-        ratingCount += 1
-        ratingSum += ballot.rating
-      }
+      ratingCount += 1
+      if (ballot.rating) ratingSum += ballot.rating
     }
     let groundArguments = await r
       .table("statements")
