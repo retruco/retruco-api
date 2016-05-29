@@ -315,6 +315,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -364,6 +367,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -411,6 +417,9 @@ export const SPEC = {
         parameters: [
           {
             $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -539,6 +548,9 @@ export const SPEC = {
             $ref: "#/parameters/groundIdParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -591,6 +603,9 @@ export const SPEC = {
             $ref: "#/parameters/groundIdParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -641,6 +656,9 @@ export const SPEC = {
           },
           {
             $ref: "#/parameters/groundIdParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -715,6 +733,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -764,6 +785,9 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -811,6 +835,9 @@ export const SPEC = {
         parameters: [
           {
             $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -883,6 +910,9 @@ export const SPEC = {
         parameters: [
           {
             $ref: "#/parameters/statementIdParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -990,6 +1020,9 @@ export const SPEC = {
             $ref: "#/parameters/tagNamePathParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -1042,6 +1075,9 @@ export const SPEC = {
             $ref: "#/parameters/tagNamePathParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -1092,6 +1128,9 @@ export const SPEC = {
           },
           {
             $ref: "#/parameters/tagNamePathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
           },
           {
             $ref: "#/parameters/showParam",
