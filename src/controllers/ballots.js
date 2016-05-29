@@ -47,6 +47,21 @@ async function deleteBallot(ctx) {
       .get(id)
       .delete()
     await addBallotEvent(statement.id)
+
+    // Optimistic optimization
+    if (statement.ratingCount) {
+      statement = {...statement}
+      statement.ratingCount -= 1
+      if (statement.ratingCount === 0) {
+        delete statement.rating
+        delete statement.ratingCount
+        delete statement.ratingSum
+      } else {
+        statement.ratingSum -= ballot.rating
+        statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
+        statement.rating = statement.ratingSum / statement.ratingCount
+      }
+    }
   }
 
   ballot.deleted = true
@@ -105,10 +120,11 @@ async function upsertBallot(ctx) {
   let ratingData = ctx.parameter.ratingData
 
   let id = [statement.id, ctx.authenticatedUser.id].join("/")
-  let ballot = await r
+  let oldBallot = await r
     .table("ballots")
     .get(id)
-  if (ballot === null) {
+  let ballot
+  if (oldBallot === null) {
     ballot = {
       id,
       rating: ratingData.rating,
@@ -122,7 +138,8 @@ async function upsertBallot(ctx) {
     ballot = result.changes[0].new_val
     await addBallotEvent(statement.id)
     ctx.status = 201  // Created
-  } else if (ratingData.rating !== ballot.rating) {
+  } else if (ratingData.rating !== oldBallot.rating) {
+    ballot = {...oldBallot}
     ballot.rating = ratingData.rating
     ballot.updatedAt = r.now()
     let result = await r
@@ -131,7 +148,22 @@ async function upsertBallot(ctx) {
       .update(ballot, {returnChanges: true})
     ballot = result.changes[0].new_val
     await addBallotEvent(statement.id)
+  } else {
+    ballot = oldBallot
   }
+
+  // Optimistic optimization
+  statement = {...statement}
+  if (!statement.ratingCount) {
+    statement.rating = 0
+    statement.ratingCount = 0
+    statement.ratingSum = 0
+  }
+  if (oldBallot === null) statement.ratingCount += 1
+  statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
+  statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
+  statement.rating = statement.ratingSum / statement.ratingCount
+
   ctx.body = {
     apiVersion: "1",
     data: await toBallotData(ballot, statement, ctx.authenticatedUser, {
