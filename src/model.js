@@ -149,11 +149,11 @@ async function toStatementData1(data, statement, user, {depth = 0, showAuthor = 
   if (showBallot && user) {
     let ballotJsonById = data.ballots
     let ballotId = [statement.id, user.id].join("/")
+    statementJson.ballotId = ballotId
     if (!ballotJsonById[ballotId]) {
       let ballot = await r
         .table("ballots")
         .get(ballotId)
-      statementJson.ballotId = ballotId
       if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
     }
   }
