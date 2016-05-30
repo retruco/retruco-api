@@ -67,6 +67,7 @@ async function deleteBallot(ctx) {
   ballot.deleted = true
   const data = await toBallotData(ballot, statement, ctx.authenticatedUser, {
     depth: ctx.parameter.depth || 0,
+    showAbuse: show.includes("abuse"),
     showAuthor: show.includes("author"),
     showBallot: show.includes("ballot"),
     showGrounds: show.includes("grounds"),
@@ -103,6 +104,7 @@ async function getBallot(ctx) {
     apiVersion: "1",
     data: await toBallotData(ballot, statement, ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
+      showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
@@ -168,6 +170,7 @@ async function upsertBallot(ctx) {
     apiVersion: "1",
     data: await toBallotData(ballot, statement, ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
+      showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),

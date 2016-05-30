@@ -35,6 +35,7 @@ async function listStatementTags(ctx) {
     apiVersion: "1",
     data: await toStatementsData(tags, ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
+      showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),

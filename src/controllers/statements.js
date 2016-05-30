@@ -50,6 +50,7 @@ async function createStatement(ctx) {
     apiVersion: "1",
     data: await toStatementData(statement,  ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
+      showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
@@ -70,6 +71,7 @@ async function deleteStatement(ctx) {
   statement.deleted = true
   const data = await toStatementData(statement, ctx.authenticatedUser, {
     depth: ctx.parameter.depth || 0,
+    showAbuse: show.includes("abuse"),
     showAuthor: show.includes("author"),
     showBallot: show.includes("ballot"),
     showGrounds: show.includes("grounds"),
@@ -96,6 +98,7 @@ async function getStatement(ctx) {
     apiVersion: "1",
     data: await toStatementData(ctx.statement,  ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
+      showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
@@ -144,6 +147,7 @@ async function listStatements(ctx) {
     apiVersion: "1",
     data: await toStatementsData(statements, ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
+      showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),

@@ -1572,6 +1572,9 @@ export const SPEC = {
         {
           type: "object",
           properties: {
+            abuseId: {
+              $ref: "#/definitions/Id",
+            },
             claimId: {
               $ref: "#/definitions/Id",
             },
@@ -1726,6 +1729,9 @@ export const SPEC = {
         {
           type: "object",
           properties: {
+            abuseId: {
+              $ref: "#/definitions/Id",
+            },
             authorId: {
               $ref: "#/definitions/Id",
             },
