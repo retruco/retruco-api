@@ -267,6 +267,12 @@ export const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
             $ref: "#/parameters/apiKeyOptionalParam",
           },
         ],
@@ -280,7 +286,7 @@ export const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/Abuse",
+                  $ref: "#/definitions/DataId",
                 },
               },
               required: [
