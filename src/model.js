@@ -48,7 +48,7 @@ export function ownsUser(user, otherUser) {
 
 
 export {toBallotData}
-async function toBallotData(ballot, statement, user, {depth = 0, showAbuse = false, showAuthor = false,
+async function toBallotData(ballot, statements, user, {depth = 0, showAbuse = false, showAuthor = false,
   showBallot = false, showGrounds = false, showTags = false} = {}) {
   let data = {
     ballots: {[ballot.id]: toBallotJson(ballot)},
@@ -56,8 +56,15 @@ async function toBallotData(ballot, statement, user, {depth = 0, showAbuse = fal
     statements: {},
     users: {},
   }
+  let statementsCache = {}
+  for (let statement of statements) {
+    statementsCache[statement.id] = statement
+  }
 
-  await toStatementData1(data, statement, user, {depth, showAbuse, showAuthor, showBallot, showGrounds, showTags})
+  for (let statement of statements) {
+    await toStatementData1(data, statement, statementsCache, user,
+      {depth, showAbuse, showAuthor, showBallot, showGrounds, showTags})
+  }
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
   if (Object.keys(data.statements).length === 0) delete data.statements
@@ -82,8 +89,10 @@ async function toStatementData(statement, user, {depth = 0, showAbuse = false, s
     statements: {},
     users: {},
   }
+  let statementsCache = {}
 
-  await toStatementData1(data, statement, user, {depth, showAbuse, showAuthor, showBallot, showGrounds, showTags})
+  await toStatementData1(data, statement, statementsCache, user,
+    {depth, showAbuse, showAuthor, showBallot, showGrounds, showTags})
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
   if (Object.keys(data.statements).length === 0) delete data.statements
@@ -92,10 +101,13 @@ async function toStatementData(statement, user, {depth = 0, showAbuse = false, s
 }
 
 
-async function toStatementData1(data, statement, user, {depth = 0, showAbuse = false, showAuthor = false,
-  showBallot = false, showGrounds = false, showTags = false} = {}) {
+async function toStatementData1(data, statement, statementsCache, user, {depth = 0, showAbuse = false,
+  showAuthor = false, showBallot = false, showGrounds = false, showTags = false} = {}) {
   let statementJsonById = data.statements
   if (statementJsonById[statement.id]) return
+
+  const cachedStatement = statementsCache[statement.id]
+  if (cachedStatement) statement = cachedStatement
 
   const statementJson = toStatementJson(statement)
   statementJsonById[statement.id] = statementJson
@@ -106,7 +118,8 @@ async function toStatementData1(data, statement, user, {depth = 0, showAbuse = f
     const abuse = abuses.length > 0 ? abuses[0] : null
     statementJson.abuseId = abuse !== null ? abuse.id : null
     if (depth > 0 && abuse !== null) {
-      await toStatementData1(data, abuse, user, {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+      await toStatementData1(data, abuse, statementsCache, user,
+        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
     }
   }
   if (showGrounds) {
@@ -116,15 +129,15 @@ async function toStatementData1(data, statement, user, {depth = 0, showAbuse = f
     statementJson.groundIds = groundArguments.map(groundArgument => groundArgument.id)
     if (depth > 0) {
       for (let groundArgument of groundArguments) {
-        await toStatementData1(data, groundArgument, user, {depth: depth - 1, showAbuse, showAuthor, showBallot,
-          showGrounds, showTags})
+        await toStatementData1(data, groundArgument, statementsCache, user,
+          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showTags})
       }
       const groundStatements = await r
         .table("statements")
         .getAll(...groundArguments.map(groundArgument => groundArgument.groundId))
       for (let groundStatement of groundStatements) {
-        await toStatementData1(data, groundStatement, user, {depth: depth - 1, showAbuse, showAuthor, showBallot,
-          showGrounds, showTags})
+        await toStatementData1(data, groundStatement, statementsCache, user,
+          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showTags})
       }
     }
   }
@@ -135,7 +148,8 @@ async function toStatementData1(data, statement, user, {depth = 0, showAbuse = f
     statementJson.tagIds = tags.map(tag => tag.id)
     if (depth > 0) {
       for (let tag of tags) {
-        await toStatementData1(data, tag, user, {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+        await toStatementData1(data, tag, statementsCache, user,
+          {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
       }
     }
   }
@@ -180,9 +194,14 @@ async function toStatementsData(statements, user, {depth = 0, showAbuse = false,
     statements: {},
     users: {},
   }
+  let statementsCache = {}
+  for (let statement of statements) {
+    statementsCache[statement.id] = statement
+  }
 
   for (let statement of statements) {
-    await toStatementData1(data, statement, user, {depth, showAbuse, showAuthor, showBallot, showGrounds, showTags})
+    await toStatementData1(data, statement, statementsCache, user,
+      {depth, showAbuse, showAuthor, showBallot, showGrounds, showTags})
   }
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots

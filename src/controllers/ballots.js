@@ -154,21 +154,35 @@ async function upsertBallot(ctx) {
     ballot = oldBallot
   }
 
-  // Optimistic optimization
+  // Optimistic optimizations
+  const statements = []
   statement = {...statement}
+  statements.push(statement)
   if (!statement.ratingCount) {
     statement.rating = 0
     statement.ratingCount = 0
     statement.ratingSum = 0
   }
+  const oldRatingSum = statement.ratingSum
   if (oldBallot === null) statement.ratingCount += 1
   statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
   statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
   statement.rating = statement.ratingSum / statement.ratingCount
+  if (statement.type === "Abuse" &&
+    (oldRatingSum <= 0 && statement.ratingSum > 0 || oldRatingSum > 0 && statement.ratingSum <= 0)) {
+    let flaggedStatement = await r
+      .table("statements")
+      .get(statement.statementId)
+    if (flaggedStatement !== null) {
+      if (statement.ratingSum > 0) flaggedStatement.isAbuse = true
+      else delete flaggedStatement.isAbuse
+      statements.push(flaggedStatement)
+    }
+  }
 
   ctx.body = {
     apiVersion: "1",
-    data: await toBallotData(ballot, statement, ctx.authenticatedUser, {
+    data: await toBallotData(ballot, statements, ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
