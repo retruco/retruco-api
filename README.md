@@ -340,6 +340,24 @@ Returns:
 }
 ```
 
+#### Rate an argument and its ground statement
+
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/arguments/1630eafd-e387-44bf-abbb-70c5bf9fdfc8/rating"
+{
+  "rating": 1
+}
+EOF
+```
+
+```bash
+cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements/1630eafd-e387-44bf-abbb-70c5bf9fdfc8/rating"
+{
+  "rating": 1
+}
+EOF
+```
+
 ### API usage for abuses
 
 #### Get a specific abuse
@@ -360,24 +378,6 @@ Returns:
     "type": "Abuse"
   }
 }
-```
-
-#### Rate an argument and its ground statement
-
-```bash
-cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements/82d4e0ac-c234-45eb-8ba2-02d4d6a41979/arguments/1630eafd-e387-44bf-abbb-70c5bf9fdfc8/rating"
-{
-  "rating": 1
-}
-EOF
-```
-
-```bash
-cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements/1630eafd-e387-44bf-abbb-70c5bf9fdfc8/rating"
-{
-  "rating": 1
-}
-EOF
 ```
 
 #### Rate an abuse
