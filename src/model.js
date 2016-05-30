@@ -105,7 +105,7 @@ async function toStatementData1(data, statement, user, {depth = 0, showAbuse = f
       .getAll([statement.id, "Abuse"], {index: "statementIdAndType"})
     const abuse = abuses.length > 0 ? abuses[0] : null
     statementJson.abuseId = abuse !== null ? abuse.id : null
-    if (depth > 0 && abuse !== null && !statementJsonById[abuse.id]) {
+    if (depth > 0 && abuse !== null) {
       await toStatementData1(data, abuse, user, {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
     }
   }
@@ -116,19 +116,15 @@ async function toStatementData1(data, statement, user, {depth = 0, showAbuse = f
     statementJson.groundIds = groundArguments.map(groundArgument => groundArgument.id)
     if (depth > 0) {
       for (let groundArgument of groundArguments) {
-        if (!statementJsonById[groundArgument.id]) {
-          await toStatementData1(data, groundArgument, user, {depth: depth - 1, showAbuse, showAuthor, showBallot,
-            showGrounds, showTags})
-        }
+        await toStatementData1(data, groundArgument, user, {depth: depth - 1, showAbuse, showAuthor, showBallot,
+          showGrounds, showTags})
       }
       const groundStatements = await r
         .table("statements")
         .getAll(...groundArguments.map(groundArgument => groundArgument.groundId))
       for (let groundStatement of groundStatements) {
-        if (!statementJsonById[groundStatement.id]) {
-          await toStatementData1(data, groundStatement, user, {depth: depth - 1, showAbuse, showAuthor, showBallot,
-            showGrounds, showTags})
-        }
+        await toStatementData1(data, groundStatement, user, {depth: depth - 1, showAbuse, showAuthor, showBallot,
+          showGrounds, showTags})
       }
     }
   }
@@ -139,9 +135,7 @@ async function toStatementData1(data, statement, user, {depth = 0, showAbuse = f
     statementJson.tagIds = tags.map(tag => tag.id)
     if (depth > 0) {
       for (let tag of tags) {
-        if (!statementJsonById[tag.id]) {
-          await toStatementData1(data, tag, user, {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
-        }
+        await toStatementData1(data, tag, user, {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
       }
     }
   }
