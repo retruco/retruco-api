@@ -111,6 +111,40 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
 
   const statementJson = toStatementJson(statement)
   statementJsonById[statement.id] = statementJson
+
+  if (statement.type === "Abuse") {
+    if (statement.statementId) {
+      const flaggedStatement = await r
+        .table("statements")
+        .get(statement.statementId)
+      await toStatementData1(data, flaggedStatement, statementsCache, user,
+        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+    }
+  } else if (statement.type === "Argument") {
+    if (statement.claimId) {
+      const claim = await r
+        .table("statements")
+        .get(statement.claimId)
+      await toStatementData1(data, claim, statementsCache, user,
+        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+    }
+    if (statement.groundId) {
+      const ground = await r
+        .table("statements")
+        .get(statement.groundId)
+      await toStatementData1(data, ground, statementsCache, user,
+        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+    }
+  } else if (statement.type === "Tag") {
+    if (statement.statementId) {
+      const taggedStatement = await r
+        .table("statements")
+        .get(statement.statementId)
+      await toStatementData1(data, taggedStatement, statementsCache, user,
+        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+    }
+  }
+
   if (showAbuse) {
     const abuses = await r
       .table("statements")
