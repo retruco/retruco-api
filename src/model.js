@@ -118,7 +118,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         .table("statements")
         .get(statement.statementId)
       await toStatementData1(data, flaggedStatement, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showTags})
     }
   } else if (statement.type === "Argument") {
     if (statement.claimId) {
@@ -126,14 +126,14 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         .table("statements")
         .get(statement.claimId)
       await toStatementData1(data, claim, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showTags})
     }
     if (statement.groundId) {
       const ground = await r
         .table("statements")
         .get(statement.groundId)
       await toStatementData1(data, ground, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showTags})
     }
   } else if (statement.type === "Tag") {
     if (statement.statementId) {
@@ -141,7 +141,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         .table("statements")
         .get(statement.statementId)
       await toStatementData1(data, taggedStatement, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showTags})
     }
   }
 
@@ -153,7 +153,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     statementJson.abuseId = abuse !== null ? abuse.id : null
     if (depth > 0 && abuse !== null) {
       await toStatementData1(data, abuse, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showTags})
     }
   }
   if (showGrounds) {
@@ -183,7 +183,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     if (depth > 0) {
       for (let tag of tags) {
         await toStatementData1(data, tag, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showGrounds, showTags})
+          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showTags})
       }
     }
   }
