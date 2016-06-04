@@ -89,7 +89,8 @@ async function processEvent(event) {
           .get(argument.groundId)
         if (!ground.isAbuse && ground.ratingCount) {
           ratingCount += ground.ratingCount
-          let roundedArgumentRating = argument.rating < -1 / 3 ? -1 : argument.rating <= 1 / 3 ? 0 : 1
+          let argumentRating = argument.rating || 0
+          let roundedArgumentRating = argumentRating < -1 / 3 ? -1 : argumentRating <= 1 / 3 ? 0 : 1
           ratingSum += roundedArgumentRating * ground.ratingSum
         }
       }
