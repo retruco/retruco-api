@@ -52,6 +52,8 @@ async function deleteBallot(ctx) {
 
     // Optimistic optimization
     if (statement.ratingCount) {
+      const oldRating = statement.rating
+      const oldRatingSum = statement.ratingSum
       statement = {...statement}
       statements.push(statement)
       statement.ratingCount -= 1
@@ -64,6 +66,7 @@ async function deleteBallot(ctx) {
         statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
         statement.rating = statement.ratingSum / statement.ratingCount
       }
+      await propageOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
     } else {
       statements.push(statement)
     }
@@ -121,6 +124,47 @@ async function getBallot(ctx) {
 }
 
 
+async function propageOptimisticOptimization(statements, statement, oldRating, oldRatingSum) {
+  const newRatingCount = statement.ratingCount !== undefined ? statement.ratingCount : 0
+  const newRating = newRatingCount > 0 ? statement.rating : 0
+  const newRatingSum = newRatingCount > 0 ? statement.ratingSum : 0
+  if (oldRating === undefined) oldRating = 0
+  if (oldRatingSum === undefined) oldRatingSum = 0
+
+  if (statement.type === "Abuse") {
+    if (oldRatingSum <= 0 && newRatingSum > 0 || oldRatingSum > 0 && newRatingSum <= 0) {
+      let flaggedStatement = await r
+        .table("statements")
+        .get(statement.statementId)
+      if (flaggedStatement !== null) {
+        if (newRatingSum > 0) flaggedStatement.isAbuse = true
+        else delete flaggedStatement.isAbuse
+        statements.push(flaggedStatement)
+      }
+    }
+  } else if (statement.type === "Argument") {
+    if (!statement.isAbuse) {
+      let oldRoundedRating = oldRating < -1 / 3 ? -1 : oldRating <= 1 / 3 ? 0 : 1
+      let newRoundedRating = newRating < -1 / 3 ? -1 : newRating <= 1 / 3 ? 0 : 1
+      if (oldRoundedRating !== newRoundedRating) {
+        let claim = await r
+          .table("statements")
+          .get(statement.claimId)
+        let ground = await r
+          .table("statements")
+          .get(statement.groundId)
+        if (claim !== null && claim.ratingCount && ground !== null && !ground.isAbuse) {
+          claim.ratingSum = (claim.ratingSum || 0) + (newRoundedRating - oldRoundedRating) * (ground.ratingSum || 0)
+          claim.ratingSum = Math.max(-claim.ratingCount, Math.min(claim.ratingCount, claim.ratingSum))
+          claim.rating = claim.ratingSum / claim.ratingCount
+          statements.push(claim)
+        }
+      }
+    }
+  }
+}
+
+
 export {upsertBallot}
 async function upsertBallot(ctx) {
   // Insert or update a statement rating.
@@ -163,6 +207,8 @@ async function upsertBallot(ctx) {
 
   // Optimistic optimizations
   const statements = []
+  const oldRating = statement.rating
+  const oldRatingSum = statement.ratingSum
   statement = {...statement}
   statements.push(statement)
   if (!statement.ratingCount) {
@@ -170,22 +216,11 @@ async function upsertBallot(ctx) {
     statement.ratingCount = 0
     statement.ratingSum = 0
   }
-  const oldRatingSum = statement.ratingSum
   if (oldBallot === null) statement.ratingCount += 1
   statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
   statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
   statement.rating = statement.ratingSum / statement.ratingCount
-  if (statement.type === "Abuse" &&
-    (oldRatingSum <= 0 && statement.ratingSum > 0 || oldRatingSum > 0 && statement.ratingSum <= 0)) {
-    let flaggedStatement = await r
-      .table("statements")
-      .get(statement.statementId)
-    if (flaggedStatement !== null) {
-      if (statement.ratingSum > 0) flaggedStatement.isAbuse = true
-      else delete flaggedStatement.isAbuse
-      statements.push(flaggedStatement)
-    }
-  }
+  await propageOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
 
   ctx.body = {
     apiVersion: "1",
