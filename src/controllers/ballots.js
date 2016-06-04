@@ -33,6 +33,7 @@ async function deleteBallot(ctx) {
   let ballot = await r
     .table("ballots")
     .get(id)
+  const statements = []
   if (ballot === null) {
     ballot = {
       id,
@@ -41,6 +42,7 @@ async function deleteBallot(ctx) {
       // updatedAt: r.now(),
       voterId: ctx.authenticatedUser.id,
     }
+    statements.push(statement)
   } else {
     await r
       .table("ballots")
@@ -51,6 +53,7 @@ async function deleteBallot(ctx) {
     // Optimistic optimization
     if (statement.ratingCount) {
       statement = {...statement}
+      statements.push(statement)
       statement.ratingCount -= 1
       if (statement.ratingCount === 0) {
         delete statement.rating
@@ -61,13 +64,15 @@ async function deleteBallot(ctx) {
         statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
         statement.rating = statement.ratingSum / statement.ratingCount
       }
+    } else {
+      statements.push(statement)
     }
 
     delete ballot.rating
     delete ballot.updatedAt
   }
 
-  const data = await toBallotData(ballot, statement, ctx.authenticatedUser, {
+  const data = await toBallotData(ballot, statements, ctx.authenticatedUser, {
     depth: ctx.parameter.depth || 0,
     showAbuse: show.includes("abuse"),
     showAuthor: show.includes("author"),
@@ -104,7 +109,7 @@ async function getBallot(ctx) {
 
   ctx.body = {
     apiVersion: "1",
-    data: await toBallotData(ballot, statement, ctx.authenticatedUser, {
+    data: await toBallotData(ballot, [statement], ctx.authenticatedUser, {
       depth: ctx.parameter.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
