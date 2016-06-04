@@ -68,6 +68,8 @@ async function processEvent(event) {
     if (statement === null) return
     let description = await describe(statement)
     console.log(`Processing event ${event.type} of ${event.createdAt.toISOString()} for ${description}...`)
+
+    // Compute statement rating.
     let ratingCount = 0
     let ratingSum = 0
     let ballots = await r
@@ -92,7 +94,9 @@ async function processEvent(event) {
         }
       }
     }
+
     if (ratingCount != statement.ratingCount || ratingSum != statement.ratingSum) {
+      // Save statement rating.
       let rating
       if (ratingCount === 0) {
         rating = null
@@ -111,6 +115,8 @@ async function processEvent(event) {
             ratingSum,        
           })
       }
+
+      // Propagate stateemnt rating change.
       let claimArguments = await r
         .table("statements")
         .getAll(statement.id, {index: "groundId"})
