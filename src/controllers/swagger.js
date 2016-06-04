@@ -1596,10 +1596,6 @@ export const SPEC = {
     Ballot: {
       type: "object",
       properties: {
-        deleted: {
-          type: "boolean",
-          default: false,
-        },
         id: {
           $ref: "#/definitions/BallotId",
         },

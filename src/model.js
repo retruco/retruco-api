@@ -75,7 +75,7 @@ async function toBallotData(ballot, statements, user, {depth = 0, showAbuse = fa
 
 function toBallotJson(ballot) {
   let ballotJson = {...ballot}
-  ballotJson.updatedAt = ballotJson.updatedAt.toISOString()
+  if (ballotJson.updatedAt) ballotJson.updatedAt = ballotJson.updatedAt.toISOString()
   return ballotJson
 }
 

@@ -62,9 +62,11 @@ async function deleteBallot(ctx) {
         statement.rating = statement.ratingSum / statement.ratingCount
       }
     }
+
+    delete ballot.rating
+    delete ballot.updatedAt
   }
 
-  ballot.deleted = true
   const data = await toBallotData(ballot, statement, ctx.authenticatedUser, {
     depth: ctx.parameter.depth || 0,
     showAbuse: show.includes("abuse"),
