@@ -34,22 +34,40 @@ export function authenticate(require) {
 
     let credentials = basicAuth(ctx.request)
     if (credentials) {
-      let urlName = credentials.name
-      let users = await r
-        .table("users")
-        .getAll(urlName, {index: "urlName"})
-        .limit(1)
-      if (users.length < 1) {
-        ctx.status = 401  // Unauthorized
-        ctx.set("WWW-Authenticate", `Basic realm="${config.title}"`)
-        ctx.body = {
-          apiVersion: "1",
-          code: 401,  // Unauthorized
-          message: `No user with name "${urlName}".`,
+      let userName = credentials.name  // email or urlName
+      if (userName.indexOf("@") >= 0) {
+        let users = await r
+          .table("users")
+          .getAll(userName, {index: "email"})
+          .limit(1)
+        if (users.length < 1) {
+          ctx.status = 401  // Unauthorized
+          ctx.set("WWW-Authenticate", `Basic realm="${config.title}"`)
+          ctx.body = {
+            apiVersion: "1",
+            code: 401,  // Unauthorized
+            message: `No user with email "${userName}".`,
+          }
+          return
         }
-        return
+        user = users[0]
+      } else {
+        let users = await r
+          .table("users")
+          .getAll(name, {index: "urlName"})
+          .limit(1)
+        if (users.length < 1) {
+          ctx.status = 401  // Unauthorized
+          ctx.set("WWW-Authenticate", `Basic realm="${config.title}"`)
+          ctx.body = {
+            apiVersion: "1",
+            code: 401,  // Unauthorized
+            message: `No user with name "${userName}".`,
+          }
+          return
+        }
+        user = users[0]
       }
-      user = users[0]
       let passwordDigest = (await pbkdf2(credentials.pass, user.salt, 4096, 16, "sha512")).toString("base64")
         .replace(/=/g, "")
       if (passwordDigest != user.passwordDigest) {
@@ -58,7 +76,7 @@ export function authenticate(require) {
         ctx.body = {
           apiVersion: "1",
           code: 401,  // Unauthorized
-          message: `Invalid password for user "${urlName}".`,
+          message: `Invalid password for user "${name}".`,
         }
         return
       }
@@ -131,7 +149,7 @@ async function createUser(ctx) {
   ctx.status = 201  // Created
   ctx.body = {
     apiVersion: "1",
-    data: toUserJson(user, {showApiKey: true}),
+    data: toUserJson(user, {showApiKey: true, showEmail: true}),
   }
 }
 
@@ -168,19 +186,20 @@ async function getUser(ctx) {
   let authenticatedUser = ctx.authenticatedUser
   let show = ctx.parameter.show || []
   let showApiKey = show.includes("apiKey")
+  let showEmail = show.includes("email")
   let user = ctx.user
-  if (showApiKey && !ownsUser(authenticatedUser, user)) {
+  if ((showApiKey || showEmail) && !ownsUser(authenticatedUser, user)) {
     ctx.status = 403  // Forbidden
     ctx.body = {
       apiVersion: "1",
       code: 403,  // Forbidden
-      message: "User's apiKey can only be viewed by himself or an admin.",
+      message: "Attributes apiKey or email can only be retrieved by user or an admin.",
     }
     return
   }
   ctx.body = {
     apiVersion: "1",
-    data: toUserJson(user, {showApiKey}),
+    data: toUserJson(user, {showApiKey, showEmail}),
   }
 }
 
@@ -244,28 +263,48 @@ async function login(ctx) {
   }
   ctx.body = {
     apiVersion: "1",
-    data: toUserJson(user, {showApiKey: true}),
+    data: toUserJson(user, {showApiKey: true, showEmail: true}),
   }
 }
 
 
 export {requireUser}
 async function requireUser(ctx, next) {
-  let urlName = ctx.parameter.userName
-  let users = await r
-    .table("users")
-    .getAll(urlName, {index: "urlName"})
-    .limit(1)
-  if (users.length < 1) {
-    ctx.status = 404
-    ctx.body = {
-      apiVersion: "1",
-      code: 404,
-      message: `No user named "${urlName}".`,
+  let userName = ctx.parameter.userName  // email or urlName
+
+  let user
+  if (userName.indexOf("@") >= 0) {
+    let users = await r
+      .table("users")
+      .getAll(userName, {index: "email"})
+      .limit(1)
+    if (users.length < 1) {
+      ctx.status = 404
+      ctx.body = {
+        apiVersion: "1",
+        code: 404,
+        message: `No user with email "${userName}".`,
+      }
+      return
     }
-    return
+    user = users[0]
+  } else {
+    let users = await r
+      .table("users")
+      .getAll(userName, {index: "urlName"})
+      .limit(1)
+    if (users.length < 1) {
+      ctx.status = 404
+      ctx.body = {
+        apiVersion: "1",
+        code: 404,
+        message: `No user named "${urlName}".`,
+      }
+      return
+    }
+    user = users[0]
   }
-  ctx.user = users[0]
+  ctx.user = user
 
   await next()
 }

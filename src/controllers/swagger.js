@@ -1780,6 +1780,10 @@ export const SPEC = {
         apiKey: {
           type: "string",
         },
+        email: {
+          formet: "email",
+          type: "string",
+        },
         id: {
           $ref: "#/definitions/Id",
         },
@@ -1794,6 +1798,7 @@ export const SPEC = {
         },
       },
       required: [
+        "email",
         "urlName",
       ],
     },

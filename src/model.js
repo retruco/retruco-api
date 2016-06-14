@@ -246,9 +246,10 @@ async function toStatementsData(statements, user, {depth = 0, showAbuse = false,
 
 
 export {toUserJson}
-function toUserJson(user, {showApiKey = false} = {}) {
+function toUserJson(user, {showApiKey = false, showEmail = false} = {}) {
   let userJson = {...user}
   if (!showApiKey) delete userJson.apiKey
+  if (!showEmail) delete userJson.email
   userJson.createdAt = userJson.createdAt.toISOString()
   // delete userJson.id
   delete userJson.passwordDigest
