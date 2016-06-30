@@ -237,20 +237,37 @@ async function login(ctx) {
   let user = ctx.parameter.user
   let password = user.password
   let urlName = user.userName
-  let users = await r
-    .table("users")
-    .getAll(urlName, {index: "urlName"})
-    .limit(1)
-  if (users.length < 1) {
-    ctx.status = 401  // Unauthorized
-    ctx.body = {
-      apiVersion: "1",
-      code: 401,  // Unauthorized
-      message: `No user with name "${urlName}".`,
+  if (urlName.indexOf("@") >= 0) {
+    let users = await r
+      .table("users")
+      .getAll(urlName, {index: "email"})
+      .limit(1)
+    if (users.length < 1) {
+      ctx.status = 401  // Unauthorized
+      ctx.body = {
+        apiVersion: "1",
+        code: 401,  // Unauthorized
+        message: `No user with email "${urlName}".`,
+      }
+      return
     }
-    return
+    user = users[0]
+  } else {
+    let users = await r
+      .table("users")
+      .getAll(urlName, {index: "urlName"})
+      .limit(1)
+    if (users.length < 1) {
+      ctx.status = 401  // Unauthorized
+      ctx.body = {
+        apiVersion: "1",
+        code: 401,  // Unauthorized
+        message: `No user with name "${urlName}".`,
+      }
+      return
+    }
+    user = users[0]
   }
-  user = users[0]
   let passwordDigest = (await pbkdf2(password, user.salt, 4096, 16, "sha512")).toString("base64").replace(/=/g, "")
   if (passwordDigest != user.passwordDigest) {
     ctx.status = 401  // Unauthorized
