@@ -256,3 +256,6 @@ function toUserJson(user, {showApiKey = false, showEmail = false} = {}) {
   delete userJson.salt
   return userJson
 }
+
+
+export const wrapAsyncMiddleware = fn => (...args) => fn(...args).catch(args[2])

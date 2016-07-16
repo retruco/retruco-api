@@ -20,19 +20,18 @@
 
 
 import {r} from "../database"
-import {toStatementData, toStatementsData} from "../model"
+import {toStatementData, toStatementsData, wrapAsyncMiddleware} from "../model"
 
 
-export {createStatement}
-async function createStatement(ctx) {
+export const createStatement = wrapAsyncMiddleware(async function createStatement(req, res, next) {
   // Create a new statement.
-  let show = ctx.parameter.show || []
-  let statement = ctx.parameter.statement
+  let show = req.query.show || []
+  let statement = req.body
 
   if (statement.type === "Argument") {
     delete statement.isAbuse
   } else if (statement.type === "PlainStatement") {
-    statement.authorId = ctx.authenticatedUser.id  
+    statement.authorId = req.authenticatedUser.id  
     delete statement.isAbuse
   }
   statement.createdAt = r.now()
@@ -45,32 +44,31 @@ async function createStatement(ctx) {
     .table("statements")
     .insert(statement, {returnChanges: true})
   statement = result.changes[0].new_val
-  ctx.status = 201  // Created
-  ctx.body = {
+  res.status(201)  // Created
+  res.json({
     apiVersion: "1",
-    data: await toStatementData(statement,  ctx.authenticatedUser, {
-      depth: ctx.parameter.depth || 0,
+    data: await toStatementData(statement,  req.authenticatedUser, {
+      depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),
-  }
-}
+  })
+})
 
 
-export {deleteStatement}
-async function deleteStatement(ctx) {
+export const deleteStatement = wrapAsyncMiddleware(async function deleteStatement(req, res, next) {
   // Delete an existing statement.
-  let show = ctx.parameter.show || []
-  let statement = ctx.statement
+  let show = req.query.show || []
+  let statement = req.statement
 
   // TODO: Instead of deleting statement, add a vote to flag it (using a given reason)?
 
   statement.deleted = true
-  const data = await toStatementData(statement, ctx.authenticatedUser, {
-    depth: ctx.parameter.depth || 0,
+  const data = await toStatementData(statement, req.authenticatedUser, {
+    depth: req.query.depth || 0,
     showAbuse: show.includes("abuse"),
     showAuthor: show.includes("author"),
     showBallot: show.includes("ballot"),
@@ -82,38 +80,36 @@ async function deleteStatement(ctx) {
     .table("statements")
     .get(statement.id)
     .delete()
-  ctx.body = {
+  res.json({
     apiVersion: "1",
     data: data,
-  }
-}
+  })
+})
 
 
-export {getStatement}
-async function getStatement(ctx) {
+export const getStatement = wrapAsyncMiddleware(async function getStatement(req, res, next) {
   // Respond an existing statement.
 
-  let show = ctx.parameter.show || []
-  ctx.body = {
+  let show = req.query.show || []
+  res.json({
     apiVersion: "1",
-    data: await toStatementData(ctx.statement,  ctx.authenticatedUser, {
-      depth: ctx.parameter.depth || 0,
+    data: await toStatementData(req.statement,  req.authenticatedUser, {
+      depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),
-  }
-}
+  })
+})
 
 
-export {listStatements}
-async function listStatements(ctx) {
+export const listStatements = wrapAsyncMiddleware(async function listStatements(req, res, next) {
   // Respond a list of statements.
-  let languageCode = ctx.parameter.languageCode
-  let show = ctx.parameter.show || []
-  let tagsName = ctx.parameter.tag || []
+  let languageCode = req.query.languageCode
+  let show = req.query.show || []
+  let tagsName = req.query.tag || []
 
   let index = null
   let statements = r.table("statements")
@@ -143,36 +139,35 @@ async function listStatements(ctx) {
   }
   statements = await statements
 
-  ctx.body = {
+  res.json({
     apiVersion: "1",
-    data: await toStatementsData(statements, ctx.authenticatedUser, {
-      depth: ctx.parameter.depth || 0,
+    data: await toStatementsData(statements, req.authenticatedUser, {
+      depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),
-  }
-}
+  })
+})
 
 
-export {requireStatement}
-async function requireStatement(ctx, next) {
-  let id = ctx.parameter.statementId
+export const requireStatement = wrapAsyncMiddleware(async function requireStatement(req, res, next) {
+  let id = req.params.statementId
   let statement = await r
     .table("statements")
     .get(id)
   if (statement === null) {
-    ctx.status = 404
-    ctx.body = {
+    res.status(404)
+    res.json({
       apiVersion: "1",
       code: 404,
       message: `No statement with ID "${id}".`,
-    }
+    })
     return
   }
-  ctx.statement = statement
+  req.statement = statement
 
-  await next()
-}
+  return next()
+})

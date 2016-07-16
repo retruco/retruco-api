@@ -20,18 +20,18 @@
 
 
 import {r} from "../database"
+import {wrapAsyncMiddleware} from "../model"
 
 
-export {requireAbuse}
-async function requireAbuse(ctx, next) {
-  let statement = ctx.statement
+export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req, res, next) {
+  let statement = req.statement
   if (!["Argument", "PlainStatement"].includes(statement.type)) {
-    ctx.status = 404
-    ctx.body = {
+    res.status(404)
+    res.json({
       apiVersion: "1",
       code: 404,
       message: "An abuse statement can't have its own abuse statement.",
-    }
+    })
     return
   }
   let abuses = await r
@@ -52,7 +52,7 @@ async function requireAbuse(ctx, next) {
   } else {
     abuse = abuses[0]
   }
-  ctx.statement = abuse
+  req.statement = abuse
 
-  await next()
-}
+  return next()
+})

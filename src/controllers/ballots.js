@@ -20,16 +20,15 @@
 
 
 import {r} from "../database"
-import {addBallotEvent, toBallotData} from "../model"
+import {addBallotEvent, toBallotData, wrapAsyncMiddleware} from "../model"
 
 
-export {deleteBallot}
-async function deleteBallot(ctx) {
+export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res, next) {
   // Delete a statement rating.
-  let show = ctx.parameter.show || []
-  let statement = ctx.statement
+  let show = req.query.show || []
+  let statement = req.statement
 
-  let id = [statement.id, ctx.authenticatedUser.id].join("/")
+  let id = [statement.id, req.authenticatedUser.id].join("/")
   let ballot = await r
     .table("ballots")
     .get(id)
@@ -40,7 +39,7 @@ async function deleteBallot(ctx) {
       // rating: null,
       statementId: statement.id,
       // updatedAt: r.now(),
-      voterId: ctx.authenticatedUser.id,
+      voterId: req.authenticatedUser.id,
     }
     statements.push(statement)
   } else {
@@ -75,28 +74,27 @@ async function deleteBallot(ctx) {
     delete ballot.updatedAt
   }
 
-  const data = await toBallotData(ballot, statements, ctx.authenticatedUser, {
-    depth: ctx.parameter.depth || 0,
+  const data = await toBallotData(ballot, statements, req.authenticatedUser, {
+    depth: req.query.depth || 0,
     showAbuse: show.includes("abuse"),
     showAuthor: show.includes("author"),
     showBallot: show.includes("ballot"),
     showGrounds: show.includes("grounds"),
     showTags: show.includes("tags"),
   })
-  ctx.body = {
+  res.json({
     apiVersion: "1",
     data: data,
-  }
-}
+  })
+})
 
 
-export {getBallot}
-async function getBallot(ctx) {
+export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res, next) {
   // Respond an existing statement rating.
-  let show = ctx.parameter.show || []
-  let statement = ctx.statement
+  let show = req.query.show || []
+  let statement = req.statement
 
-  let id = [statement.id, ctx.authenticatedUser.id].join("/")
+  let id = [statement.id, req.authenticatedUser.id].join("/")
   let ballot = await r
     .table("ballots")
     .get(id)
@@ -106,22 +104,22 @@ async function getBallot(ctx) {
       // rating: null,
       statementId: statement.id,
       // updatedAt: r.now(),
-      voterId: ctx.authenticatedUser.id,
+      voterId: req.authenticatedUser.id,
     }
   }
 
-  ctx.body = {
+  res.json({
     apiVersion: "1",
-    data: await toBallotData(ballot, [statement], ctx.authenticatedUser, {
-      depth: ctx.parameter.depth || 0,
+    data: await toBallotData(ballot, [statement], req.authenticatedUser, {
+      depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),
-  }
-}
+  })
+})
 
 
 async function propageOptimisticOptimization(statements, statement, oldRating, oldRatingSum) {
@@ -165,14 +163,13 @@ async function propageOptimisticOptimization(statements, statement, oldRating, o
 }
 
 
-export {upsertBallot}
-async function upsertBallot(ctx) {
+export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req, res, next) {
   // Insert or update a statement rating.
-  let show = ctx.parameter.show || []
-  let statement = ctx.statement
-  let ratingData = ctx.parameter.ratingData
+  let show = req.query.show || []
+  let statement = req.statement
+  let ratingData = req.query.ratingData
 
-  let id = [statement.id, ctx.authenticatedUser.id].join("/")
+  let id = [statement.id, req.authenticatedUser.id].join("/")
   let oldBallot = await r
     .table("ballots")
     .get(id)
@@ -183,14 +180,14 @@ async function upsertBallot(ctx) {
       rating: ratingData.rating,
       statementId: statement.id,
       updatedAt: r.now(),
-      voterId: ctx.authenticatedUser.id,
+      voterId: req.authenticatedUser.id,
     }
     let result = await r
       .table("ballots")
       .insert(ballot, {returnChanges: true})
     ballot = result.changes[0].new_val
     await addBallotEvent(statement.id)
-    ctx.status = 201  // Created
+    res.status(201)  // Created
   } else if (ratingData.rating !== oldBallot.rating) {
     ballot = {...oldBallot}
     ballot.rating = ratingData.rating
@@ -222,15 +219,15 @@ async function upsertBallot(ctx) {
   statement.rating = statement.ratingSum / statement.ratingCount
   await propageOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
 
-  ctx.body = {
+  res.json({
     apiVersion: "1",
-    data: await toBallotData(ballot, statements, ctx.authenticatedUser, {
-      depth: ctx.parameter.depth || 0,
+    data: await toBallotData(ballot, statements, req.authenticatedUser, {
+      depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),
-  }
-}
+  })
+})

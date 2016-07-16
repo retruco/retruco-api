@@ -20,35 +20,33 @@
 
 
 import {r} from "../database"
-import {toStatementsData} from "../model"
+import {toStatementsData, wrapAsyncMiddleware} from "../model"
 
 
-export {listStatementTags}
-async function listStatementTags(ctx) {
-  let show = ctx.parameter.show || []
-  let statement = ctx.statement
+export const listStatementTags = wrapAsyncMiddleware(async function listStatementTags(req, res, next) {
+  let show = req.query.show || []
+  let statement = req.statement
 
   let tags = await r
     .table("statements")
     .getAll([statement.id, "Tag"], {index: "statementIdAndType"})
-  ctx.body = {
+  res.json({
     apiVersion: "1",
-    data: await toStatementsData(tags, ctx.authenticatedUser, {
-      depth: ctx.parameter.depth || 0,
+    data: await toStatementsData(tags, req.authenticatedUser, {
+      depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showTags: show.includes("tags"),
     }),
-  }
-}
+  })
+})
 
 
-export {requireTag}
-async function requireTag(ctx, next) {
-  let statement = ctx.statement
-  let tagName = ctx.parameter.tagName
+export const requireTag = wrapAsyncMiddleware(async function requireTag(req, res, next) {
+  let statement = req.statement
+  let tagName = req.params.tagName
 
   let tags = await r
     .table("statements")
@@ -69,7 +67,7 @@ async function requireTag(ctx, next) {
   } else {
     tag = tags[0]
   }
-  ctx.statement = tag
+  req.statement = tag
 
-  await next()
-}
+  return next()
+})

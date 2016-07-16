@@ -24,15 +24,14 @@ import {pbkdf2, randomBytes} from "mz/crypto"
 
 import config from "../config"
 import {r} from "../database"
-import {ownsUser} from "../model"
-import {toUserJson} from "../model"
+import {ownsUser, toUserJson, wrapAsyncMiddleware} from "../model"
 
 
 export function authenticate(require) {
-  return async function authenticate(ctx, next) {
+  return wrapAsyncMiddleware(async function authenticate(req, res, next) {
     let user
 
-    let credentials = basicAuth(ctx.request)
+    let credentials = basicAuth(req)
     if (credentials) {
       let userName = credentials.name  // email or urlName
       if (userName.indexOf("@") >= 0) {
@@ -41,13 +40,13 @@ export function authenticate(require) {
           .getAll(userName, {index: "email"})
           .limit(1)
         if (users.length < 1) {
-          ctx.status = 401  // Unauthorized
-          ctx.set("WWW-Authenticate", `Basic realm="${config.title}"`)
-          ctx.body = {
+          res.status(401)  // Unauthorized
+          res.set("WWW-Authenticate", `Basic realm="${config.title}"`)
+          res.json({
             apiVersion: "1",
             code: 401,  // Unauthorized
             message: `No user with email "${userName}".`,
-          }
+          })
           return
         }
         user = users[0]
@@ -57,13 +56,13 @@ export function authenticate(require) {
           .getAll(name, {index: "urlName"})
           .limit(1)
         if (users.length < 1) {
-          ctx.status = 401  // Unauthorized
-          ctx.set("WWW-Authenticate", `Basic realm="${config.title}"`)
-          ctx.body = {
+          res.status(401)  // Unauthorized
+          res.set("WWW-Authenticate", `Basic realm="${config.title}"`)
+          res.json({
             apiVersion: "1",
             code: 401,  // Unauthorized
             message: `No user with name "${userName}".`,
-          }
+          })
           return
         }
         user = users[0]
@@ -71,27 +70,27 @@ export function authenticate(require) {
       let passwordDigest = (await pbkdf2(credentials.pass, user.salt, 4096, 16, "sha512")).toString("base64")
         .replace(/=/g, "")
       if (passwordDigest != user.passwordDigest) {
-        ctx.status = 401  // Unauthorized
-        ctx.set("WWW-Authenticate", `Basic realm="${config.title}"`)
-        ctx.body = {
+        res.status(401)  // Unauthorized
+        res.set("WWW-Authenticate", `Basic realm="${config.title}"`)
+        res.json({
           apiVersion: "1",
           code: 401,  // Unauthorized
           message: `Invalid password for user "${name}".`,
-        }
+        })
         return
       }
     }
 
-    let apiKey = ctx.get("retruco-api-key")
+    let apiKey = req.get("retruco-api-key")
     if (apiKey) {
       if (credentials) {
-        ctx.status = 401  // Unauthorized
-        ctx.body = {
+        res.status(401)  // Unauthorized
+        res.json({
           apiVersion: "1",
           code: 401,  // Unauthorized
           message: "HTTP Basic Authentication and retruco-api-key headers must not be used together." +
             " Use only one authentication method.",
-        }
+        })
         return
       }
       let users = await r
@@ -99,37 +98,35 @@ export function authenticate(require) {
         .getAll(apiKey, {index: "apiKey"})
         .limit(1)
       if (users.length < 1) {
-        ctx.status = 401  // Unauthorized
-        ctx.body = {
+        res.status(401)  // Unauthorized
+        res.json({
           apiVersion: "1",
           code: 401,  // Unauthorized
           message: `No user with apiKey "${apiKey}".`,
-        }
+        })
         return
       }
       user = users[0]
     }
 
     if (user) {
-      ctx.authenticatedUser = user
+      req.authenticatedUser = user
     } else if (require) {
-      ctx.status = 401  // Unauthorized
-      ctx.body = {
+      res.status(401)  // Unauthorized
+      res.json({
         apiVersion: "1",
         code: 401,  // Unauthorized
         message: "Authentication is required.",
-      }
+      })
       return
     }
-    await next()
-  }
+    return next()
+  })
 }
 
-
-export {createUser}
-async function createUser(ctx) {
+export const createUser = wrapAsyncMiddleware(async function createUser(req, res, next) {
   // Create a new user.
-  let user = ctx.parameter.user
+  let user = req.body
   user.createdAt = r.now()
   delete user.id
   if (!user.name) user.name = user.urlName
@@ -146,26 +143,25 @@ async function createUser(ctx) {
     .table("users")
     .insert(user, {returnChanges: true})
   user = result.changes[0].new_val
-  ctx.status = 201  // Created
-  ctx.body = {
+  res.status(201)  // Created
+  res.json({
     apiVersion: "1",
     data: toUserJson(user, {showApiKey: true, showEmail: true}),
-  }
-}
+  })
+})
 
 
-export {deleteUser}
-async function deleteUser(ctx) {
+export const deleteUser = wrapAsyncMiddleware(async function deleteUser(req, res, next) {
   // Delete an existing user.
-  let authenticatedUser = ctx.authenticatedUser
-  let user = ctx.user
+  let authenticatedUser = req.authenticatedUser
+  let user = req.user
   if (!ownsUser(authenticatedUser, user)) {
-    ctx.status = 403  // Forbidden
-    ctx.body = {
+    res.status(403)  // Forbidden
+    res.json({
       apiVersion: "1",
       code: 403,  // Forbidden
       message: "A user can only be deleted by himself or an admin.",
-    }
+    })
     return
   }
   // TODO: Delete user statements, etc?
@@ -173,68 +169,64 @@ async function deleteUser(ctx) {
     .table("users")
     .get(user.id)
     .delete()
-  ctx.body = {
+  res.json({
     apiVersion: "1",
     data: toUserJson(user),
-  }
-}
+  })
+})
 
 
-export {getUser}
-async function getUser(ctx) {
+export const getUser = wrapAsyncMiddleware(async function getUser(req, res, next) {
   // Respond an existing user.
-  let authenticatedUser = ctx.authenticatedUser
-  let show = ctx.parameter.show || []
+  let authenticatedUser = req.authenticatedUser
+  let show = req.query.show || []
   let showApiKey = show.includes("apiKey")
   let showEmail = show.includes("email")
-  let user = ctx.user
+  let user = req.user
   if ((showApiKey || showEmail) && !ownsUser(authenticatedUser, user)) {
-    ctx.status = 403  // Forbidden
-    ctx.body = {
+    res.status(403)  // Forbidden
+    res.json({
       apiVersion: "1",
       code: 403,  // Forbidden
       message: "Attributes apiKey or email can only be retrieved by user or an admin.",
-    }
+    })
     return
   }
-  ctx.body = {
+  res.json({
     apiVersion: "1",
     data: toUserJson(user, {showApiKey, showEmail}),
-  }
-}
+  })
+})
 
 
-// export {listUsers}
-// async function listUsers(ctx) {
+// export const listUsers = wrapAsyncMiddleware(async function listUsers(req, res, next) {
 //   // Respond a list of all users.
 //   let users = await r
 //     .table("users")
 //     .orderBy({index: r.desc("createdAt")})
-//   ctx.body = {
+//   res.json({
 //     apiVersion: "1",
 //     data: users,
 //   }
-// }
+// })
 
 
-export {listUsersUrlName}
-async function listUsersUrlName(ctx) {
+export const listUsersUrlName = wrapAsyncMiddleware(async function listUsersUrlName(req, res, next) {
   // Respond a list of the urlNames of all users.
   let usersUrlName = await r
     .table("users")
     .orderBy({index: r.desc("createdAt")})
     .getField("urlName")
-  ctx.body = {
+  res.json({
     apiVersion: "1",
     data: usersUrlName,
-  }
-}
+  })
+})
 
 
-export {login}
-async function login(ctx) {
+export const login = wrapAsyncMiddleware(async function login(req, res, next) {
   // Log user in.
-  let user = ctx.parameter.user
+  let user = req.body
   let password = user.password
   let urlName = user.userName
   if (urlName.indexOf("@") >= 0) {
@@ -243,12 +235,12 @@ async function login(ctx) {
       .getAll(urlName, {index: "email"})
       .limit(1)
     if (users.length < 1) {
-      ctx.status = 401  // Unauthorized
-      ctx.body = {
+      res.status(401)  // Unauthorized
+      res.json({
         apiVersion: "1",
         code: 401,  // Unauthorized
         message: `No user with email "${urlName}".`,
-      }
+      })
       return
     }
     user = users[0]
@@ -258,36 +250,35 @@ async function login(ctx) {
       .getAll(urlName, {index: "urlName"})
       .limit(1)
     if (users.length < 1) {
-      ctx.status = 401  // Unauthorized
-      ctx.body = {
+      res.status(401)  // Unauthorized
+      res.json({
         apiVersion: "1",
         code: 401,  // Unauthorized
         message: `No user with name "${urlName}".`,
-      }
+      })
       return
     }
     user = users[0]
   }
   let passwordDigest = (await pbkdf2(password, user.salt, 4096, 16, "sha512")).toString("base64").replace(/=/g, "")
   if (passwordDigest != user.passwordDigest) {
-    ctx.status = 401  // Unauthorized
-    ctx.body = {
+    res.status(401)  // Unauthorized
+    res.json({
       apiVersion: "1",
       code: 401,  // Unauthorized
       message: `Invalid password for user "${urlName}".`,
-    }
+    })
     return
   }
-  ctx.body = {
+  res.json({
     apiVersion: "1",
     data: toUserJson(user, {showApiKey: true, showEmail: true}),
-  }
-}
+  })
+})
 
 
-export {requireUser}
-async function requireUser(ctx, next) {
-  let userName = ctx.parameter.userName  // email or urlName
+export const requireUser = wrapAsyncMiddleware(async function requireUser(req, res, next) {
+  let userName = req.params.userName  // email or urlName
 
   let user
   if (userName.indexOf("@") >= 0) {
@@ -296,12 +287,12 @@ async function requireUser(ctx, next) {
       .getAll(userName, {index: "email"})
       .limit(1)
     if (users.length < 1) {
-      ctx.status = 404
-      ctx.body = {
+      res.status(404)
+      res.json({
         apiVersion: "1",
         code: 404,
         message: `No user with email "${userName}".`,
-      }
+      })
       return
     }
     user = users[0]
@@ -311,26 +302,25 @@ async function requireUser(ctx, next) {
       .getAll(userName, {index: "urlName"})
       .limit(1)
     if (users.length < 1) {
-      ctx.status = 404
-      ctx.body = {
+      res.status(404)
+      res.json({
         apiVersion: "1",
         code: 404,
         message: `No user named "${urlName}".`,
-      }
+      })
       return
     }
     user = users[0]
   }
-  ctx.user = user
+  req.user = user
 
-  await next()
-}
+  return next()
+})
 
 
-// export {updateUser}
-// async function updateUser(ctx) {
+// export const updateUser = wrapAsyncMiddleware(async function updateUser(req, res, next) {
 //   // Update an existing user.
-//   let user = ctx.parameter.user
+//   let user = req.body
 //   if (user === null || user.id === null) throw new Error('User must have an "id" field.')
 //   delete user.createdAt
 //   let result = await r
@@ -338,8 +328,8 @@ async function requireUser(ctx, next) {
 //     .get(user.id)
 //     .update(user, {returnChanges: true})
 //   user = result.changes[0].new_val
-//   ctx.body = {
+//   res.json({
 //     apiVersion: "1",
 //     data: user,
-//   }
-// }
+//   })
+// })

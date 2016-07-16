@@ -31,7 +31,7 @@ export const r = rethinkdbdashFactory({
     port: config.db.port,
   })
 
-const versionNumber = 6
+const versionNumber = 7
 
 
 export {checkDatabase}
@@ -230,6 +230,17 @@ async function configure() {
   if (version.number === 3) version.number += 1
   if (version.number === 4) version.number += 1
   if (version.number === 5) version.number += 1
+  if (version.number === 6) {
+    let users = await usersTable.filter(r.row.hasFields("email").not())
+    for (let user of users) {
+      await usersTable
+        .get(user.id)
+        .update({
+          email: `${user.urlName}@localhost`,
+        })
+    }
+    version.number += 1
+  }
 
   assert(version.number <= versionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)

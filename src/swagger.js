@@ -19,10 +19,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import config from "../config"
+import config from "./config"
 
 
-export const SPEC = {
+const SPEC = {
   swagger: "2.0",
   info: {
     title: config.title,
@@ -38,6 +38,53 @@ export const SPEC = {
   consumes: ["application/json"],
   produces: ["application/json"],
   paths: {
+    "/": {
+      get: {
+        tags: ["home"],
+        summary: "Describe API",
+        // description: "",
+        // externalDocs: {},
+        operationId: "home",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing statements",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  // TODO
+                  // $ref: "#/definitions/Home",
+                  type: "object",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/statements": {
       get: {
         tags: ["statement"],
@@ -1260,6 +1307,29 @@ export const SPEC = {
         // security: {},
       },
     },
+    "/swagger.json": {
+      get: {
+        tags: ["home"],
+        summary: "Swagger Specification of API",
+        // description: "",
+        // externalDocs: {},
+        operationId: "swagger",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [],
+        responses: {
+          "200": {
+            description: "A wrapper containing statements",
+            schema: {
+              type: "object",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/users": {
       get: {
         tags: ["user"],
@@ -1684,27 +1754,27 @@ export const SPEC = {
         "ids",
       ],
     },
-    // Error: {
-    //   type: "object",
-    //   properties: {
-    //     apiVersion: {
-    //       type: "string",
-    //     },
-    //     code: {
-    //       type: "integer",
-    //       minimum: 100,
-    //       maximum: 600,
-    //     },
-    //     message: {
-    //       type: "string",
-    //     },
-    //   },
-    //   required: [
-    //     "apiVersion",
-    //     "code",
-    //     "message",
-    //   ],
-    // },
+    Error: {
+      type: "object",
+      properties: {
+        apiVersion: {
+          type: "string",
+        },
+        code: {
+          type: "integer",
+          minimum: 100,
+          maximum: 600,
+        },
+        message: {
+          type: "string",
+        },
+      },
+      required: [
+        "apiVersion",
+        "code",
+        "message",
+      ],
+    },
     Id: {
       type: "string",
       pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
@@ -1966,9 +2036,4 @@ export const SPEC = {
   // },
   // tags: [],
 }
-
-
-export {getSwagger}
-async function getSwagger(ctx){
-  ctx.body = JSON.stringify(SPEC)
-}
+export default SPEC

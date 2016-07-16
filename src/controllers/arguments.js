@@ -20,23 +20,23 @@
 
 
 import {r} from "../database"
+import {wrapAsyncMiddleware} from "../model"
 
 
-export {requireArgument}
-async function requireArgument(ctx, next) {
-  let statement = ctx.statement
+export const requireArgument = wrapAsyncMiddleware(async function requireArgument(req, res, next) {
+  let statement = req.statement
 
-  let groundId = ctx.parameter.groundId
+  let groundId = req.params.groundId
   let ground = await r
     .table("statements")
     .get(groundId)
   if (ground === null) {
-    ctx.status = 404
-    ctx.body = {
+    res.status(404)
+    res.json({
       apiVersion: "1",
       code: 404,
       message: `No ground statement with ID "${groundId}".`,
-    }
+    })
     return
   }
 
@@ -60,7 +60,7 @@ async function requireArgument(ctx, next) {
   } else {
     argument = args[0]
   }
-  ctx.statement = argument
+  req.statement = argument
 
-  await next()
-}
+  return next()
+})

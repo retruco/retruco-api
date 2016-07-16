@@ -19,13 +19,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import bodyParserFactory from "koa-bodyparser"
-import convert from "koa-convert"
-import corsFactory from "koa-cors"
+import express from "express"
+import expressWs from "express-ws"
 import http from "http"
-import Koa from "koa"
-import routerFactory from "koa-router"
-import swaggerValidatorFactory from "koa-swagger"
+import swagger from "swagger-express-middleware"
 
 import config from "./config"
 import {checkDatabase} from "./database"
@@ -33,117 +30,151 @@ import * as abusesController from "./controllers/abuses"
 import * as argumentsController from "./controllers/arguments"
 import * as ballotsController from "./controllers/ballots"
 import * as statementsController from "./controllers/statements"
-import * as swaggerController from "./controllers/swagger"
 import * as tagsController from "./controllers/tags"
 import * as usersController from "./controllers/users"
+import swaggerSpecification from "./swagger"
 
 
-checkDatabase()
-  .then(startKoa)
-  .catch(console.log.bind(console))
+const app = express()
+expressWs(app)
 
+app.set("title", config.title)
+app.set("trust proxy", config.proxy)
 
-let bodyParser = bodyParserFactory()
+// Enable Express case-sensitive and strict options.
+app.enable("case sensitive routing")
+app.enable("strict routing")
 
-// Patch Swagger spec, because ko-swagger uses :xxx instead of {xxx} for parameters in path.
-// See https://github.com/rricard/koa-swagger/issues/2.
-let patchedSwaggerSpec = {...swaggerController.SPEC}
-let paths = {}
-for (let path in patchedSwaggerSpec.paths) {
-  paths[path.replace(/\/\{/g, "/:").replace(/\}/g, "")] = patchedSwaggerSpec.paths[path]
-}
-patchedSwaggerSpec.paths = paths
-let swaggerValidator = convert(swaggerValidatorFactory(patchedSwaggerSpec))
+app.ws("/test", function (ws, req) {
+  ws.on("message", function (msg) {
+    console.log("Received", msg)
+    ws.send(`Ping: ${msg}`)
+  });
+  console.log("socket", req.testing)
+})
 
-let router = routerFactory()
+const swaggerMiddleware = new swagger.Middleware()
+swaggerMiddleware.init(swaggerSpecification, function (err) {
+  app.use(swaggerMiddleware.metadata())
+  app.use(swaggerMiddleware.files({
+    apiPath: "/swagger.json",  // Serve the Swagger API from "/swagger.json" instead of "/api-docs/".
+    rawFilesPath: false,  // Disable serving the raw Swagger files.
+  }))
+  app.use(swaggerMiddleware.parseRequest({
+    // Configure the cookie parser to use secure cookies.
+    cookie: {
+      secret: config.keys[0],
+    },
+    // Don't allow JSON content over 1mb (default is 1mb).
+    json: {
+      limit: "1mb",
+    },
+  }))
+  app.use(swaggerMiddleware.CORS())
 
-router.get("/statements", swaggerValidator, usersController.authenticate(false), statementsController.listStatements)
-router.post("/statements", bodyParser, swaggerValidator, usersController.authenticate(true),
-  statementsController.createStatement)
-router.delete("/statements/:statementId", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, statementsController.deleteStatement)
-router.get("/statements/:statementId", swaggerValidator, usersController.authenticate(false),
-  statementsController.requireStatement, statementsController.getStatement)
+  // Non Swagger-based API
 
-router.get("/statements/:statementId/abuse", swaggerValidator, usersController.authenticate(false),
-  statementsController.requireStatement, abusesController.requireAbuse, statementsController.getStatement)
-router.delete("/statements/:statementId/abuse/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, abusesController.requireAbuse, ballotsController.deleteBallot)
-router.get("/statements/:statementId/abuse/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, abusesController.requireAbuse, ballotsController.getBallot)
-router.post("/statements/:statementId/abuse/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, abusesController.requireAbuse, ballotsController.upsertBallot)
+  app.use(swaggerMiddleware.validateRequest())
 
-router.get("/statements/:statementId/arguments/:groundId", swaggerValidator, usersController.authenticate(false),
-  statementsController.requireStatement, argumentsController.requireArgument, statementsController.getStatement)
-router.delete("/statements/:statementId/arguments/:groundId/rating", swaggerValidator,
-  usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
-  ballotsController.deleteBallot)
-router.get("/statements/:statementId/arguments/:groundId/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, argumentsController.requireArgument, ballotsController.getBallot)
-router.post("/statements/:statementId/arguments/:groundId/rating", bodyParser, swaggerValidator,
-  usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
-  ballotsController.upsertBallot)
+  // Swagger-based API
 
-router.delete("/statements/:statementId/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, ballotsController.deleteBallot)
-router.get("/statements/:statementId/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, ballotsController.getBallot)
-router.post("/statements/:statementId/rating", bodyParser, swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, ballotsController.upsertBallot)
-
-router.get("/statements/:statementId/tags", swaggerValidator, usersController.authenticate(false),
-  statementsController.requireStatement, tagsController.listStatementTags)
-router.get("/statements/:statementId/tags/:tagName", swaggerValidator, usersController.authenticate(false),
-  statementsController.requireStatement, tagsController.requireTag, statementsController.getStatement)
-router.delete("/statements/:statementId/tags/:tagName/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, tagsController.requireTag, ballotsController.deleteBallot)
-router.get("/statements/:statementId/tags/:tagName/rating", swaggerValidator, usersController.authenticate(true),
-  statementsController.requireStatement, tagsController.requireTag, ballotsController.getBallot)
-router.post("/statements/:statementId/tags/:tagName/rating", bodyParser, swaggerValidator,
-  usersController.authenticate(true), statementsController.requireStatement, tagsController.requireTag,
-  ballotsController.upsertBallot)
-
-router.post("/login", bodyParser, swaggerValidator, usersController.login)
-
-router.get("/swagger.json", swaggerController.getSwagger)
-
-router.get("/users", swaggerValidator, usersController.listUsersUrlName)
-router.post("/users", bodyParser, swaggerValidator, usersController.createUser)
-// router.put("/users", bodyParser, swaggerValidator, usersController.updateUser)
-router.delete("/users/:userName", swaggerValidator, usersController.requireUser, usersController.authenticate(true),
-  usersController.deleteUser)
-router.get("/users/:userName", swaggerValidator, usersController.requireUser, usersController.authenticate(false),
-  usersController.getUser)
-// router.patch("/users/:userName", swaggerValidator, usersController.requireUser, usersController.patchUser)
-
-let app = new Koa()
-app.keys = config.keys
-app.name = config.title
-app.proxy = config.proxy
-app
-  .use(async function (ctx, next) {
-    // Error handling middleware
-    try {
-      await next()
-    } catch (e) {
-      ctx.status = e.status || 500
-      ctx.body = {
-        apiVersion: "1",
-        code: 500,
-        message: e.message || http.STATUS_CODES[ctx.status],
-      }
-      ctx.app.emit("error", e, ctx)
-    }
+  app.get("/", function (req, res, next) {
+    res.json({
+      api: 1,
+      title: config.title,
+    })
   })
-  .use(convert(corsFactory()))
-  .use(router.routes())
-  .use(router.allowedMethods())
+
+  app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
+  app.post("/statements", usersController.authenticate(true),
+    statementsController.createStatement)
+  app.delete("/statements/:statementId", usersController.authenticate(true),
+    statementsController.requireStatement, statementsController.deleteStatement)
+  app.get("/statements/:statementId", usersController.authenticate(false),
+    statementsController.requireStatement, statementsController.getStatement)
+
+  app.get("/statements/:statementId/abuse", usersController.authenticate(false),
+    statementsController.requireStatement, abusesController.requireAbuse, statementsController.getStatement)
+  app.delete("/statements/:statementId/abuse/rating", usersController.authenticate(true),
+    statementsController.requireStatement, abusesController.requireAbuse, ballotsController.deleteBallot)
+  app.get("/statements/:statementId/abuse/rating", usersController.authenticate(true),
+    statementsController.requireStatement, abusesController.requireAbuse, ballotsController.getBallot)
+  app.post("/statements/:statementId/abuse/rating", usersController.authenticate(true),
+    statementsController.requireStatement, abusesController.requireAbuse, ballotsController.upsertBallot)
+
+  app.get("/statements/:statementId/arguments/:groundId", usersController.authenticate(false),
+    statementsController.requireStatement, argumentsController.requireArgument, statementsController.getStatement)
+  app.delete("/statements/:statementId/arguments/:groundId/rating",
+    usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
+    ballotsController.deleteBallot)
+  app.get("/statements/:statementId/arguments/:groundId/rating", usersController.authenticate(true),
+    statementsController.requireStatement, argumentsController.requireArgument, ballotsController.getBallot)
+  app.post("/statements/:statementId/arguments/:groundId/rating",
+    usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
+    ballotsController.upsertBallot)
+
+  app.delete("/statements/:statementId/rating", usersController.authenticate(true),
+    statementsController.requireStatement, ballotsController.deleteBallot)
+  app.get("/statements/:statementId/rating", usersController.authenticate(true),
+    statementsController.requireStatement, ballotsController.getBallot)
+  app.post("/statements/:statementId/rating", usersController.authenticate(true),
+    statementsController.requireStatement, ballotsController.upsertBallot)
+
+  app.get("/statements/:statementId/tags", usersController.authenticate(false),
+    statementsController.requireStatement, tagsController.listStatementTags)
+  app.get("/statements/:statementId/tags/:tagName", usersController.authenticate(false),
+    statementsController.requireStatement, tagsController.requireTag, statementsController.getStatement)
+  app.delete("/statements/:statementId/tags/:tagName/rating", usersController.authenticate(true),
+    statementsController.requireStatement, tagsController.requireTag, ballotsController.deleteBallot)
+  app.get("/statements/:statementId/tags/:tagName/rating", usersController.authenticate(true),
+    statementsController.requireStatement, tagsController.requireTag, ballotsController.getBallot)
+  app.post("/statements/:statementId/tags/:tagName/rating",
+    usersController.authenticate(true), statementsController.requireStatement, tagsController.requireTag,
+    ballotsController.upsertBallot)
+
+  app.post("/login", usersController.login)
+
+  app.get("/users", usersController.listUsersUrlName)
+  app.post("/users", usersController.createUser)
+  // app.put("/users", usersController.updateUser)
+  app.delete("/users/:userName", usersController.requireUser, usersController.authenticate(true),
+    usersController.deleteUser)
+  app.get("/users/:userName", usersController.requireUser, usersController.authenticate(false),
+    usersController.getUser)
+  // app.patch("/users/:userName", usersController.requireUser, usersController.patchUser)
+
+  app.use(function (err, req, res, next) {
+      // Error handling middleware (must be last use of app)
+      const status = err.status || 500
+      if (err.status === 500) console.error(err.stack)
+      res
+        .status(status)
+        .json({
+          apiVersion: "1",
+          code: status,
+          message: err.message || http.STATUS_CODES[status],
+        })
+    })
+
+  checkDatabase()
+    // .then(startKoa)
+    .then(startExpress)
+    .catch(console.log.bind(console))
+})
 
 
-function startKoa() {
+function startExpress() {
   let host = config.listen.host
   let port = config.listen.port || config.port
-  app.listen(port, host)
-  console.log(`Listening on ${host || "*"}:${port}...`)
+  app.listen(port, host, () => {
+    console.log(`Listening on ${host || "*"}:${port}...`)
+  })
 }
+
+
+// function startKoa() {
+//   let host = config.listen.host
+//   let port = config.listen.port || config.port
+//   app.listen(port, host)
+//   console.log(`Listening on ${host || "*"}:${port}...`)
+// }
