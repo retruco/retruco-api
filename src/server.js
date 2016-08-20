@@ -56,6 +56,7 @@ app.ws("/test", function (ws, req) {
 const swaggerMiddleware = new swagger.Middleware()
 swaggerMiddleware.init(swaggerSpecification, function (err) {
   app.use(swaggerMiddleware.metadata())
+  app.use(swaggerMiddleware.CORS())
   app.use(swaggerMiddleware.files({
     apiPath: "/swagger.json",  // Serve the Swagger API from "/swagger.json" instead of "/api-docs/".
     rawFilesPath: false,  // Disable serving the raw Swagger files.
@@ -70,7 +71,6 @@ swaggerMiddleware.init(swaggerSpecification, function (err) {
       limit: "1mb",
     },
   }))
-  app.use(swaggerMiddleware.CORS())
 
   // Non Swagger-based API
 
