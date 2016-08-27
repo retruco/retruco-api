@@ -167,7 +167,7 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
   // Insert or update a statement rating.
   let show = req.query.show || []
   let statement = req.statement
-  let ratingData = req.query.ratingData
+  let ratingData = req.body
 
   let id = [statement.id, req.authenticatedUser.id].join("/")
   let oldBallot = await r
