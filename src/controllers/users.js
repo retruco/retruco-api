@@ -306,7 +306,7 @@ export const requireUser = wrapAsyncMiddleware(async function requireUser(req, r
       res.json({
         apiVersion: "1",
         code: 404,
-        message: `No user named "${urlName}".`,
+        message: `No user named "${userName}".`,
       })
       return
     }

@@ -19,8 +19,160 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import deepEqual from "deep-equal"
+
 import {r} from "../database"
-import {toStatementData, toStatementsData, wrapAsyncMiddleware} from "../model"
+import {ownsUser, rateStatement, toStatementData, toStatementsData, unrateStatement,
+  wrapAsyncMiddleware} from "../model"
+
+
+export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, res, next) {
+  let authenticatedUser = req.authenticatedUser
+  let bundle = req.body
+  let keyName = bundle.key
+
+  // Retrieve all cards rated by user.
+  let ballots = await r
+    .table("ballots")
+    .getAll(user.id, {index: "voterId"})
+  let existingUserCards = await r
+    .table("statements")
+    .getAll("Card", {index: "type"})
+    .innerJoin(ballots, function (statement, ballot) {
+      return statement("id").eq(ballot("statementId"))
+    })
+    .getField("left")
+  let existingUserCardById = {}
+  let remainingUserStatementsIds = new Set()
+  for (let card of existingUserCards) {
+    existingUserCardById[card.id] = card
+    remainingUserStatementsIds.add(card.id)
+  }
+
+  // Retrieve all properties of thes cards rated by user.
+  let existingProperties = await r
+    .table("statements")
+    .getAll(...Object.keys(existingUserCardById).map(cardId => [cardId, "Property"]), {index: "statementIdAndType"})
+  let existingPropertiesByNameByCardId = {}
+  for (let property of existingProperties) {
+    let existingPropertiesByName = existingPropertiesByNameByCardId[property.statementId]
+    if (!existingPropertiesByName) {
+      existingPropertiesByNameByCardId[property.statementId] = existingPropertiesByName = {}
+    }
+    let sameNameExistingProperties = existingPropertiesByName[property.name]
+    if (!sameNameExistingProperties) existingPropertiesByName[property.name] = sameNameExistingProperties = []
+    sameNameExistingProperties.push(property)
+  }
+  let existingUserProperties = await r
+    .table("statements")
+    .getAll(...Object.keys(existingUserCardById).map(cardId => [cardId, "Property"]), {index: "statementIdAndType"})
+    .innerJoin(ballots, function (statement, ballot) {
+      return statement("id").eq(ballot("statementId"))
+    })
+    .getField("left")
+  let existingUserPropertyByKeyValue = {}
+  let existingUserPropertyByNameByCardId = {}
+  for (let property of existingUserProperties) {
+    let existingUserPropertyByName = existingUserPropertyByNameByCardId[property.statementId]
+    if (!existingUserPropertyByName) {
+      existingUserPropertyByNameByCardId[property.statementId] = existingUserPropertyByName = {}
+    }
+    existingUserPropertyByName[property.name] = property
+    if (property.name == keyName) existingUserPropertyByKeyValue[property.value] = property
+    remainingUserStatementsIds.add(property.id)
+  }
+
+  // Guess schema and widget of each attribute.
+  let schema_and_widget_couple_by_name = {} 
+  for (let attributes of bundle.cards) {
+    for (let [name, value] of Object.entries(attributes)) {
+      let [schema, widget] = schema_and_widget_couple_by_name[name] || [{}, {}]
+      let valueType = typeof value
+      if (valueType === "boolean") {
+        if (!schema.type) schema = {type: "boolean"}
+        if (schema.type === "boolean") {
+          if (widget.tag !== "input" || widget.type !== "checkbox") widget = {tag: "input", type: "checkbox"}
+        }
+      } else if (valueType === "number") {
+        if (!schema.type || schema.type === "boolean") schema = {type: "number"}
+        if (schema.type === "number") {
+          if (widget.tag !== "input" || widget.type !== "number") widget = {tag: "input", type: "number"}
+        }
+      } else if (valueType === "string") {
+        if (schema.type !== "string") schema = {type: "string"}
+        if (value.includes("\n")) {
+          if (widget.tag !== "textarea") widget = {tag: "textarea"}
+        } else {
+          if (widget.tag !== "input" || widget.type !== "text") widget = {tag: "input", type: "text"}
+        }
+      }
+      schema_and_widget_couple_by_name[name] = [schema, widget]
+    }
+  }
+
+  // Upsert and rate cards, and their properties
+  for (let attributes of bundle.cards) {
+    let keyValue = attributes[keyName]
+    let keyProperty = existingUserPropertyByKeyValue[keyValue]
+    let cardId = keyProperty ?  keyProperty.statementId : null
+    card = cardId ? existingUserCardById[cardId] : null
+    if (!card) {
+
+    }
+    let card = existingUserCardById[cardId]
+    if (card) {
+      remainingUserStatementsIds.delete(card.id)
+    } else {
+      card = {
+        createdAt: r.now(),
+        type: "Card",
+      }
+      let result = await r
+        .table("statements")
+        .insert(card, {returnChanges: true})
+      card = result.changes[0].new_val
+    }
+    rateStatement(card.id, authenticatedUser.id, 1)
+    let existingPropertiesByName = existingPropertiesByNameByCardId[card.id] || {}
+    let existingUserPropertyByName = existingUserPropertyByNameByCardId[card.id] || {}
+    for (let [name, value] of Object.entries(attributes)) {
+      let [schema, widget] = schema_and_widget_couple_by_name[name]
+      let property = null
+      let sameNameExistingProperties = existingPropertiesByName[name] || []
+      for (let existingProperty of sameNameExistingProperties)  {
+        if (deepEqual(existingProperty.schema, schema) && deepEqual(existingProperty.widget, widget)
+            && deepEqual(existingProperty.value, value)) {
+          property = existingProperty
+          break
+        }
+      }
+      if (property !== null) {
+        remainingUserStatementsIds.delete(property.id)
+      } else {
+        property = {
+          createdAt: r.now(),
+          schema: schema,
+          statementId: card.id,
+          type: "Property",
+          value: value,
+          widget: widget,
+        }
+        let result = await r
+          .table("statements")
+          .insert(property, {returnChanges: true})
+        property = result.changes[0].new_val
+      }
+      rateStatement(property.id, authenticatedUser.id, 1)
+    }
+  }
+
+  // Remove obsolete user ratings.
+  for (let statementId of remainingUserStatementsIds) unrateStatement(statementId, authenticatedUser.id)
+
+  res.json({
+    apiVersion: "1",
+  })
+})
 
 
 export const createStatement = wrapAsyncMiddleware(async function createStatement(req, res, next) {
@@ -28,11 +180,12 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
   let show = req.query.show || []
   let statement = req.body
 
-  if (statement.type === "Argument") {
+  if (["Argument", "Card", "PlainStatement", "Property"].includes(statement.type)) {
+    delete statement.abuseId
     delete statement.isAbuse
-  } else if (statement.type === "PlainStatement") {
+  }
+  if (statement.type === "PlainStatement") {
     statement.authorId = req.authenticatedUser.id  
-    delete statement.isAbuse
   }
   statement.createdAt = r.now()
   delete statement.id
@@ -53,6 +206,7 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
+      showProperties: show.includes("properties"),
       showTags: show.includes("tags"),
     }),
   })
@@ -73,6 +227,7 @@ export const deleteStatement = wrapAsyncMiddleware(async function deleteStatemen
     showAuthor: show.includes("author"),
     showBallot: show.includes("ballot"),
     showGrounds: show.includes("grounds"),
+    showProperties: show.includes("properties"),
     showTags: show.includes("tags"),
   })
   // TODO: If delete is kept, also remove all other linked statements (grounds, tags, abuse, etc).
@@ -99,6 +254,7 @@ export const getStatement = wrapAsyncMiddleware(async function getStatement(req,
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
+      showProperties: show.includes("properties"),
       showTags: show.includes("tags"),
     }),
   })
@@ -107,9 +263,67 @@ export const getStatement = wrapAsyncMiddleware(async function getStatement(req,
 
 export const listStatements = wrapAsyncMiddleware(async function listStatements(req, res, next) {
   // Respond a list of statements.
+  let authenticatedUser = req.authenticatedUser
   let languageCode = req.query.languageCode
   let show = req.query.show || []
   let tagsName = req.query.tag || []
+  let type = req.query.type
+  let userName = req.query.user  // email or urlName
+
+  let user = null
+  if (userName) {
+    if (!authenticatedUser) {
+      res.status(401)  // Unauthorized
+      res.json({
+        apiVersion: "1",
+        code: 401,  // Unauthorized
+        message: "The statements of a user can only be retrieved by the user himself or an admin.",
+      })
+      return
+    }
+
+    if (userName.indexOf("@") >= 0) {
+      let users = await r
+        .table("users")
+        .getAll(userName, {index: "email"})
+        .limit(1)
+      if (users.length < 1) {
+        res.status(404)
+        res.json({
+          apiVersion: "1",
+          code: 404,
+          message: `No user with email "${userName}".`,
+        })
+        return
+      }
+      user = users[0]
+    } else {
+      let users = await r
+        .table("users")
+        .getAll(userName, {index: "urlName"})
+        .limit(1)
+      if (users.length < 1) {
+        res.status(404)
+        res.json({
+          apiVersion: "1",
+          code: 404,
+          message: `No user named "${userName}".`,
+        })
+        return
+      }
+      user = users[0]
+    }
+
+    if (!ownsUser(authenticatedUser, user)) {
+      res.status(403)  // Forbidden
+      res.json({
+        apiVersion: "1",
+        code: 403,  // Forbidden
+        message: "The statements of a user can only be retrieved by the user himself or an admin.",
+      })
+      return
+    }
+  }
 
   let index = null
   let statements = r.table("statements")
@@ -118,6 +332,16 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
       .getAll(...tagsName, {index: "tags"})
       .distinct()
     index = "tags"
+  }
+  if (type) {
+    if (index === null) {
+      statements = statements
+        .getAll(type, {index: "type"})
+      index = "type"
+    } else {
+      statements = statements
+        .filter({type})
+    }
   }
   if (languageCode) {
     if (index === null) {
@@ -137,6 +361,15 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
     statements = statements
       .orderBy(r.desc("createdAt"))
   }
+  if (user !== null) {
+    let ballots = r.table("ballots")
+      .getAll(user.id, {index: "voterId"})
+    statements = statements
+      .innerJoin(ballots, function (statement, ballot) {
+        return statement("id").eq(ballot("statementId"))
+      })
+      .getField("left")
+  }
   statements = await statements
 
   res.json({
@@ -147,6 +380,7 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
+      showProperties: show.includes("properties"),
       showTags: show.includes("tags"),
     }),
   })

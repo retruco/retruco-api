@@ -20,7 +20,7 @@
 
 
 import {r} from "../database"
-import {addBallotEvent, toBallotData, wrapAsyncMiddleware} from "../model"
+import {addBallotEvent, rateStatement, toBallotData, wrapAsyncMiddleware} from "../model"
 
 
 export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res, next) {
@@ -80,6 +80,7 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
     showAuthor: show.includes("author"),
     showBallot: show.includes("ballot"),
     showGrounds: show.includes("grounds"),
+    showProperties: show.includes("properties"),
     showTags: show.includes("tags"),
   })
   res.json({
@@ -116,6 +117,7 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res, 
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
+      showProperties: show.includes("properties"),
       showTags: show.includes("tags"),
     }),
   })
@@ -169,38 +171,8 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
   let statement = req.statement
   let ratingData = req.body
 
-  let id = [statement.id, req.authenticatedUser.id].join("/")
-  let oldBallot = await r
-    .table("ballots")
-    .get(id)
-  let ballot
-  if (oldBallot === null) {
-    ballot = {
-      id,
-      rating: ratingData.rating,
-      statementId: statement.id,
-      updatedAt: r.now(),
-      voterId: req.authenticatedUser.id,
-    }
-    let result = await r
-      .table("ballots")
-      .insert(ballot, {returnChanges: true})
-    ballot = result.changes[0].new_val
-    await addBallotEvent(statement.id)
-    res.status(201)  // Created
-  } else if (ratingData.rating !== oldBallot.rating) {
-    ballot = {...oldBallot}
-    ballot.rating = ratingData.rating
-    ballot.updatedAt = r.now()
-    let result = await r
-      .table("ballots")
-      .get(id)
-      .update(ballot, {returnChanges: true})
-    ballot = result.changes[0].new_val
-    await addBallotEvent(statement.id)
-  } else {
-    ballot = oldBallot
-  }
+  let [oldBallot, ballot] = rateStatement(statement.id, req.authenticatedUser.id, ratingData.rating)
+  if (oldBallot === null) res.status(201)  // Created
 
   // Optimistic optimizations
   const statements = []
@@ -227,6 +199,7 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
+      showProperties: show.includes("properties"),
       showTags: show.includes("tags"),
     }),
   })

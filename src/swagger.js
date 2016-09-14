@@ -22,6 +22,15 @@
 import config from "./config"
 
 
+const types = [
+  "Abuse",
+  "Argument",
+  "Card",
+  "PlainStatement",
+  "Property",
+  "Tag",
+]
+
 const SPEC = {
   swagger: "2.0",
   info: {
@@ -85,6 +94,50 @@ const SPEC = {
         // security: {},
       },
     },
+    "cards-bundle": {
+      post: {
+        tags: ["statement"],
+        summary: "Create a new statement",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statements.create",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/cardsBundleBodyParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the created statement",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+              },
+              required: [
+                "apiVersion",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+    },
     "/statements": {
       get: {
         tags: ["statement"],
@@ -106,6 +159,9 @@ const SPEC = {
           },
           {
             $ref: "#/parameters/tagsNameQueryParam",
+          },
+          {
+            $ref: "#/parameters/userNameQueryParam",
           },
           {
             $ref: "#/parameters/apiKeyOptionalParam",
@@ -1474,7 +1530,7 @@ const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/userNameParam",
+            $ref: "#/parameters/userNamePathParam",
           },
           {
             $ref: "#/parameters/apiKeyRequiredParam",
@@ -1520,7 +1576,7 @@ const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/userNameParam",
+            $ref: "#/parameters/userNamePathParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -1564,6 +1620,15 @@ const SPEC = {
       type: "object",
       discriminator: "type",
       properties: {
+        activePropertiesIds: {
+          type: "array",
+          items: {
+            $ref: "#/definitions/Id",
+          },
+        },
+        attributes: {
+          type: "object",
+        },
         ballotId: {
           $ref: "#/definitions/BallotId",
         },
@@ -1610,6 +1675,13 @@ const SPEC = {
         },
         type: {
           type: "string",
+          enum: types,
+        },
+        userPropertiesIds: {
+          type: "array",
+          items: {
+            $ref: "#/definitions/Id",
+          },
         },
       },
       required: [
@@ -1692,6 +1764,26 @@ const SPEC = {
     BallotId: {
       type: "string",
       pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    },
+    Card: {
+      allOf: [
+        {
+          $ref: "#/definitions/AbstractStatement",
+        },
+        {
+          type: "object",
+          properties: {
+            abuseId: {
+              $ref: "#/definitions/Id",
+            },
+            isAbuse: {
+              type: "boolean",
+              default: false,
+            },
+          },
+          required: [],
+        },
+      ],
     },
     DataId: {
       type: "object",
@@ -1819,6 +1911,66 @@ const SPEC = {
         },
       ],
     },
+    Property: {
+      allOf: [
+        {
+          $ref: "#/definitions/AbstractStatement",
+        },
+        {
+          type: "object",
+          properties: {
+            abuseId: {
+              $ref: "#/definitions/Id",
+            },
+            isAbuse: {
+              type: "boolean",
+              default: false,
+            },
+            // languageCode: {
+            //   $ref: "#/definitions/LanguageCode",
+            // },
+            name: {
+              type: "string",
+            },
+            schema: {
+              $ref: "#/definitions/Schema",
+            },
+            statementId: {
+              $ref: "#/definitions/Id",
+            },
+            value: {
+              // Since Swagger 2 doesn't accept fields having any type of value (primitive, array, object, null),
+              // then "value" field is encoded into a JSON string.
+              type: "string",
+            },
+            widget: {
+              $ref: "#/definitions/Widget",
+            },
+          },
+          required: [
+            "name",
+            "schema",
+            "value",
+            "widget",
+          ],
+        },
+      ],
+    },
+    Schema: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          enum: [
+            "integer",
+            "string",
+          ],
+        },
+      },
+      required: [
+        "type",
+      ],
+    },
     Tag: {
       allOf: [
         {
@@ -1872,6 +2024,21 @@ const SPEC = {
         "urlName",
       ],
     },
+    Widget: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          enum: [
+            "textarea",
+            "textline",
+          ],
+        },
+      },
+      required: [
+        "type",
+      ],
+    },
   },
   parameters: {
     apiKeyOptionalParam: {
@@ -1888,6 +2055,30 @@ const SPEC = {
       name: "retruco-api-key",
       required: true,
       type: "string",
+    },
+    cardsBundleBodyParam: {
+      // description: "",
+      in: "body",
+      name: "bundle",
+      required: true,
+      schema: {
+        type: "object",
+        properties: {
+          cards: {
+            type: "array",
+            items: {
+              type: "object",
+            },
+          },
+          key: {
+            type: "string",
+          },
+        },
+        required: [
+          "cards",
+          "key",
+        ],
+      },
     },
     createdAtParam: {
       // description: "",
@@ -2002,11 +2193,24 @@ const SPEC = {
       },
       collectionFormat: "multi",
     },
-    userNameParam: {
+    typeQueryParam: {
+      // description: "",
+      in: "query",
+      name: "type",
+      type: "string",
+      enum: types,
+    },
+    userNamePathParam: {
       // description: "",
       in: "path",
       name: "userName",
       required: true,
+      type: "string",
+    },
+    userNameQueryParam: {
+      // description: "",
+      in: "query",
+      name: "user",
       type: "string",
     },
     userParam: {
