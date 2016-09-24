@@ -171,7 +171,7 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
   let statement = req.statement
   let ratingData = req.body
 
-  let [oldBallot, ballot] = rateStatement(statement.id, req.authenticatedUser.id, ratingData.rating)
+  let [oldBallot, ballot] = await rateStatement(statement.id, req.authenticatedUser.id, ratingData.rating)
   if (oldBallot === null) res.status(201)  // Created
 
   // Optimistic optimizations
