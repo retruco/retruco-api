@@ -172,11 +172,3 @@ function startExpress() {
     console.log(`Listening on ${host || "*"}:${port}...`)
   })
 }
-
-
-// function startKoa() {
-//   let host = config.listen.host
-//   let port = config.listen.port || config.port
-//   app.listen(port, host)
-//   console.log(`Listening on ${host || "*"}:${port}...`)
-// }
