@@ -34,7 +34,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   // Retrieve all cards rated by user.
   let ballots = await r
     .table("ballots")
-    .getAll(user.id, {index: "voterId"})
+    .getAll(authenticatedUser.id, {index: "voterId"})
   let existingUserCards = await r
     .table("statements")
     .getAll("Card", {index: "type"})
@@ -83,30 +83,58 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   }
 
   // Guess schema and widget of each attribute.
-  let schema_and_widget_couple_by_name = {} 
+  let fieldByName = {} 
   for (let attributes of bundle.cards) {
     for (let [name, value] of Object.entries(attributes)) {
-      let [schema, widget] = schema_and_widget_couple_by_name[name] || [{}, {}]
-      let valueType = typeof value
-      if (valueType === "boolean") {
-        if (!schema.type) schema = {type: "boolean"}
-        if (schema.type === "boolean") {
-          if (widget.tag !== "input" || widget.type !== "checkbox") widget = {tag: "input", type: "checkbox"}
+      let values = Array.isArray(value) ? value : [value]
+      let {maxLength, schema, widget} = fieldByName[name] || {
+        maxLength: 0,
+        schema: {},
+        widget: {},
+      }
+      if (values.length > maxLength) maxLength = values.length
+      for (value of values) {
+        let valueType = typeof value
+        if (valueType == "string") {
+          let numberValue = Number(value)
+          if (!Number.isNaN(numberValue)) {
+            value = numberValue
+            valueType = "number"
+          }
         }
-      } else if (valueType === "number") {
-        if (!schema.type || schema.type === "boolean") schema = {type: "number"}
-        if (schema.type === "number") {
-          if (widget.tag !== "input" || widget.type !== "number") widget = {tag: "input", type: "number"}
-        }
-      } else if (valueType === "string") {
-        if (schema.type !== "string") schema = {type: "string"}
-        if (value.includes("\n")) {
-          if (widget.tag !== "textarea") widget = {tag: "textarea"}
-        } else {
-          if (widget.tag !== "input" || widget.type !== "text") widget = {tag: "input", type: "text"}
+
+        if (valueType === "boolean") {
+          if (!schema.type) schema = {type: "boolean"}
+          if (schema.type === "boolean") {
+            if (widget.tag !== "input" || widget.type !== "checkbox") widget = {tag: "input", type: "checkbox"}
+          }
+        } else if (valueType === "number") {
+          if (!schema.type || schema.type === "boolean") schema = {type: "number"}
+          if (schema.type === "number") {
+            if (widget.tag !== "input" || widget.type !== "number") widget = {tag: "input", type: "number"}
+          }
+        } else if (valueType === "string") {
+          if (schema.type !== "string") schema = {type: "string"}
+          if (value.includes("\n")) {
+            if (widget.tag !== "textarea") widget = {tag: "textarea"}
+          } else {
+            if (widget.tag !== "input" || widget.type !== "text") widget = {tag: "input", type: "text"}
+          }
         }
       }
-      schema_and_widget_couple_by_name[name] = [schema, widget]
+      fieldByName[name] = {maxLength, schema, widget}
+    }
+  }
+  for (let field of Object.values(fieldByName)) {
+    if (field.maxLength > 1) {
+      field.schema = {
+        items: field.schema,
+        type: "array",
+      }
+      field.widget = {
+        items: field.widget,
+        tag: "array",
+      }
     }
   }
 
@@ -115,14 +143,11 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     let keyValue = attributes[keyName]
     let keyProperty = existingUserPropertyByKeyValue[keyValue]
     let cardId = keyProperty ?  keyProperty.statementId : null
-    card = cardId ? existingUserCardById[cardId] : null
-    if (!card) {
-
-    }
-    let card = existingUserCardById[cardId]
+    let card = cardId ? existingUserCardById[cardId] : null
     if (card) {
       remainingUserStatementsIds.delete(card.id)
     } else {
+      console.log(`Creating card ${cardId} for ${keyValue}`)
       card = {
         createdAt: r.now(),
         type: "Card",
@@ -134,9 +159,13 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     }
     rateStatement(card.id, authenticatedUser.id, 1)
     let existingPropertiesByName = existingPropertiesByNameByCardId[card.id] || {}
-    let existingUserPropertyByName = existingUserPropertyByNameByCardId[card.id] || {}
     for (let [name, value] of Object.entries(attributes)) {
-      let [schema, widget] = schema_and_widget_couple_by_name[name]
+      let {maxLength, schema, widget} = fieldByName[name]
+      if (maxLength > 1) {
+        if (!Array.isArray(value)) value = [value]
+      } else {
+        if (Array.isArray(value)) value = value.length > 0 ? value[0] : null
+      }
       let property = null
       let sameNameExistingProperties = existingPropertiesByName[name] || []
       for (let existingProperty of sameNameExistingProperties)  {
@@ -149,13 +178,15 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       if (property !== null) {
         remainingUserStatementsIds.delete(property.id)
       } else {
+        console.log(`Creating property ${name} = ${value} of card ${cardId} for ${keyValue}`)
         property = {
           createdAt: r.now(),
-          schema: schema,
+          name,
+          schema,
           statementId: card.id,
           type: "Property",
-          value: value,
-          widget: widget,
+          value,
+          widget,
         }
         let result = await r
           .table("statements")
@@ -167,6 +198,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   }
 
   // Remove obsolete user ratings.
+  console.log("remainingUserStatementsIds:", remainingUserStatementsIds.size)
   for (let statementId of remainingUserStatementsIds) unrateStatement(statementId, authenticatedUser.id)
 
   res.json({

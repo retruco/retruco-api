@@ -94,7 +94,7 @@ const SPEC = {
         // security: {},
       },
     },
-    "cards-bundle": {
+    "/cards-bundle": {
       post: {
         tags: ["statement"],
         summary: "Create a new statement",

@@ -49,7 +49,7 @@ app.ws("/test", function (ws, req) {
   ws.on("message", function (msg) {
     console.log("Received", msg)
     ws.send(`Ping: ${msg}`)
-  });
+  })
   console.log("socket", req.testing)
 })
 
@@ -84,6 +84,8 @@ swaggerMiddleware.init(swaggerSpecification, function (err) {
       title: config.title,
     })
   })
+
+  app.post("/cards-bundle", usersController.authenticate(true), statementsController.bundleCards)
 
   app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
   app.post("/statements", usersController.authenticate(true),
@@ -146,7 +148,7 @@ swaggerMiddleware.init(swaggerSpecification, function (err) {
   app.use(function (err, req, res, next) {
       // Error handling middleware (must be last use of app)
       const status = err.status || 500
-      if (err.status === 500) console.error(err.stack)
+      if (status === 500) console.error(err.stack)
       res
         .status(status)
         .json({
