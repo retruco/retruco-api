@@ -19,6 +19,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import crypto from "crypto"
+
 import {r} from "./database"
 
 
@@ -37,6 +39,36 @@ async function addBallotEvent(statementId) {
         type: "rating",
       })
   }
+}
+
+
+export function hashStatement(statement) {
+  // Two statements have the same hash if and only if the statements have exactly the same content (except ID, dates,
+  // etc).
+  const hash = crypto.createHash('sha256')
+  hash.update(statement.type)
+  if (statement.type === "Abuse") {
+    hash.update(statement.statementId)
+  } else if (statement.type === "Argument") {
+    hash.update(statement.claimId)
+    hash.update(statement.groundId)
+  } else if (statement.type === "Card") {
+    // TODO: Hash what?
+  } else if (statement.type === "PlainStatement") {
+    hash.update(statement.languageCode)
+    hash.update(statement.name)
+  } else if (statement.type === "Property") {
+    hash.update(statement.statementId)
+    // hash.update(statement.languageCode)
+    hash.update(statement.name)
+    hash.update(JSON.stringify(statement.schema))
+    hash.update(JSON.stringify(statement.widget))
+    hash.update(JSON.stringify(statement.value))
+  } else if (statement.type === "Tag") {
+    hash.update(statement.statementId)
+    hash.update(statement.name)
+  }
+  statement.hash = hash.digest('base64')
 }
 
 
@@ -286,6 +318,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
 function toStatementJson(statement) {
   let statementJson = {...statement}
   statementJson.createdAt = statementJson.createdAt.toISOString()
+  delete statementJson.hash
   return statementJson
 }
 

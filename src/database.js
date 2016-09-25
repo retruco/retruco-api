@@ -23,6 +23,7 @@ import assert from "assert"
 import rethinkdbdashFactory from "rethinkdbdash"
 
 import config from "./config"
+import {hashStatement} from "./model"
 
 
 export const r = rethinkdbdashFactory({
@@ -31,7 +32,7 @@ export const r = rethinkdbdashFactory({
     port: config.db.port,
   })
 
-const versionNumber = 8
+const versionNumber = 9
 
 
 export {checkDatabase}
@@ -136,6 +137,11 @@ async function configure() {
     await statementsTable.indexWait("groundId")
   } catch (e) {
     await statementsTable.indexCreate("groundId")
+  }
+  try {
+    await statementsTable.indexWait("hash")
+  } catch (e) {
+    await statementsTable.indexCreate("hash")
   }
   try {
     await statementsTable.indexWait("languageCode")
@@ -247,6 +253,18 @@ async function configure() {
     version.number += 1
   }
   if (version.number === 7) version.number += 1
+  if (version.number === 8) {
+    let statements = await statementsTable
+    for (let statement of statements) {
+      hashStatement(statement)
+      await statementsTable
+        .get(statement.id)
+        .update({
+          hash: statement.hash,
+        })
+    }
+    version.number += 1
+  }
 
   assert(version.number <= versionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)
