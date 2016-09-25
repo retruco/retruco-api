@@ -231,6 +231,8 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
     .table("statements")
     .insert(statement, {returnChanges: true})
   statement = result.changes[0].new_val
+  await rateStatement(statement.id, req.authenticatedUser.id, 1)
+
   res.status(201)  // Created
   res.json({
     apiVersion: "1",
