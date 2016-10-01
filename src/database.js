@@ -265,6 +265,20 @@ async function configure() {
     }
     version.number += 1
   }
+  if (version.number === 9) {
+    let arguments1 = await statementsTable.getAll("Argument", {index: "type"})
+    for (let argument of arguments1) {
+        if (!argument.argumentType) {
+        await statementsTable
+          .get(argument.id)
+          .update({
+            argumentType: "because",
+          })
+      }
+    }
+    version.number += 1
+  }
+
 
   assert(version.number <= versionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)

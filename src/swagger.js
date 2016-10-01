@@ -1717,6 +1717,15 @@ const SPEC = {
             abuseId: {
               $ref: "#/definitions/Id",
             },
+            argumentType: {
+              type: "string",
+              enum: [
+                "because",
+                "but",
+                "comment",
+                "example",
+              ],
+            },
             claimId: {
               $ref: "#/definitions/Id",
             },
@@ -1729,6 +1738,7 @@ const SPEC = {
             },
           },
           required: [
+            "argumentType",
             "claimId",
             "groundId",
           ],

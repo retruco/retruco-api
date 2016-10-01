@@ -83,15 +83,13 @@ async function processEvent(event) {
       .table("statements")
       .getAll(statement.id, {index: "claimId"})
     for (let argument of groundArguments) {
-      if (!argument.isAbuse) {
+      if (!argument.isAbuse && (argument.rating || 0) > 0 && ["because", "but"].includes(argument.argumentType)) {
         let ground = await r
           .table("statements")
           .get(argument.groundId)
         if (!ground.isAbuse && ground.ratingCount) {
           ratingCount += ground.ratingCount
-          let argumentRating = argument.rating || 0
-          let roundedArgumentRating = argumentRating < -1 / 3 ? -1 : argumentRating <= 1 / 3 ? 0 : 1
-          ratingSum += roundedArgumentRating * ground.ratingSum
+          ratingSum += (argument.argumentType === "because" ? 1 : -1) * ground.ratingSum
         }
       }
     }
