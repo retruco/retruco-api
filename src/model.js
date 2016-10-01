@@ -79,6 +79,48 @@ export function ownsUser(user, otherUser) {
 }
 
 
+export {propagateOptimisticOptimization}
+async function propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum) {
+  const newRatingCount = statement.ratingCount !== undefined ? statement.ratingCount : 0
+  const newRating = newRatingCount > 0 ? statement.rating : 0
+  const newRatingSum = newRatingCount > 0 ? statement.ratingSum : 0
+  if (oldRating === undefined) oldRating = 0
+  if (oldRatingSum === undefined) oldRatingSum = 0
+
+  if (statement.type === "Abuse") {
+    if (oldRatingSum <= 0 && newRatingSum > 0 || oldRatingSum > 0 && newRatingSum <= 0) {
+      let flaggedStatement = await r
+        .table("statements")
+        .get(statement.statementId)
+      if (flaggedStatement !== null) {
+        if (newRatingSum > 0) flaggedStatement.isAbuse = true
+        else delete flaggedStatement.isAbuse
+        statements.push(flaggedStatement)
+      }
+    }
+  } else if (statement.type === "Argument") {
+    if (!statement.isAbuse && ["because", "but"].includes(statement.argumentType)) {
+      if ((oldRating > 0) !== (newRating > 0)) {
+        let claim = await r
+          .table("statements")
+          .get(statement.claimId)
+        let ground = await r
+          .table("statements")
+          .get(statement.groundId)
+        if (claim !== null && claim.ratingCount && ground !== null && !ground.isAbuse) {
+          claim.ratingSum = (claim.ratingSum || 0) +
+            ((newRating > 0) - (oldRating > 0)) * (statement.argumentType === "because" ? 1 : -1)
+            * (ground.ratingSum || 0)
+          claim.ratingSum = Math.max(-claim.ratingCount, Math.min(claim.ratingCount, claim.ratingSum))
+          claim.rating = claim.ratingSum / claim.ratingCount
+          statements.push(claim)
+        }
+      }
+    }
+  }
+}
+
+
 export {rateStatement}
 async function rateStatement(statementId, userId, rating) {
   let id = [statementId, userId].join("/")
@@ -151,7 +193,7 @@ function toBallotJson(ballot) {
 
 export {toStatementData}
 async function toStatementData(statement, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
-  showGrounds = false, showProperties = false, showTags = false} = {}) {
+  showGrounds = false, showProperties = false, showTags = false, statements = []} = {}) {
   let data = {
     ballots: {},
     id: statement.id,
@@ -159,6 +201,9 @@ async function toStatementData(statement, user, {depth = 0, showAbuse = false, s
     users: {},
   }
   let statementsCache = {}
+  for (let statement of statements) {
+    statementsCache[statement.id] = statement
+  }
 
   await toStatementData1(data, statement, statementsCache, user,
     {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})

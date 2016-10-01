@@ -32,7 +32,7 @@ export const r = rethinkdbdashFactory({
     port: config.db.port,
   })
 
-const versionNumber = 9
+const versionNumber = 10
 
 
 export {checkDatabase}

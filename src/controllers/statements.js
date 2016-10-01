@@ -22,7 +22,7 @@
 import deepEqual from "deep-equal"
 
 import {r} from "../database"
-import {ownsUser, rateStatement, toStatementData, toStatementsData, unrateStatement,
+import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData, unrateStatement,
   wrapAsyncMiddleware} from "../model"
 
 
@@ -233,10 +233,19 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
   statement = result.changes[0].new_val
   await rateStatement(statement.id, req.authenticatedUser.id, 1)
 
+  // Optimistic optimizations
+  const statements = []
+  statement = {...statement}
+  statements.push(statement)
+  statement.rating = 1
+  statement.ratingCount = 1
+  statement.ratingSum = 1
+  await propagateOptimisticOptimization(statements, statement, 0, 0)
+
   res.status(201)  // Created
   res.json({
     apiVersion: "1",
-    data: await toStatementData(statement,  req.authenticatedUser, {
+    data: await toStatementData(statement, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
@@ -244,6 +253,7 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
       showGrounds: show.includes("grounds"),
       showProperties: show.includes("properties"),
       showTags: show.includes("tags"),
+      statements,
     }),
   })
 })

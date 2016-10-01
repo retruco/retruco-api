@@ -20,7 +20,8 @@
 
 
 import {r} from "../database"
-import {addBallotEvent, rateStatement, toBallotData, wrapAsyncMiddleware} from "../model"
+import {addBallotEvent, propagateOptimisticOptimization, rateStatement, toBallotData,
+  wrapAsyncMiddleware} from "../model"
 
 
 export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res, next) {
@@ -65,7 +66,7 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
         statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
         statement.rating = statement.ratingSum / statement.ratingCount
       }
-      await propageOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
+      await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
     } else {
       statements.push(statement)
     }
@@ -124,47 +125,6 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res, 
 })
 
 
-async function propageOptimisticOptimization(statements, statement, oldRating, oldRatingSum) {
-  const newRatingCount = statement.ratingCount !== undefined ? statement.ratingCount : 0
-  const newRating = newRatingCount > 0 ? statement.rating : 0
-  const newRatingSum = newRatingCount > 0 ? statement.ratingSum : 0
-  if (oldRating === undefined) oldRating = 0
-  if (oldRatingSum === undefined) oldRatingSum = 0
-
-  if (statement.type === "Abuse") {
-    if (oldRatingSum <= 0 && newRatingSum > 0 || oldRatingSum > 0 && newRatingSum <= 0) {
-      let flaggedStatement = await r
-        .table("statements")
-        .get(statement.statementId)
-      if (flaggedStatement !== null) {
-        if (newRatingSum > 0) flaggedStatement.isAbuse = true
-        else delete flaggedStatement.isAbuse
-        statements.push(flaggedStatement)
-      }
-    }
-  } else if (statement.type === "Argument") {
-    if (!statement.isAbuse) {
-      let oldRoundedRating = oldRating < -1 / 3 ? -1 : oldRating <= 1 / 3 ? 0 : 1
-      let newRoundedRating = newRating < -1 / 3 ? -1 : newRating <= 1 / 3 ? 0 : 1
-      if (oldRoundedRating !== newRoundedRating) {
-        let claim = await r
-          .table("statements")
-          .get(statement.claimId)
-        let ground = await r
-          .table("statements")
-          .get(statement.groundId)
-        if (claim !== null && claim.ratingCount && ground !== null && !ground.isAbuse) {
-          claim.ratingSum = (claim.ratingSum || 0) + (newRoundedRating - oldRoundedRating) * (ground.ratingSum || 0)
-          claim.ratingSum = Math.max(-claim.ratingCount, Math.min(claim.ratingCount, claim.ratingSum))
-          claim.rating = claim.ratingSum / claim.ratingCount
-          statements.push(claim)
-        }
-      }
-    }
-  }
-}
-
-
 export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req, res, next) {
   // Insert or update a statement rating.
   let show = req.query.show || []
@@ -189,7 +149,7 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
   statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
   statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
   statement.rating = statement.ratingSum / statement.ratingCount
-  await propageOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
+  await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
 
   res.json({
     apiVersion: "1",
