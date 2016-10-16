@@ -268,6 +268,7 @@ async function configure() {
 export {entryToBallot}
 function entryToBallot(entry) {
   return entry === null ? null : {
+    id: `${entry.statement_id}/${entry.voter_id}`,
     rating: parseInt(entry.rating),
     statementId: entry.statement_id,
     updatedAt: entry.updated_at,

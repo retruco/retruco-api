@@ -1773,7 +1773,7 @@ const SPEC = {
     },
     BallotId: {
       type: "string",
-      pattern: "^[0-9]+-[0-9]+$",
+      pattern: "^[0-9]+/[0-9]+$",
     },
     Card: {
       allOf: [
@@ -1883,7 +1883,7 @@ const SPEC = {
     },
     IdOrBallotId: {
       type: "string",
-      pattern: "^[0-9]+(-[0-9]+)?$",
+      pattern: "^[0-9]+(/[0-9]+)?$",
     },
     LanguageCode: {
       type: "string",

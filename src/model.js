@@ -137,6 +137,7 @@ async function propagateOptimisticOptimization(statements, statement, oldRating,
 export {rateStatement}
 async function rateStatement(statementId, voterId, rating) {
   let ballot = {
+    id: `${statementId}/${voterId}`,
     rating,
     statementId,
     voterId,
