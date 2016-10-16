@@ -168,7 +168,8 @@ swaggerMiddleware.init(swaggerSpecification, function (err) {
 function startExpress() {
   let host = config.listen.host
   let port = config.listen.port || config.port
-  app.listen(port, host, () => {
+  let server = app.listen(port, host, () => {
     console.log(`Listening on ${host || "*"}:${port}...`)
   })
+  server.timeout = 30 * 60 * 1000  // 30 minutes (in milliseconds)
 }

@@ -1773,7 +1773,7 @@ const SPEC = {
     },
     BallotId: {
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      pattern: "^[0-9]+-[0-9]+$",
     },
     Card: {
       allOf: [
@@ -1879,11 +1879,11 @@ const SPEC = {
     },
     Id: {
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      pattern: "^[0-9]+$",
     },
     IdOrBallotId: {
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$",
+      pattern: "^[0-9]+(-[0-9]+)?$",
     },
     LanguageCode: {
       type: "string",
@@ -2115,7 +2115,7 @@ const SPEC = {
       //   $ref: "#/definitions/Id",
       // },
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      pattern: "^[0-9]+$",
     },
     idParam: {
       // description: "",
@@ -2127,7 +2127,7 @@ const SPEC = {
       //   $ref: "#/definitions/Id",
       // },
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      pattern: "^[0-9]+$",
     },
     languageCodeParam: {
       // description: "",
@@ -2175,7 +2175,7 @@ const SPEC = {
       //   $ref: "#/definitions/Id",
       // },
       type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      pattern: "^[0-9]+$",
     },
     statementParam: {
       // description: "",

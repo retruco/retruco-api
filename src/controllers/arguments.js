@@ -19,17 +19,15 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {r} from "../database"
-import {wrapAsyncMiddleware} from "../model"
+import {db, entryToStatement} from "../database"
+import {hashStatement, wrapAsyncMiddleware} from "../model"
 
 
 export const requireArgument = wrapAsyncMiddleware(async function requireArgument(req, res, next) {
   let statement = req.statement
 
   let groundId = req.params.groundId
-  let ground = await r
-    .table("statements")
-    .get(groundId)
+  let ground = entryToStatement(await db.oneOrNone(`SELECT * FROM statements WHERE id = $1`, groundId))
   if (ground === null) {
     res.status(404)
     res.json({
@@ -40,25 +38,36 @@ export const requireArgument = wrapAsyncMiddleware(async function requireArgumen
     return
   }
 
-  let args = await r
-    .table("statements")
-    .getAll([statement.id, ground.id], {index: "claimIdAndGroundId"})
-    .limit(1)
-  let argument
-  if (args.length < 1) {
+  let argument = entryToStatement(await db.oneOrNone(
+    `SELECT * FROM statements
+      WHERE (data->>'claimId')::bigint = $<claimId> and (data->>'groundId')::bigint = $<groundId>`,
+    {
+      claimId: statement.id,
+      groundId: ground.id,
+    }
+  ))
+  if (argument === null) {
     // Create an argument when it is missing. Never return a 404.
     argument = {
       claimId: statement.id,
-      createdAt: r.now(),
       groundId: ground.id,
-      type: "Argument",
     }
-    let result = await r
-      .table("statements")
-      .insert(argument, {returnChanges: true})
-    argument = result.changes[0].new_val
-  } else {
-    argument = args[0]
+    const argumentType = 'Argument'
+    let hash = hashStatement(argumentType, argument)
+    let result = await db.one(
+      `INSERT INTO statements(created_at, hash, type, data)
+        VALUES (current_timestamp, $1, $2, $3)
+        RETURNING created_at, id, rating, rating_count, rating_sum`,
+      [hash, argumentType, argument],
+    )
+    Object.assign(argument, {
+      createdAt: result.created_at,
+      id: result.id,
+      rating: result.rating,
+      ratingCount: result.rating_count,
+      ratingSum: result.rating_sum,
+      type: argumentType,
+    })
   }
   req.statement = argument
 

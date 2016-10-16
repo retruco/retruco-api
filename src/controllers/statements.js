@@ -21,9 +21,9 @@
 
 import deepEqual from "deep-equal"
 
-import {r} from "../database"
-import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData, unrateStatement,
-  wrapAsyncMiddleware} from "../model"
+import {db, entryToBallot, entryToStatement} from "../database"
+import {hashStatement, ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData,
+  unrateStatement, wrapAsyncMiddleware} from "../model"
 
 
 export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, res, next) {
@@ -32,16 +32,11 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let keyName = bundle.key
 
   // Retrieve all cards rated by user.
-  let ballots = await r
-    .table("ballots")
-    .getAll(authenticatedUser.id, {index: "voterId"})
-  let existingUserCards = await r
-    .table("statements")
-    .getAll("Card", {index: "type"})
-    .innerJoin(ballots, function (statement, ballot) {
-      return statement("id").eq(ballot("statementId"))
-    })
-    .getField("left")
+  let existingUserCards = (await db.any(`
+    SELECT * FROM statements
+    WHERE type = 'Card'
+    AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
+    `, [authenticatedUser.id])).map(entryToStatement)
   let existingUserCardById = {}
   let remainingUserStatementsIds = new Set()
   for (let card of existingUserCards) {
@@ -50,9 +45,15 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   }
 
   // Retrieve all properties of thes cards rated by user.
-  let existingProperties = await r
-    .table("statements")
-    .getAll(...Object.keys(existingUserCardById).map(cardId => [cardId, "Property"]), {index: "statementIdAndType"})
+  let existingProperties = (await db.any(`
+    SELECT * FROM statements
+    WHERE type = 'Property'
+    AND (data->>'statementId')::bigint IN (
+      SELECT id FROM statements
+      WHERE type = 'Card'
+      AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
+    )
+    `, [authenticatedUser.id])).map(entryToStatement)
   let existingPropertiesByNameByCardId = {}
   for (let property of existingProperties) {
     let existingPropertiesByName = existingPropertiesByNameByCardId[property.statementId]
@@ -63,13 +64,16 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     if (!sameNameExistingProperties) existingPropertiesByName[property.name] = sameNameExistingProperties = []
     sameNameExistingProperties.push(property)
   }
-  let existingUserProperties = await r
-    .table("statements")
-    .getAll(...Object.keys(existingUserCardById).map(cardId => [cardId, "Property"]), {index: "statementIdAndType"})
-    .innerJoin(ballots, function (statement, ballot) {
-      return statement("id").eq(ballot("statementId"))
-    })
-    .getField("left")
+  let existingUserProperties = (await db.any(`
+    SELECT * FROM statements
+    WHERE type = 'Property'
+    AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
+    AND (data->>'statementId')::bigint IN (
+      SELECT id FROM statements
+      WHERE type = 'Card'
+      AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
+    )
+    `, [authenticatedUser.id])).map(entryToStatement)
   let existingUserPropertyByKeyValue = {}
   let existingUserPropertyByNameByCardId = {}
   for (let property of existingUserProperties) {
@@ -148,14 +152,23 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       remainingUserStatementsIds.delete(card.id)
     } else {
       console.log(`Creating card ${cardId} for ${keyValue}`)
-      card = {
-        createdAt: r.now(),
-        type: "Card",
-      }
-      let result = await r
-        .table("statements")
-        .insert(card, {returnChanges: true})
-      card = result.changes[0].new_val
+      card = {}
+      const cardType = 'Card'
+      let hash = hashStatement(cardType, card)
+      let result = await db.one(
+        `INSERT INTO statements(created_at, hash, type, data)
+          VALUES (current_timestamp, $1, $2, $3)
+          RETURNING created_at, id, rating, rating_count, rating_sum`,
+        [hash, cardType, card],
+      )
+      Object.assign(card, {
+        createdAt: result.created_at,
+        id: result.id,
+        rating: result.rating,
+        ratingCount: result.rating_count,
+        ratingSum: result.rating_sum,
+        type: cardType,
+      })
     }
     rateStatement(card.id, authenticatedUser.id, 1)  // await not needed
     let existingPropertiesByName = existingPropertiesByNameByCardId[card.id] || {}
@@ -180,18 +193,28 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       } else {
         console.log(`Creating property ${name} = ${value} of card ${cardId} for ${keyValue}`)
         property = {
-          createdAt: r.now(),
           name,
           schema,
           statementId: card.id,
-          type: "Property",
           value,
           widget,
         }
-        let result = await r
-          .table("statements")
-          .insert(property, {returnChanges: true})
-        property = result.changes[0].new_val
+        const propertyType = 'Property'
+        let hash = hashStatement(propertyType, property)
+        let result = await db.one(
+          `INSERT INTO statements(created_at, hash, type, data)
+            VALUES (current_timestamp, $1, $2, $3)
+            RETURNING created_at, id, rating, rating_count, rating_sum`,
+          [hash, propertyType, property],
+        )
+        Object.assign(property, {
+          createdAt: result.created_at,
+          id: result.id,
+          rating: result.rating,
+          ratingCount: result.rating_count,
+          ratingSum: result.rating_sum,
+          type: propertyType,
+        })
       }
       rateStatement(property.id, authenticatedUser.id, 1)  // await not needed
     }
@@ -213,29 +236,43 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
   // Create a new statement.
   let show = req.query.show || []
   let statement = req.body
+  let statementType = statement.type
 
-  if (["Argument", "Card", "PlainStatement", "Property"].includes(statement.type)) {
+  if (["Argument", "Card", "PlainStatement", "Property"].includes(statementType)) {
     delete statement.abuseId
     delete statement.isAbuse
   }
-  if (statement.type === "PlainStatement") {
+  if (statementType === "PlainStatement") {
     statement.authorId = req.authenticatedUser.id  
   }
-  statement.createdAt = r.now()
+  delete statement.createdAt
+  delete statement.deleted
   delete statement.id
   delete statement.rating
   delete statement.ratingCount
   delete statement.ratingSum
+  delete statement.type
 
-  let result = await r
-    .table("statements")
-    .insert(statement, {returnChanges: true})
-  statement = result.changes[0].new_val
+  let hash = hashStatement(statementType, statement)
+
+  let result = await db.one(
+    `INSERT INTO statements(created_at, hash, type, data)
+      VALUES (current_timestamp, $1, $2, $3)
+      RETURNING created_at, id, rating, rating_count, rating_sum`,
+    [hash, statementType, statement],
+  )
+  Object.assign(statement, {
+    createdAt: result.created_at,
+    id: result.id,
+    rating: result.rating,
+    ratingCount: result.rating_count,
+    ratingSum: result.rating_sum,
+    type: statementType,
+  })
   await rateStatement(statement.id, req.authenticatedUser.id, 1)
 
   // Optimistic optimizations
   const statements = []
-  statement = {...statement}
   statements.push(statement)
   statement.rating = 1
   statement.ratingCount = 1
@@ -277,10 +314,7 @@ export const deleteStatement = wrapAsyncMiddleware(async function deleteStatemen
     showTags: show.includes("tags"),
   })
   // TODO: If delete is kept, also remove all other linked statements (grounds, tags, abuse, etc).
-  await r
-    .table("statements")
-    .get(statement.id)
-    .delete()
+  await db.none(`DELETE FROM statements WHERE id = $<id>`, statement)
   res.json({
     apiVersion: "1",
     data: data,
@@ -329,11 +363,8 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
     }
 
     if (userName.indexOf("@") >= 0) {
-      let users = await r
-        .table("users")
-        .getAll(userName, {index: "email"})
-        .limit(1)
-      if (users.length < 1) {
+      user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE email = $1`, [userName]))
+      if (user === null) {
         res.status(404)
         res.json({
           apiVersion: "1",
@@ -342,13 +373,9 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
         })
         return
       }
-      user = users[0]
     } else {
-      let users = await r
-        .table("users")
-        .getAll(userName, {index: "urlName"})
-        .limit(1)
-      if (users.length < 1) {
+      user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [userName]))
+      if (user === null) {
         res.status(404)
         res.json({
           apiVersion: "1",
@@ -357,7 +384,6 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
         })
         return
       }
-      user = users[0]
     }
 
     if (!ownsUser(authenticatedUser, user)) {
@@ -371,52 +397,30 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
     }
   }
 
-  let index = null
-  let statements = r.table("statements")
+  let whereClauses = []
+  if (languageCode) {
+    whereClauses.push(`data->'languageCode' = $<languageCode>`)
+  }
   if (tagsName.length > 0) {
-    statements = statements
-      .getAll(...tagsName, {index: "tags"})
-      .distinct()
-    index = "tags"
+    whereClauses.push(`data->'tags' @> $<tagsName>`)
   }
   if (type) {
-    if (index === null) {
-      statements = statements
-        .getAll(type, {index: "type"})
-      index = "type"
-    } else {
-      statements = statements
-        .filter({type})
-    }
-  }
-  if (languageCode) {
-    if (index === null) {
-      statements = statements
-        .getAll(languageCode, {index: "languageCode"})
-      index = "languageCode"
-    } else {
-      statements = statements
-        .filter({languageCode})
-    }
-  }
-  if (index === null) {
-    statements = statements
-      .orderBy({index: r.desc("createdAt")})
-    index = "createdAt"
-  } else {
-    statements = statements
-      .orderBy(r.desc("createdAt"))
+    whereClauses.push(`type = $<type>`)
   }
   if (user !== null) {
-    let ballots = r.table("ballots")
-      .getAll(user.id, {index: "voterId"})
-    statements = statements
-      .innerJoin(ballots, function (statement, ballot) {
-        return statement("id").eq(ballot("statementId"))
-      })
-      .getField("left")
+    whereClauses.push(`id in (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)`)
   }
-  statements = await statements
+  let whereClause = whereClauses.length === 0 ? '' : 'WHERE ' + whereClauses.join(' AND ')
+
+  let statements = (await db.any(
+    `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC`,
+    {
+      languageCode,
+      tagsName,
+      type,
+      userId: user === null ? null : user.id,
+    }
+  )).map(entryToStatement)
 
   res.json({
     apiVersion: "1",
@@ -435,9 +439,7 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
 
 export const requireStatement = wrapAsyncMiddleware(async function requireStatement(req, res, next) {
   let id = req.params.statementId
-  let statement = await r
-    .table("statements")
-    .get(id)
+  let statement = entryToStatement(await db.oneOrNone(`SELECT * FROM statements WHERE id = $1`, id))
   if (statement === null) {
     res.status(404)
     res.json({

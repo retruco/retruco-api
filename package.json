@@ -12,13 +12,14 @@
     "express": "^4.14.0",
     "express-ws": "^2.0.0-rc.1",
     "mz": "^2.4.0",
-    "rethinkdbdash": "^2.3.3",
+    "pg-promise": "^5.3.4",
     "swagger-express-middleware": "^1.0.0-alpha.12"
   },
   "devDependencies": {
     "babel-cli": "^6.7.7",
-    "babel-eslint": "^6.0.4",
-    "eslint": "^2.8.0",
+    "babel-eslint": "^6.1.2",
+    "eslint": "^3.6.1",
+    "eslint-plugin-babel": "^3.3.0",
     "nodemon": "^1.9.1"
   },
   "scripts": {

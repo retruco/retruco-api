@@ -19,22 +19,24 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {r} from "../database"
-import {toStatementsData, wrapAsyncMiddleware} from "../model"
+import {db, entryToStatement} from "../database"
+import {hashStatement, toStatementsData, wrapAsyncMiddleware} from "../model"
 
 
 export const listStatementTags = wrapAsyncMiddleware(async function listStatementTags(req, res, next) {
   let show = req.query.show || []
   let statement = req.statement
 
-  let tags = await r
-    .table("statements")
-    .getAll([statement.id, "Tag"], {index: "statementIdAndType"})
+  let tags = (await db.oneOrNone(
+    `SELECT * FROM statements
+      WHERE (data->>'statementId')::bigint = $<id> and type = 'Tag'`,
+    statement,
+  )).map(entryToStatement)
   res.json({
     apiVersion: "1",
     data: await toStatementsData(tags, req.authenticatedUser, {
       depth: req.query.depth || 0,
-      showAbuse: show.includes("abuse"),
+      showAbuse: show.includes("tag"),
       showAuthor: show.includes("author"),
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
@@ -49,24 +51,35 @@ export const requireTag = wrapAsyncMiddleware(async function requireTag(req, res
   let statement = req.statement
   let tagName = req.params.tagName
 
-  let tags = await r
-    .table("statements")
-    .getAll([statement.id, tagName, "Tag"], {index: "statementIdAndNameAndType"})
-    .limit(1)
-  let tag
-  if (tags.length < 1) {
+  let tag = entryToStatement(await db.oneOrNone(
+    `SELECT * FROM statements
+      WHERE (data->>'name') = $<tagName> and (data->>'statementId')::bigint = $<id> and type = 'Tag'`,
+    {
+      id: statement.id,
+      tagName,
+    },
+  ))
+  if (tag === null) {
     tag = {
-      createdAt: r.now(),
-      name: tagName,
+      name: tagName, 
       statementId: statement.id,
-      type: "Tag",
     }
-    let result = await r
-      .table("statements")
-      .insert(tag, {returnChanges: true})
-    tag = result.changes[0].new_val
-  } else {
-    tag = tags[0]
+    const tagType = 'Tag'
+    let hash = hashStatement(tagType, tag)
+    let result = await db.one(
+      `INSERT INTO statements(created_at, hash, type, data)
+        VALUES (current_timestamp, $1, $2, $3)
+        RETURNING created_at, id, rating, rating_count, rating_sum`,
+      [hash, tagType, tag],
+    )
+    Object.assign(tag, {
+      createdAt: result.created_at,
+      id: result.id,
+      rating: result.rating,
+      ratingCount: result.rating_count,
+      ratingSum: result.rating_sum,
+      type: tagType,
+    })
   }
   req.statement = tag
 

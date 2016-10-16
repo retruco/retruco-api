@@ -20,7 +20,7 @@
 
 
 import {r} from "../database"
-import {addBallotEvent, propagateOptimisticOptimization, rateStatement, toBallotData,
+import {addBallotEvent, propagateOptimisticOptimization, rateStatement, toBallotData, unrateStatement,
   wrapAsyncMiddleware} from "../model"
 
 
@@ -29,27 +29,17 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
   let show = req.query.show || []
   let statement = req.statement
 
-  let id = [statement.id, req.authenticatedUser.id].join("/")
-  let ballot = await r
-    .table("ballots")
-    .get(id)
+  let ballot = unrateStatement(statement.id, req.authenticatedUser.id)
   const statements = []
   if (ballot === null) {
     ballot = {
-      id,
       // rating: null,
       statementId: statement.id,
-      // updatedAt: r.now(),
+      // updatedAt: ...,
       voterId: req.authenticatedUser.id,
     }
     statements.push(statement)
   } else {
-    await r
-      .table("ballots")
-      .get(id)
-      .delete()
-    await addBallotEvent(statement.id)
-
     // Optimistic optimization
     if (statement.ratingCount) {
       const oldRating = statement.rating
@@ -58,9 +48,8 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
       statements.push(statement)
       statement.ratingCount -= 1
       if (statement.ratingCount === 0) {
-        delete statement.rating
-        delete statement.ratingCount
-        delete statement.ratingSum
+        statement.rating = 0
+        statement.ratingSum = 0
       } else {
         statement.ratingSum -= ballot.rating
         statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
@@ -70,7 +59,6 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
     } else {
       statements.push(statement)
     }
-
     delete ballot.rating
     delete ballot.updatedAt
   }
@@ -96,19 +84,15 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res, 
   let show = req.query.show || []
   let statement = req.statement
 
-  let id = [statement.id, req.authenticatedUser.id].join("/")
-  let ballot = await r
-    .table("ballots")
-    .get(id)
-  if (ballot === null) {
-    ballot = {
-      id,
-      // rating: null,
-      statementId: statement.id,
-      // updatedAt: r.now(),
-      voterId: req.authenticatedUser.id,
-    }
+  let ballot = {
+    statementId: statement.id,
+    voterId: req.authenticatedUser.id,
   }
+  let existingBallot = entryToBallot(await db.oneOrNone(
+    `SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>`,
+    ballot,
+  ))
+  if (existingBallot !== null) ballot = existingBallot
 
   res.json({
     apiVersion: "1",
@@ -138,7 +122,6 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
   const statements = []
   const oldRating = statement.rating
   const oldRatingSum = statement.ratingSum
-  statement = {...statement}
   statements.push(statement)
   if (!statement.ratingCount) {
     statement.rating = 0

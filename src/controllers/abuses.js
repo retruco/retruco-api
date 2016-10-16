@@ -19,8 +19,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {r} from "../database"
-import {wrapAsyncMiddleware} from "../model"
+import {db, entryToStatement} from "../database"
+import {hashStatement, wrapAsyncMiddleware} from "../model"
 
 
 export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req, res, next) {
@@ -30,27 +30,35 @@ export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req,
     res.json({
       apiVersion: "1",
       code: 404,
-      message: "An abuse statement can't have its own abuse statement.",
+      message: `A statement of type ${statement.type} can't have an abuse statement.`,
     })
     return
   }
-  let abuses = await r
-    .table("statements")
-    .getAll([statement.id, "Abuse"], {index: "statementIdAndType"})
-    .limit(1)
-  let abuse
-  if (abuses.length < 1) {
+  let abuse = entryToStatement(await db.oneOrNone(
+    `SELECT * FROM statements
+      WHERE (data->>'statementId')::bigint = $<id> and type = 'Abuse'`,
+    statement,
+  ))
+  if (abuse === null) {
     abuse = {
-      createdAt: r.now(),
       statementId: statement.id,
-      type: "Abuse",
     }
-    let result = await r
-      .table("statements")
-      .insert(abuse, {returnChanges: true})
-    abuse = result.changes[0].new_val
-  } else {
-    abuse = abuses[0]
+    const abuseType = 'Abuse'
+    let hash = hashStatement(abuseType, abuse)
+    let result = await db.one(
+      `INSERT INTO statements(created_at, hash, type, data)
+        VALUES (current_timestamp, $1, $2, $3)
+        RETURNING created_at, id, rating, rating_count, rating_sum`,
+      [hash, abuseType, abuse],
+    )
+    Object.assign(abuse, {
+      createdAt: result.created_at,
+      id: result.id,
+      rating: result.rating,
+      ratingCount: result.rating_count,
+      ratingSum: result.rating_sum,
+      type: abuseType,
+    })
   }
   req.statement = abuse
 

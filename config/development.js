@@ -23,6 +23,11 @@ import config from "./global"
 
 
 Object.assign(config, {
+  db: {
+    ...config.db,
+    password: "retruco",
+    user: "retruco",
+  },
   title: "Retruco-API (dev)",
 })
 

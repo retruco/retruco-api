@@ -20,34 +20,32 @@
 
 
 import assert from "assert"
-import rethinkdbdashFactory from "rethinkdbdash"
+import pgPromiseFactory from "pg-promise"
 
 import config from "./config"
-import {hashStatement} from "./model"
 
 
-export const r = rethinkdbdashFactory({
-    db: config.db.name,
-    host: config.db.host,
-    port: config.db.port,
-  })
+const pgPromise = pgPromiseFactory()
+export const db = pgPromise({
+  database: config.db.database,
+  host: config.db.host,
+  password: config.db.password,
+  port: config.db.port,
+  user: config.db.user,
+})
 
-const versionNumber = 10
+
+const versionNumber = 0
 
 
 export {checkDatabase}
 async function checkDatabase() {
-  const databasesName = await r.dbList()
-  assert(databasesName.includes(config.db.name), 'Database is not initialized. Run "node configure" to configure it.')
-  let versions
-  try {
-    versions = await r.table("version")
-  } catch (e) {
-    throw new Error('Database is not initialized. Run "node configure" to configure it.')
-  }
-  assert(versions.length > 0, 'Database is not initialized. Run "node configure" to configure it.')
-  assert.strictEqual(versions.length, 1)
-  const version = versions[0]
+  // Check that database exists.
+  await db.connect()
+
+  assert(await existsTable("version"), 'Database is not initialized. Run "node configure" to configure it.')
+
+  let version = await db.one(`SELECT * FROM version`)
   assert(version.number <= versionNumber, "Database format is too recent. Upgrade Retruco-API.")
   assert.strictEqual(version.number, versionNumber, 'Database must be upgraded. Run "node configure" to configure it.')
 }
@@ -55,234 +53,267 @@ async function checkDatabase() {
 
 export {configure}
 async function configure() {
-  const databasesName = await r.dbList()
-  if (!databasesName.includes(config.db.name)) {
-    await r.dbCreate(config.db.name)
-    await r.tableCreate("version")
-    await r.table("version").insert({number: versionNumber})
+  // Check that database exists.
+  await db.connect()
+
+  // Table: version
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS version(
+      number integer NOT NULL
+    )
+  `)
+  let version = await db.oneOrNone(`SELECT * FROM version`)
+  if (version === null) {
+    await db.none(`INSERT INTO version(number) VALUES (0)`)
+    version = await db.one(`SELECT * FROM version`)
   }
 
-  try {
-    await r.table("ballots").count()
-  } catch (e) {
-    // A primaryKey of type array is not supported yet.
-    // await r.tableCreate("ballots", {primaryKey: [
-    //   r.row("statementId"),
-    //   r.row("voterId"),
-    // ]})
-    await r.tableCreate("ballots")
-  }
-  const ballotsTable = r.table("ballots")
-  try {
-    await ballotsTable.indexWait("statementId")
-  } catch (e) {
-    await ballotsTable.indexCreate("statementId")
-  }
-  try {
-    await ballotsTable.indexWait("updatedAt")
-  } catch (e) {
-    await ballotsTable.indexCreate("updatedAt")
-  }
-  try {
-    await ballotsTable.indexWait("voterId")
-  } catch (e) {
-    await ballotsTable.indexCreate("voterId")
-  }
+  // Table: statements
+  await db.none(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statement_type') THEN
+        CREATE TYPE statement_type AS ENUM (
+          'Abuse',
+          'Argument',
+          'Card',
+          'PlainStatement',
+          'Property',
+          'Tag'
+        );
+      END IF;
+    END$$
+  `)
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS statements(
+      created_at timestamp without time zone NOT NULL,
+      hash text NOT NULL,
+      id bigserial NOT NULL PRIMARY KEY,
+      rating double precision NOT NULL DEFAULT 0,
+      rating_count integer NOT NULL DEFAULT 0,
+      rating_sum integer NOT NULL DEFAULT 0,
+      type statement_type NOT NULL,
+      data jsonb NOT NULL
+    )
+  `)
+  await db.none(`CREATE INDEX IF NOT EXISTS statements_claim_id_idx ON statements((data->>'claimId'))
+    WHERE data->>'claimId' IS NOT NULL`)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS statements_claim_id_ground_id_idx
+      ON statements((data->>'claimId'), (data->>'groundId'))
+      WHERE data->>'claimId' IS NOT NULL and data->>'groundId' IS NOT NULL
+    `)
+  await db.none(`CREATE INDEX IF NOT EXISTS statements_created_at_idx ON statements(created_at)`)
+  await db.none(`CREATE INDEX IF NOT EXISTS statements_ground_id_idx ON statements((data->>'groundId'))
+    WHERE data->>'groundId' IS NOT NULL`)
+  await db.none(`CREATE INDEX IF NOT EXISTS statements_hash_idx ON statements(hash)`)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS statements_tag_statement_id_name_idx
+      ON statements((data->>'statementId'), (data->>'name'))
+      WHERE type = 'Tag'
+    `)
+  await db.none(`CREATE INDEX IF NOT EXISTS statements_tags_idx ON statements USING GIN ((data->'tags'))`)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS statements_type_statement_id_idx
+      ON statements(type, (data->>'statementId'))
+      WHERE type IN ('Abuse', 'Property', 'Tag')
+    `)
 
-  try {
-    await r.table("events").count()
-  } catch (e) {
-    await r.tableCreate("events")
-  }
-  const eventsTable = r.table("events")
-  try {
-    await eventsTable.indexWait("createdAt")
-  } catch (e) {
-    await eventsTable.indexCreate("createdAt")
-  }
-  try {
-    await eventsTable.indexWait("statementIdAndType")
-  } catch (e) {
-    await eventsTable.indexCreate("statementIdAndType", [
-      r.row("statementId"),
-      r.row("type"),
-    ])
-  }
+  // Table: users
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS users(
+      api_key text NOT NULL,
+      created_at timestamp without time zone NOT NULL,
+      email text NOT NULL,
+      id bigserial NOT NULL PRIMARY KEY,
+      is_admin boolean NOT NULL DEFAULT FALSE,
+      name text NOT NULL,
+      password_digest text NOT NULL,
+      salt text NOT NULL,
+      url_name text NOT NULL
+    )
+  `)
+  await db.none(`CREATE INDEX IF NOT EXISTS users_api_key_idx ON users(api_key)`)
+  await db.none(`CREATE INDEX IF NOT EXISTS users_created_at_idx ON users(created_at)`)
+  await db.none(`CREATE INDEX IF NOT EXISTS users_email_idx ON users(email)`)
+  await db.none(`CREATE INDEX IF NOT EXISTS users_url_name_idx ON users(url_name)`)
 
-  try {
-    await r.table("statements").count()
-  } catch (e) {
-    await r.tableCreate("statements")
-  }
-  const statementsTable = r.table("statements")
-  try {
-    await statementsTable.indexWait("claimId")
-  } catch (e) {
-    await statementsTable.indexCreate("claimId")
-  }
-  try {
-    await statementsTable.indexWait("claimIdAndGroundId")
-  } catch (e) {
-    await statementsTable.indexCreate("claimIdAndGroundId", [
-      r.row("claimId"),
-      r.row("groundId"),
-    ])
-  }
-  try {
-    await statementsTable.indexWait("createdAt")
-  } catch (e) {
-    await statementsTable.indexCreate("createdAt")
-  }
-  try {
-    await statementsTable.indexWait("groundId")
-  } catch (e) {
-    await statementsTable.indexCreate("groundId")
-  }
-  try {
-    await statementsTable.indexWait("hash")
-  } catch (e) {
-    await statementsTable.indexCreate("hash")
-  }
-  try {
-    await statementsTable.indexWait("languageCode")
-  } catch (e) {
-    await statementsTable.indexCreate("languageCode")
-  }
-  try {
-    await statementsTable.indexWait("statementIdAndNameAndType")
-  } catch (e) {
-    await statementsTable.indexCreate("statementIdAndNameAndType", [
-      r.row("statementId"),
-      r.row("name"),
-      r.row("type"),
-    ])
-  }
-  try {
-    await statementsTable.indexWait("statementIdAndType")
-  } catch (e) {
-    await statementsTable.indexCreate("statementIdAndType", [
-      r.row("statementId"),
-      r.row("type"),
-    ])
-  }
-  try {
-    await statementsTable.indexWait("tags")
-  } catch (e) {
-    await statementsTable.indexCreate("tags", {multi: true})
-  }
-  try {
-    await statementsTable.indexWait("type")
-  } catch (e) {
-    await statementsTable.indexCreate("type")
-  }
+  // Table: ballots
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS ballots(
+      rating smallint CHECK (rating >= -1 AND rating <= 1),
+      statement_id bigint NOT NULL REFERENCES statements(id) ON DELETE CASCADE,
+      updated_at timestamp without time zone NOT NULL,
+      voter_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (statement_id, voter_id)
+    )
+  `)
+  await db.none(`CREATE INDEX IF NOT EXISTS ballots_statement_id_idx ON ballots(statement_id)`)
+  // await db.none(`CREATE INDEX IF NOT EXISTS ballots_updated_at_idx ON ballots(updated_at)`)
+  await db.none(`CREATE INDEX IF NOT EXISTS ballots_voter_id_idx ON ballots(voter_id)`)
 
+  // Table: events
+  await db.none(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'event_type') THEN
+        CREATE TYPE event_type AS ENUM (
+          'rating'
+        );
+      END IF;
+    END$$
+  `)
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS events(
+      created_at timestamp without time zone NOT NULL,
+      id bigserial NOT NULL PRIMARY KEY,
+      statement_id bigint NOT NULL REFERENCES statements(id) ON DELETE CASCADE,
+      type event_type NOT NULL
+    )
+  `)
+  await db.none(`CREATE INDEX IF NOT EXISTS events_created_at_idx ON events(created_at)`)
+  await db.none(`CREATE INDEX IF NOT EXISTS events_type_statement_id_idx ON events(type, statement_id)`)
+  await db.none(`
+    CREATE OR REPLACE FUNCTION notify_new_event() RETURNS trigger AS $$
+    BEGIN
+      PERFORM pg_notify('new_event', '');
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql
+  `)
   try {
-    await r.table("users").count()
-  } catch (e) {
-    await r.tableCreate("users")
-  }
-  const usersTable = r.table("users")
-  try {
-    await usersTable.indexWait("apiKey")
-  } catch (e) {
-    await usersTable.indexCreate("apiKey")
-  }
-  try {
-    await usersTable.indexWait("createdAt")
-  } catch (e) {
-    await usersTable.indexCreate("createdAt")
-  }
-  try {
-    await usersTable.indexWait("email")
-  } catch (e) {
-    await usersTable.indexCreate("email")
-  }
-  try {
-    await usersTable.indexWait("urlName")
-  } catch (e) {
-    await usersTable.indexCreate("urlName")
-  }
-
-  try {
-    await r.table("version").count()
-  } catch (e) {
-    await r.tableCreate("version")
-  }
-  const versionTable = r.table("version")
-  const versions = await versionTable
-  let version
-  if (versions.length === 0) {
-    let result = await versionTable.insert({number: 0}, {returnChanges: true})
-    version = result.changes[0].new_val
-  } else {
-    assert.strictEqual(versions.length, 1)
-    version = versions[0]
-  }
-  assert(version.number <= versionNumber, "Database format is too recent. Upgrade Retruco-API.")
+    await db.none(`DROP TRIGGER event_inserted ON events`)
+  } catch (e) {}
+  await db.none(`
+    CREATE TRIGGER event_inserted AFTER INSERT ON events
+    FOR EACH ROW
+    EXECUTE PROCEDURE notify_new_event()
+  `)
 
   const previousVersionNumber = version.number
 
-  if (version.number === 0) version.number += 1
-  if (version.number === 1) version.number += 1
-  if (version.number === 2) {
-    // Add type to statements.
-    let statementsId = await statementsTable
-      .filter(r.row.hasFields("type").not())
-      .getField("id")
-    for (let statementId of statementsId) {
-      await statementsTable
-        .get(statementId)
-        .update({
-          type: "PlainStatement",
-        })
-    }
-    version.number += 1
-  }
-  if (version.number === 3) version.number += 1
-  if (version.number === 4) version.number += 1
-  if (version.number === 5) version.number += 1
-  if (version.number === 6) {
-    let users = await usersTable.filter(r.row.hasFields("email").not())
-    for (let user of users) {
-      await usersTable
-        .get(user.id)
-        .update({
-          email: `${user.urlName}@localhost`,
-        })
-    }
-    version.number += 1
-  }
-  if (version.number === 7) version.number += 1
-  if (version.number === 8) {
-    let statements = await statementsTable
-    for (let statement of statements) {
-      hashStatement(statement)
-      await statementsTable
-        .get(statement.id)
-        .update({
-          hash: statement.hash,
-        })
-    }
-    version.number += 1
-  }
-  if (version.number === 9) {
-    let arguments1 = await statementsTable.getAll("Argument", {index: "type"})
-    for (let argument of arguments1) {
-        if (!argument.argumentType) {
-        await statementsTable
-          .get(argument.id)
-          .update({
-            argumentType: "because",
-          })
-      }
-    }
-    version.number += 1
-  }
+  // if (version.number === 0) version.number += 1
+  // if (version.number === 1) version.number += 1
+  // if (version.number === 2) {
+  //   // Add type to statements.
+  //   let statementsId = await statementsTable
+  //     .filter(r.row.hasFields("type").not())
+  //     .getField("id")
+  //   for (let statementId of statementsId) {
+  //     await statementsTable
+  //       .get(statementId)
+  //       .update({
+  //         type: "PlainStatement",
+  //       })
+  //   }
+  //   version.number += 1
+  // }
+  // if (version.number === 3) version.number += 1
+  // if (version.number === 4) version.number += 1
+  // if (version.number === 5) version.number += 1
+  // if (version.number === 6) {
+  //   let users = await usersTable.filter(r.row.hasFields("email").not())
+  //   for (let user of users) {
+  //     await usersTable
+  //       .get(user.id)
+  //       .update({
+  //         email: `${user.urlName}@localhost`,
+  //       })
+  //   }
+  //   version.number += 1
+  // }
+  // if (version.number === 7) version.number += 1
+  // if (version.number === 8) {
+  //   let statements = await statementsTable
+  //   for (let statement of statements) {
+  //     hashStatement(statement)
+  //     await statementsTable
+  //       .get(statement.id)
+  //       .update({
+  //         hash: statement.hash,
+  //       })
+  //   }
+  //   version.number += 1
+  // }
+  // if (version.number === 9) {
+  //   let arguments1 = await statementsTable.getAll("Argument", {index: "type"})
+  //   for (let argument of arguments1) {
+  //       if (!argument.argumentType) {
+  //       await statementsTable
+  //         .get(argument.id)
+  //         .update({
+  //           argumentType: "because",
+  //         })
+  //     }
+  //   }
+  //   version.number += 1
+  // }
 
 
   assert(version.number <= versionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)
   assert(version.number >= previousVersionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} < ${previousVersionNumber}.`)
-  if (version.number !== previousVersionNumber) await versionTable.get(version.id).update({number: version.number})
+  if (version.number !== previousVersionNumber) await db.none(`UPDATE version SET number = $1`, [version.number])
+
+  // if (version.number !== previousVersionNumber) await versionTable.get(version.id).update({number: version.number})
+}
+
+
+export {entryToBallot}
+function entryToBallot(entry) {
+  return entry === null ? null : {
+    rating: parseInt(entry.rating),
+    statementId: entry.statement_id,
+    updatedAt: entry.updated_at,
+    voterId: entry.voter_id,
+  }
+}
+
+
+export {entryToEvent}
+function entryToEvent(entry) {
+  return entry === null ? null : {
+    createdAt: entry.created_at,
+    id: entry.id,  // Use string for id.
+    statementId: entry.statement_id,
+    type: entry.type,
+  }
+}
+
+
+export {entryToStatement}
+function entryToStatement(entry) {
+  return entry === null ? null : {
+    ...(entry.data || {}),
+    createdAt: entry.created_at,
+    hash: entry.hash,
+    id: entry.id,  // Use string for id.
+    rating: entry.rating,
+    ratingCount: entry.rating_count,
+    ratingSum: entry.rating_sum,
+    type: entry.type,
+  }
+}
+
+
+export {entryToUser}
+function entryToUser(entry) {
+  return entry === null ? null : {
+    apiKey: entry.api_key,
+    createdAt: entry.created_at,
+    email: entry.email,
+    id: entry.id,  // Use string for id.
+    isAdmin: entry.is_admin,
+    name: entry.name,
+    passwordDigest: entry.password_digest,
+    salt: entry.salt,
+    urlName: entry.url_name,
+  }
+}
+
+
+async function existsTable(tableName) {
+  return (await db.one("SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=$1)", [tableName]))
+    .exists
 }

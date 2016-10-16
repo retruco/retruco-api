@@ -23,25 +23,20 @@ import basicAuth from "basic-auth"
 import {pbkdf2, randomBytes} from "mz/crypto"
 
 import config from "../config"
-import {r} from "../database"
+import {db, entryToUser} from "../database"
 import {ownsUser, toUserJson, wrapAsyncMiddleware} from "../model"
 
 
 export function authenticate(require) {
   return wrapAsyncMiddleware(async function authenticate(req, res, next) {
-    let user
-
     let credentials = basicAuth(req)
+    let user
     if (credentials) {
       let userName = credentials.name  // email or urlName
       if (userName.indexOf("@") >= 0) {
-        let users = await r
-          .table("users")
-          .getAll(userName, {index: "email"})
-          .limit(1)
-        if (users.length < 1) {
+        user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE email = $1`, [userName]))
+        if (user === null) {
           res.status(401)  // Unauthorized
-          res.set("WWW-Authenticate", `Basic realm="${config.title}"`)
           res.json({
             apiVersion: "1",
             code: 401,  // Unauthorized
@@ -49,15 +44,10 @@ export function authenticate(require) {
           })
           return
         }
-        user = users[0]
       } else {
-        let users = await r
-          .table("users")
-          .getAll(name, {index: "urlName"})
-          .limit(1)
-        if (users.length < 1) {
+        user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [userName]))
+        if (user === null) {
           res.status(401)  // Unauthorized
-          res.set("WWW-Authenticate", `Basic realm="${config.title}"`)
           res.json({
             apiVersion: "1",
             code: 401,  // Unauthorized
@@ -65,7 +55,6 @@ export function authenticate(require) {
           })
           return
         }
-        user = users[0]
       }
       let passwordDigest = (await pbkdf2(credentials.pass, user.salt, 4096, 16, "sha512")).toString("base64")
         .replace(/=/g, "")
@@ -93,11 +82,8 @@ export function authenticate(require) {
         })
         return
       }
-      let users = await r
-        .table("users")
-        .getAll(apiKey, {index: "apiKey"})
-        .limit(1)
-      if (users.length < 1) {
+      user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE api_key = $1`, [apiKey]))
+      if (user === null) {
         res.status(401)  // Unauthorized
         res.json({
           apiVersion: "1",
@@ -106,7 +92,6 @@ export function authenticate(require) {
         })
         return
       }
-      user = users[0]
     }
 
     if (user) {
@@ -127,8 +112,9 @@ export function authenticate(require) {
 export const createUser = wrapAsyncMiddleware(async function createUser(req, res, next) {
   // Create a new user.
   let user = req.body
-  user.createdAt = r.now()
+  delete user.createdAt
   delete user.id
+  delete user.isAdmin
   if (!user.name) user.name = user.urlName
   if (user.password) {
     user.apiKey = (await randomBytes(16)).toString("base64").replace(/=/g, "")  // 128 bits API key
@@ -139,10 +125,16 @@ export const createUser = wrapAsyncMiddleware(async function createUser(req, res
     delete user.password
   }
 
-  let result = await r
-    .table("users")
-    .insert(user, {returnChanges: true})
-  user = result.changes[0].new_val
+  let result = await db.one(
+    `INSERT INTO users(api_key, created_at, email, name, password_digest, salt, url_name)
+      VALUES ($<apiKey>, current_timestamp, $<email>, $<name>, $<passwordDigest>, $<salt>, $<urlName>)
+      RETURNING created_at, id, is_admin`,
+    user,
+  )
+  user.createdAt = result.created_at
+  user.id = result.id
+  user.isAdmin = result.is_admin
+
   res.status(201)  // Created
   res.json({
     apiVersion: "1",
@@ -164,11 +156,8 @@ export const deleteUser = wrapAsyncMiddleware(async function deleteUser(req, res
     })
     return
   }
-  // TODO: Delete user statements, etc?
-  await r
-    .table("users")
-    .get(user.id)
-    .delete()
+  // TODO: Delete user ballots, statements, etc?
+  await db.none(`DELETE FROM users WHERE id = $<id>`, user)
   res.json({
     apiVersion: "1",
     data: toUserJson(user),
@@ -199,24 +188,10 @@ export const getUser = wrapAsyncMiddleware(async function getUser(req, res, next
 })
 
 
-// export const listUsers = wrapAsyncMiddleware(async function listUsers(req, res, next) {
-//   // Respond a list of all users.
-//   let users = await r
-//     .table("users")
-//     .orderBy({index: r.desc("createdAt")})
-//   res.json({
-//     apiVersion: "1",
-//     data: users,
-//   }
-// })
-
-
 export const listUsersUrlName = wrapAsyncMiddleware(async function listUsersUrlName(req, res, next) {
   // Respond a list of the urlNames of all users.
-  let usersUrlName = await r
-    .table("users")
-    .orderBy({index: r.desc("createdAt")})
-    .getField("urlName")
+  let entries = await db.manyOrNone(`SELECT url_name FROM users ORDER BY created_at`)
+  let usersUrlName = entries.map(entry => entry.url_name)
   res.json({
     apiVersion: "1",
     data: usersUrlName,
@@ -228,37 +203,29 @@ export const login = wrapAsyncMiddleware(async function login(req, res, next) {
   // Log user in.
   let user = req.body
   let password = user.password
-  let urlName = user.userName
-  if (urlName.indexOf("@") >= 0) {
-    let users = await r
-      .table("users")
-      .getAll(urlName, {index: "email"})
-      .limit(1)
-    if (users.length < 1) {
+  let userName = user.userName
+  if (userName.indexOf("@") >= 0) {
+    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE email = $1`, [userName]))
+    if (user === null) {
       res.status(401)  // Unauthorized
       res.json({
         apiVersion: "1",
         code: 401,  // Unauthorized
-        message: `No user with email "${urlName}".`,
+        message: `No user with email "${userName}".`,
       })
       return
     }
-    user = users[0]
   } else {
-    let users = await r
-      .table("users")
-      .getAll(urlName, {index: "urlName"})
-      .limit(1)
-    if (users.length < 1) {
+    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [userName]))
+    if (user === null) {
       res.status(401)  // Unauthorized
       res.json({
         apiVersion: "1",
         code: 401,  // Unauthorized
-        message: `No user with name "${urlName}".`,
+        message: `No user with name "${userName}".`,
       })
       return
     }
-    user = users[0]
   }
   let passwordDigest = (await pbkdf2(password, user.salt, 4096, 16, "sha512")).toString("base64").replace(/=/g, "")
   if (passwordDigest != user.passwordDigest) {
@@ -266,7 +233,7 @@ export const login = wrapAsyncMiddleware(async function login(req, res, next) {
     res.json({
       apiVersion: "1",
       code: 401,  // Unauthorized
-      message: `Invalid password for user "${urlName}".`,
+      message: `Invalid password for user "${userName}".`,
     })
     return
   }
@@ -282,11 +249,8 @@ export const requireUser = wrapAsyncMiddleware(async function requireUser(req, r
 
   let user
   if (userName.indexOf("@") >= 0) {
-    let users = await r
-      .table("users")
-      .getAll(userName, {index: "email"})
-      .limit(1)
-    if (users.length < 1) {
+    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE email = $1`, [userName]))
+    if (user === null) {
       res.status(404)
       res.json({
         apiVersion: "1",
@@ -295,13 +259,9 @@ export const requireUser = wrapAsyncMiddleware(async function requireUser(req, r
       })
       return
     }
-    user = users[0]
   } else {
-    let users = await r
-      .table("users")
-      .getAll(userName, {index: "urlName"})
-      .limit(1)
-    if (users.length < 1) {
+    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [userName]))
+    if (user === null) {
       res.status(404)
       res.json({
         apiVersion: "1",
@@ -310,26 +270,8 @@ export const requireUser = wrapAsyncMiddleware(async function requireUser(req, r
       })
       return
     }
-    user = users[0]
   }
   req.user = user
 
   return next()
 })
-
-
-// export const updateUser = wrapAsyncMiddleware(async function updateUser(req, res, next) {
-//   // Update an existing user.
-//   let user = req.body
-//   if (user === null || user.id === null) throw new Error('User must have an "id" field.')
-//   delete user.createdAt
-//   let result = await r
-//     .table("users")
-//     .get(user.id)
-//     .update(user, {returnChanges: true})
-//   user = result.changes[0].new_val
-//   res.json({
-//     apiVersion: "1",
-//     data: user,
-//   })
-// })

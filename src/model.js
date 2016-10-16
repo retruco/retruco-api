@@ -21,54 +21,61 @@
 
 import crypto from "crypto"
 
-import {r} from "./database"
+import {db, entryToBallot, entryToEvent, entryToStatement, entryToUser} from "./database"
 
 
 export {addBallotEvent}
 async function addBallotEvent(statementId) {
-  let events = await r
-    .table("events")
-    .getAll([statementId, "rating"], {index: "statementIdAndType"})
-    .limit(1)
-  if (events.length < 1) {
-    await r
-      .table("events")
-      .insert({
-        createdAt: r.now(),
-        statementId,
-        type: "rating",
-      })
+  let event = {
+    statementId,
+    type: 'rating',
   }
+  let existingEvent = entryToEvent(await db.oneOrNone(
+    `SELECT * FROM events
+      WHERE statement_id = $<statementId> AND type = 'rating'
+      LIMIT 1`,
+    event,
+  ))
+  if (existingEvent !== null) return existingEvent
+  let result = await db.one(
+    `INSERT INTO events(created_at, statement_id, type)
+      VALUES (current_timestamp, $<statementId>, $<type>)
+      RETURNING created_at, id`,
+    event,
+  )
+  event.createdAt = result.created_at
+  event.id = result.id
+  return event
 }
 
 
-export function hashStatement(statement) {
+export function hashStatement(statementType, statement) {
   // Two statements have the same hash if and only if the statements have exactly the same content (except ID, dates,
   // etc).
-  const hash = crypto.createHash('sha256')
-  hash.update(statement.type)
-  if (statement.type === "Abuse") {
+  const hash = crypto.createHash("sha256")
+  hash.update(statementType)
+  if (statementType === "Abuse") {
     hash.update(statement.statementId)
-  } else if (statement.type === "Argument") {
+  } else if (statementType === "Argument") {
     hash.update(statement.claimId)
     hash.update(statement.groundId)
-  } else if (statement.type === "Card") {
+  } else if (statementType === "Card") {
     // TODO: Hash what?
-  } else if (statement.type === "PlainStatement") {
+  } else if (statementType === "PlainStatement") {
     hash.update(statement.languageCode)
     hash.update(statement.name)
-  } else if (statement.type === "Property") {
+  } else if (statementType === "Property") {
     hash.update(statement.statementId)
     // hash.update(statement.languageCode)
     hash.update(statement.name)
     hash.update(JSON.stringify(statement.schema))
     hash.update(JSON.stringify(statement.widget))
     hash.update(JSON.stringify(statement.value))
-  } else if (statement.type === "Tag") {
+  } else if (statementType === "Tag") {
     hash.update(statement.statementId)
     hash.update(statement.name)
   }
-  statement.hash = hash.digest('base64')
+  return hash.digest("base64")
 }
 
 
@@ -89,9 +96,11 @@ async function propagateOptimisticOptimization(statements, statement, oldRating,
 
   if (statement.type === "Abuse") {
     if (oldRatingSum <= 0 && newRatingSum > 0 || oldRatingSum > 0 && newRatingSum <= 0) {
-      let flaggedStatement = await r
-        .table("statements")
-        .get(statement.statementId)
+      let flaggedStatement = entryToStatement(await db.oneOrNone(
+          `SELECT * FROM statements
+            WHERE id = $<statementId>`,
+          statement,
+        ))
       if (flaggedStatement !== null) {
         if (newRatingSum > 0) flaggedStatement.isAbuse = true
         else delete flaggedStatement.isAbuse
@@ -101,12 +110,16 @@ async function propagateOptimisticOptimization(statements, statement, oldRating,
   } else if (statement.type === "Argument") {
     if (!statement.isAbuse && ["because", "but"].includes(statement.argumentType)) {
       if ((oldRating > 0) !== (newRating > 0)) {
-        let claim = await r
-          .table("statements")
-          .get(statement.claimId)
-        let ground = await r
-          .table("statements")
-          .get(statement.groundId)
+        let claim = entryToStatement(await db.oneOrNone(
+          `SELECT * FROM statements
+            WHERE id = $<claimId>`,
+          statement,
+        ))
+        let ground = entryToStatement(await db.oneOrNone(
+          `SELECT * FROM statements
+            WHERE id = $<groundId>`,
+          statement,
+        ))
         if (claim !== null && claim.ratingCount && ground !== null && !ground.isAbuse) {
           claim.ratingSum = (claim.ratingSum || 0) +
             ((newRating > 0) - (oldRating > 0)) * (statement.argumentType === "because" ? 1 : -1)
@@ -122,34 +135,34 @@ async function propagateOptimisticOptimization(statements, statement, oldRating,
 
 
 export {rateStatement}
-async function rateStatement(statementId, userId, rating) {
-  let id = [statementId, userId].join("/")
-  let oldBallot = await r
-    .table("ballots")
-    .get(id)
-  let ballot
+async function rateStatement(statementId, voterId, rating) {
+  let ballot = {
+    rating,
+    statementId,
+    voterId,
+  }
+  let oldBallot = entryToBallot(await db.oneOrNone(
+    `SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>`,
+    ballot,
+  ))
   if (oldBallot === null) {
-    ballot = {
-      id,
-      rating: rating,
-      statementId: statementId,
-      updatedAt: r.now(),
-      voterId: userId,
-    }
-    let result = await r
-      .table("ballots")
-      .insert(ballot, {returnChanges: true})
-    ballot = result.changes[0].new_val
+    let result = await db.one(
+      `INSERT INTO ballots(rating, statement_id, updated_at, voter_id)
+        VALUES ($<rating>, $<statementId>, current_timestamp, $<voterId>)
+        RETURNING updated_at`,
+      ballot,
+    )
+    ballot.updatedAt = result.updated_at
     await addBallotEvent(statementId)
   } else if (rating !== oldBallot.rating) {
-    ballot = {...oldBallot}
-    ballot.rating = rating
-    ballot.updatedAt = r.now()
-    let result = await r
-      .table("ballots")
-      .get(id)
-      .update(ballot, {returnChanges: true})
-    ballot = result.changes[0].new_val
+    let result = await db.one(
+      `UPDATE ballots
+        SET rating = $<rating>, updated_at = current_timestamp
+        WHERE statement_id = $<statementId> AND voter_id = $<voterId>
+        RETURNING updated_at`,
+      ballot,
+    )
+    ballot.updatedAt = result.updated_at
     await addBallotEvent(statementId)
   } else {
     ballot = oldBallot
@@ -228,50 +241,61 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
 
   if (statement.type === "Abuse") {
     if (statement.statementId) {
-      const flaggedStatement = await r
-        .table("statements")
-        .get(statement.statementId)
+      const flaggedStatement = entryToStatement(await db.oneOrNone(
+        `SELECT * FROM statements
+          WHERE id = $<statementId>`,
+        statement,
+      ))
       await toStatementData1(data, flaggedStatement, statementsCache, user,
         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
     }
   } else if (statement.type === "Argument") {
     if (statement.claimId) {
-      const claim = await r
-        .table("statements")
-        .get(statement.claimId)
+      const claim = entryToStatement(await db.oneOrNone(
+        `SELECT * FROM statements
+          WHERE id = $<claimId>`,
+        statement,
+      ))
       await toStatementData1(data, claim, statementsCache, user,
         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
     }
     if (statement.groundId) {
-      const ground = await r
-        .table("statements")
-        .get(statement.groundId)
+      const ground = entryToStatement(await db.oneOrNone(
+        `SELECT * FROM statements
+          WHERE id = $<groundId>`,
+        statement,
+      ))
       await toStatementData1(data, ground, statementsCache, user,
         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
     }
   } else if (statement.type === "Property") {
     if (statement.statementId) {
-      const statementWithProperties = await r
-        .table("statements")
-        .get(statement.statementId)
+      const statementWithProperties = entryToStatement(await db.oneOrNone(
+        `SELECT * FROM statements
+          WHERE id = $<statementId>`,
+        statement,
+      ))
       await toStatementData1(data, statementWithProperties, statementsCache, user,
         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
     }
   } else if (statement.type === "Tag") {
     if (statement.statementId) {
-      const taggedStatement = await r
-        .table("statements")
-        .get(statement.statementId)
+      const taggedStatement = entryToStatement(await db.oneOrNone(
+        `SELECT * FROM statements
+          WHERE id = $<statementId>`,
+        statement,
+      ))
       await toStatementData1(data, taggedStatement, statementsCache, user,
         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
     }
   }
 
   if (showAbuse) {
-    const abuses = await r
-      .table("statements")
-      .getAll([statement.id, "Abuse"], {index: "statementIdAndType"})
-    const abuse = abuses.length > 0 ? abuses[0] : null
+    const abuse = entryToStatement(await db.oneOrNone(
+      `SELECT * FROM statements
+        WHERE (data->>'statementId')::bigint = $<id> and type = 'Abuse'`,
+      statement,
+    ))
     statementJson.abuseId = abuse !== null ? abuse.id : null
     if (depth > 0 && abuse !== null) {
       await toStatementData1(data, abuse, statementsCache, user,
@@ -279,18 +303,22 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     }
   }
   if (showGrounds) {
-    const groundArguments = await r
-      .table("statements")
-      .getAll(statement.id, {index: "claimId"})
+    const groundArguments = (await db.any(
+      `SELECT * FROM statements
+        WHERE (data->>'claimId')::bigint = $<id>`,
+      statement,
+    )).map(entryToStatement)
     statementJson.groundIds = groundArguments.map(groundArgument => groundArgument.id)
-    if (depth > 0) {
+    if (groundArguments.length > 0 && depth > 0) {
       for (let groundArgument of groundArguments) {
         await toStatementData1(data, groundArgument, statementsCache, user,
           {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
       }
-      const groundStatements = await r
-        .table("statements")
-        .getAll(...groundArguments.map(groundArgument => groundArgument.groundId))
+      const groundStatements = (await db.any(
+        `SELECT * FROM statements
+          WHERE id IN ($1:csv)`,
+        [groundArguments.map(groundArgument => groundArgument.groundId)],
+      )).map(entryToStatement)
       for (let groundStatement of groundStatements) {
         await toStatementData1(data, groundStatement, statementsCache, user,
           {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
@@ -298,10 +326,19 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     }
   }
   if (showProperties) {
-    const properties = await r
-      .table("statements")
-      .getAll([statement.id, "Property"], {index: "statementIdAndType"})
-    let activePropertiesIds = statement.activePropertiesIds || []
+    const properties = (await db.any(
+      `SELECT * FROM statements
+        WHERE (data->>'statementId')::bigint = $<id> and type = 'Property'`,
+      statement,
+    )).map(entryToStatement)
+    let activePropertiesIds = properties.reduce(
+      function (ids, property) {
+        if (property.isActive) ids.push(property.id)
+        return ids
+      },
+      [],
+    )
+    if (activePropertiesIds.length > 0) statement.activePropertiesIds = activePropertiesIds
     let ballotJsonById = data.ballots
     let userPropertiesIds = []
     for (let property of properties) {
@@ -309,9 +346,10 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         let ballotId = [property.id, user.id].join("/")
         let ballot = ballotJsonById[ballotId]
         if (!ballot) {
-          ballot = await r
-            .table("ballots")
-            .get(ballotId)
+          ballot = entryToBallot(await db.oneOrNone(
+            `SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2`,
+            [property.id, user.id],
+          ))
           if (ballot !== null && showBallot) ballotJsonById[ballotId] = toBallotJson(ballot)
         }
         if (ballot !== null) userPropertiesIds.push(property.id)
@@ -324,9 +362,11 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     if (userPropertiesIds.length > 0) statement.userPropertiesIds = userPropertiesIds
   }
   if (showTags) {
-    const tags = await r
-      .table("statements")
-      .getAll([statement.id, "Tag"], {index: "statementIdAndType"})
+    const tags = (await db.any(
+      `SELECT * FROM statements
+        WHERE (data->>'statementId')::bigint = $<id> and type = 'Tag'`,
+      statement,
+    )).map(entryToStatement)
     statementJson.tagIds = tags.map(tag => tag.id)
     if (depth > 0) {
       for (let tag of tags) {
@@ -339,9 +379,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
   if (showAuthor && statement.authorId){
     let userJsonById = data.users
     if (!userJsonById[statement.authorId]) {
-      let user = await r
-        .table("users")
-        .get(statement.authorId)
+      let user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE id = $1`, [statement.authorId]))
       if (user !== null) userJsonById[statement.authorId] = toUserJson(user)
     }
   }
@@ -351,9 +389,10 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     let ballotId = [statement.id, user.id].join("/")
     statementJson.ballotId = ballotId
     if (!ballotJsonById[ballotId]) {
-      let ballot = await r
-        .table("ballots")
-        .get(ballotId)
+      let ballot = entryToBallot(await db.oneOrNone(
+        `SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2`,
+        [statement.id, user.id],
+      ))
       if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
     }
   }
@@ -408,16 +447,20 @@ function toUserJson(user, {showApiKey = false, showEmail = false} = {}) {
 
 
 export {unrateStatement}
-async function unrateStatement(statementId, userId) {
-  let id = [statementId, userId].join("/")
-  let oldBallot = await r
-    .table("ballots")
-    .get(id)
+async function unrateStatement(statementId, voterId) {
+  let ballot = {
+    statementId,
+    voterId,
+  }
+  let oldBallot = entryToBallot(await db.oneOrNone(
+    `SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>`,
+    ballot,
+  ))
   if (oldBallot !== null) {
-    await r
-      .table("ballots")
-      .get(id)
-      .delete()
+    await db.none(
+      `DELETE FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>`,
+      ballot,
+    )
     await addBallotEvent(statementId)
   }
   return oldBallot

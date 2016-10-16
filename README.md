@@ -19,6 +19,16 @@ For the first time only:
 npm install
 ```
 
+### Create the database
+
+```bash
+su - postgres
+createuser -D -P -R -S retruco
+  Enter password for new role: retruco
+  Enter it again: retruco
+createdb -E utf-8 -O retruco retruco
+```
+
 ### Configure the API server
 
 ```bash
