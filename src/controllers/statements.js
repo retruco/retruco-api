@@ -242,8 +242,20 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
     delete statement.abuseId
     delete statement.isAbuse
   }
+  if (["PlainStatement", "Tag"].includes(statementType)) {
+    statement.name = statement.name.replace(/[\n\r]+/g," ").replace(/\s+/g," ").trim()
+    if (statement.name.length === 0) {
+      res.status(400)
+      res.json({
+        apiVersion: "1",
+        code: 400,  // Bad Request
+        message: `Missing or empty name in statement.`,
+      })
+      return
+    }
+  }
   if (statementType === "PlainStatement") {
-    statement.authorId = req.authenticatedUser.id  
+    statement.authorId = req.authenticatedUser.id
   }
   delete statement.createdAt
   delete statement.deleted
@@ -254,32 +266,39 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
   delete statement.type
 
   let hash = hashStatement(statementType, statement)
-
-  let result = await db.one(
-    `INSERT INTO statements(created_at, hash, type, data)
-      VALUES (current_timestamp, $1, $2, $3)
-      RETURNING created_at, id, rating, rating_count, rating_sum`,
-    [hash, statementType, statement],
-  )
-  Object.assign(statement, {
-    createdAt: result.created_at,
-    id: result.id,
-    rating: result.rating,
-    ratingCount: result.rating_count,
-    ratingSum: result.rating_sum,
-    type: statementType,
-  })
-  await rateStatement(statement.id, req.authenticatedUser.id, 1)
+  let existingStatement = entryToStatement(await db.oneOrNone(`SELECT * FROM statements WHERE hash = $1`, hash))
+  if (existingStatement === null) {
+    let result = await db.one(
+      `INSERT INTO statements(created_at, hash, type, data)
+        VALUES (current_timestamp, $1, $2, $3)
+        RETURNING created_at, id, rating, rating_count, rating_sum`,
+      [hash, statementType, statement],
+    )
+    Object.assign(statement, {
+      createdAt: result.created_at,
+      id: result.id,
+      rating: result.rating,
+      ratingCount: result.rating_count,
+      ratingSum: result.rating_sum,
+      type: statementType,
+    })
+  } else {
+    statement = existingStatement
+  }
+  let [oldBallot, ballot] = await rateStatement(statement.id, req.authenticatedUser.id, 1)
 
   // Optimistic optimizations
   const statements = []
+  const oldRating = statement.rating
+  const oldRatingSum = statement.ratingSum
   statements.push(statement)
-  statement.rating = 1
-  statement.ratingCount = 1
-  statement.ratingSum = 1
-  await propagateOptimisticOptimization(statements, statement, 0, 0)
+  if (oldBallot === null) statement.ratingCount += 1
+  statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
+  statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
+  statement.rating = statement.ratingSum / statement.ratingCount
+  await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
 
-  res.status(201)  // Created
+  if (existingStatement === null) res.status(201)  // Created
   res.json({
     apiVersion: "1",
     data: await toStatementData(statement, req.authenticatedUser, {

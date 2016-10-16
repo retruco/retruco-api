@@ -35,7 +35,7 @@ export const db = pgPromise({
 })
 
 
-const versionNumber = 0
+const versionNumber = 1
 
 
 export {checkDatabase}
@@ -66,6 +66,11 @@ async function configure() {
   if (version === null) {
     await db.none(`INSERT INTO version(number) VALUES (0)`)
     version = await db.one(`SELECT * FROM version`)
+  }
+
+  if (version.number === 0) {
+    // Remove non UNIQUE index to recreate it.
+    await db.none(`DROP INDEX IF EXISTS statements_hash_idx`)
   }
 
   // Table: statements
@@ -106,7 +111,7 @@ async function configure() {
   await db.none(`CREATE INDEX IF NOT EXISTS statements_created_at_idx ON statements(created_at)`)
   await db.none(`CREATE INDEX IF NOT EXISTS statements_ground_id_idx ON statements((data->>'groundId'))
     WHERE data->>'groundId' IS NOT NULL`)
-  await db.none(`CREATE INDEX IF NOT EXISTS statements_hash_idx ON statements(hash)`)
+  await db.none(`CREATE UNIQUE INDEX IF NOT EXISTS statements_hash_idx ON statements(hash)`)
   await db.none(`
     CREATE INDEX IF NOT EXISTS statements_tag_statement_id_name_idx
       ON statements((data->>'statementId'), (data->>'name'))
@@ -192,7 +197,7 @@ async function configure() {
 
   const previousVersionNumber = version.number
 
-  // if (version.number === 0) version.number += 1
+  if (version.number === 0) version.number += 1
   // if (version.number === 1) version.number += 1
   // if (version.number === 2) {
   //   // Add type to statements.
