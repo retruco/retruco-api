@@ -21,6 +21,7 @@
 
 import basicAuth from "basic-auth"
 import {pbkdf2, randomBytes} from "mz/crypto"
+import slugify from "slug"
 
 import config from "../config"
 import {db, entryToUser} from "../database"
@@ -45,13 +46,14 @@ export function authenticate(require) {
           return
         }
       } else {
-        user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [userName]))
+        let urlName = slugify(userName, {mode: "rfc3986"})
+        user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [urlName]))
         if (user === null) {
           res.status(401)  // Unauthorized
           res.json({
             apiVersion: "1",
             code: 401,  // Unauthorized
-            message: `No user with name "${userName}".`,
+            message: `No user with name "${urlName}".`,
           })
           return
         }
@@ -116,6 +118,7 @@ export const createUser = wrapAsyncMiddleware(async function createUser(req, res
   delete user.id
   delete user.isAdmin
   if (!user.name) user.name = user.urlName
+  user.urlName = slugify(user.urlName, {mode: "rfc3986"})
   if (user.password) {
     user.apiKey = (await randomBytes(16)).toString("base64").replace(/=/g, "")  // 128 bits API key
     // See http://security.stackexchange.com/a/27971 for explaination of digest and salt size.
@@ -216,13 +219,14 @@ export const login = wrapAsyncMiddleware(async function login(req, res, next) {
       return
     }
   } else {
-    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [userName]))
+    let urlName = slugify(userName, {mode: "rfc3986"})
+    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [urlName]))
     if (user === null) {
       res.status(401)  // Unauthorized
       res.json({
         apiVersion: "1",
         code: 401,  // Unauthorized
-        message: `No user with name "${userName}".`,
+        message: `No user with name "${urlName}".`,
       })
       return
     }
@@ -260,13 +264,14 @@ export const requireUser = wrapAsyncMiddleware(async function requireUser(req, r
       return
     }
   } else {
-    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [userName]))
+    let urlName = slugify(userName, {mode: "rfc3986"})
+    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [urlName]))
     if (user === null) {
       res.status(404)
       res.json({
         apiVersion: "1",
         code: 404,
-        message: `No user named "${userName}".`,
+        message: `No user named "${urlName}".`,
       })
       return
     }

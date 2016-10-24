@@ -13,6 +13,7 @@
     "express-ws": "^2.0.0-rc.1",
     "mz": "^2.4.0",
     "pg-promise": "^5.3.4",
+    "slug": "^0.9.1",
     "swagger-express-middleware": "^1.0.0-alpha.12"
   },
   "devDependencies": {
