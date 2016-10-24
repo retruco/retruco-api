@@ -123,7 +123,9 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           if (value.includes("\n")) {
             if (widget.tag !== "textarea") widget = {tag: "textarea"}
           } else {
-            if (widget.tag !== "input" || widget.type !== "text") widget = {tag: "input", type: "text"}
+            if (widget.tag !== "textarea" && (widget.tag !== "input" || widget.type !== "text")) {
+              widget = {tag: "input", type: "text"}
+            }
           }
         }
       }
