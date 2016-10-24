@@ -20,6 +20,7 @@
 
 
 import deepEqual from "deep-equal"
+import {randomBytes} from "mz/crypto"
 
 import {db, entryToBallot, entryToStatement} from "../database"
 import {hashStatement, ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData,
@@ -151,9 +152,12 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     if (card) {
       remainingUserStatementsIds.delete(card.id)
     } else {
-      console.log(`Creating card ${cardId} for ${keyValue}`)
-      card = {}
-      const cardType = 'Card'
+      console.log(`Creating new card for ${keyValue}`)
+      card = {
+        // Ensure that each card has a unique hash.
+        randomId: (await randomBytes(16)).toString("base64").replace(/=/g, ""),  // 128 bits
+      }
+      const cardType = "Card"
       let hash = hashStatement(cardType, card)
       let result = await db.one(
         `INSERT INTO statements(created_at, hash, type, data)

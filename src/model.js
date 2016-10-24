@@ -61,6 +61,7 @@ export function hashStatement(statementType, statement) {
     hash.update(statement.groundId)
   } else if (statementType === "Card") {
     // TODO: Hash what?
+    if (statement.randomId) hash.update(statement.randomId)
   } else if (statementType === "PlainStatement") {
     hash.update(statement.languageCode)
     hash.update(statement.name)
