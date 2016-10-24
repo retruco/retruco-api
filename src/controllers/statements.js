@@ -176,7 +176,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         type: cardType,
       })
     }
-    rateStatement(card.id, authenticatedUser.id, 1)  // await not needed
+    await rateStatement(card.id, authenticatedUser.id, 1)
     let existingPropertiesByName = existingPropertiesByNameByCardId[card.id] || {}
     for (let [name, value] of Object.entries(attributes)) {
       let {maxLength, schema, widget} = fieldByName[name]
@@ -222,14 +222,14 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           type: propertyType,
         })
       }
-      rateStatement(property.id, authenticatedUser.id, 1)  // await not needed
+      await rateStatement(property.id, authenticatedUser.id, 1)
     }
   }
 
   // Remove obsolete user ratings.
   console.log("remainingUserStatementsIds:", remainingUserStatementsIds.size)
   for (let statementId of remainingUserStatementsIds) {
-    unrateStatement(statementId, authenticatedUser.id)  // await not needed
+    await unrateStatement(statementId, authenticatedUser.id)
   }
 
   res.json({
