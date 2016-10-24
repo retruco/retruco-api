@@ -28,7 +28,7 @@ export {addBallotEvent}
 async function addBallotEvent(statementId) {
   let event = {
     statementId,
-    type: 'rating',
+    type: "rating",
   }
   let existingEvent = entryToEvent(await db.oneOrNone(
     `SELECT * FROM events
@@ -144,7 +144,7 @@ async function rateStatement(statementId, voterId, rating) {
     voterId,
   }
   let oldBallot = entryToBallot(await db.oneOrNone(
-    `SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>`,
+    "SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
     ballot,
   ))
   if (oldBallot === null) {
@@ -349,7 +349,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         let ballot = ballotJsonById[ballotId]
         if (!ballot) {
           ballot = entryToBallot(await db.oneOrNone(
-            `SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2`,
+            "SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2",
             [property.id, user.id],
           ))
           if (ballot !== null && showBallot) ballotJsonById[ballotId] = toBallotJson(ballot)
@@ -381,7 +381,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
   if (showAuthor && statement.authorId){
     let userJsonById = data.users
     if (!userJsonById[statement.authorId]) {
-      let user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE id = $1`, [statement.authorId]))
+      let user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE id = $1", statement.authorId))
       if (user !== null) userJsonById[statement.authorId] = toUserJson(user)
     }
   }
@@ -392,7 +392,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     statementJson.ballotId = ballotId
     if (!ballotJsonById[ballotId]) {
       let ballot = entryToBallot(await db.oneOrNone(
-        `SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2`,
+        "SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2",
         [statement.id, user.id],
       ))
       if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
@@ -455,12 +455,12 @@ async function unrateStatement(statementId, voterId) {
     voterId,
   }
   let oldBallot = entryToBallot(await db.oneOrNone(
-    `SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>`,
+    "SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
     ballot,
   ))
   if (oldBallot !== null) {
     await db.none(
-      `DELETE FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>`,
+      "DELETE FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
       ballot,
     )
     await addBallotEvent(statementId)

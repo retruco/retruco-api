@@ -3,7 +3,8 @@
     "node": true
   },
   "globals": {
-    "Promise": true
+    "Promise": true,
+    "Set": true
   },
   "parser": "babel-eslint",
   "rules": {

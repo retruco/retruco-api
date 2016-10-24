@@ -35,7 +35,7 @@ export function authenticate(require) {
     if (credentials) {
       let userName = credentials.name  // email or urlName
       if (userName.indexOf("@") >= 0) {
-        user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE email = $1`, [userName]))
+        user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE email = $1", userName))
         if (user === null) {
           res.status(401)  // Unauthorized
           res.json({
@@ -47,7 +47,7 @@ export function authenticate(require) {
         }
       } else {
         let urlName = slugify(userName, {mode: "rfc3986"})
-        user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [urlName]))
+        user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE url_name = $1", urlName))
         if (user === null) {
           res.status(401)  // Unauthorized
           res.json({
@@ -66,7 +66,7 @@ export function authenticate(require) {
         res.json({
           apiVersion: "1",
           code: 401,  // Unauthorized
-          message: `Invalid password for user "${name}".`,
+          message: `Invalid password for user "${userName}".`,
         })
         return
       }
@@ -84,7 +84,7 @@ export function authenticate(require) {
         })
         return
       }
-      user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE api_key = $1`, [apiKey]))
+      user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE api_key = $1", apiKey))
       if (user === null) {
         res.status(401)  // Unauthorized
         res.json({
@@ -111,7 +111,7 @@ export function authenticate(require) {
   })
 }
 
-export const createUser = wrapAsyncMiddleware(async function createUser(req, res, next) {
+export const createUser = wrapAsyncMiddleware(async function createUser(req, res) {
   // Create a new user.
   let user = req.body
   delete user.createdAt
@@ -146,7 +146,7 @@ export const createUser = wrapAsyncMiddleware(async function createUser(req, res
 })
 
 
-export const deleteUser = wrapAsyncMiddleware(async function deleteUser(req, res, next) {
+export const deleteUser = wrapAsyncMiddleware(async function deleteUser(req, res) {
   // Delete an existing user.
   let authenticatedUser = req.authenticatedUser
   let user = req.user
@@ -160,7 +160,7 @@ export const deleteUser = wrapAsyncMiddleware(async function deleteUser(req, res
     return
   }
   // TODO: Delete user ballots, statements, etc?
-  await db.none(`DELETE FROM users WHERE id = $<id>`, user)
+  await db.none("DELETE FROM users WHERE id = $<id>", user)
   res.json({
     apiVersion: "1",
     data: toUserJson(user),
@@ -168,7 +168,7 @@ export const deleteUser = wrapAsyncMiddleware(async function deleteUser(req, res
 })
 
 
-export const getUser = wrapAsyncMiddleware(async function getUser(req, res, next) {
+export const getUser = wrapAsyncMiddleware(async function getUser(req, res) {
   // Respond an existing user.
   let authenticatedUser = req.authenticatedUser
   let show = req.query.show || []
@@ -191,9 +191,9 @@ export const getUser = wrapAsyncMiddleware(async function getUser(req, res, next
 })
 
 
-export const listUsersUrlName = wrapAsyncMiddleware(async function listUsersUrlName(req, res, next) {
+export const listUsersUrlName = wrapAsyncMiddleware(async function listUsersUrlName(req, res) {
   // Respond a list of the urlNames of all users.
-  let entries = await db.manyOrNone(`SELECT url_name FROM users ORDER BY created_at`)
+  let entries = await db.manyOrNone("SELECT url_name FROM users ORDER BY created_at")
   let usersUrlName = entries.map(entry => entry.url_name)
   res.json({
     apiVersion: "1",
@@ -202,13 +202,13 @@ export const listUsersUrlName = wrapAsyncMiddleware(async function listUsersUrlN
 })
 
 
-export const login = wrapAsyncMiddleware(async function login(req, res, next) {
+export const login = wrapAsyncMiddleware(async function login(req, res) {
   // Log user in.
   let user = req.body
   let password = user.password
   let userName = user.userName
   if (userName.indexOf("@") >= 0) {
-    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE email = $1`, [userName]))
+    user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE email = $1", userName))
     if (user === null) {
       res.status(401)  // Unauthorized
       res.json({
@@ -220,7 +220,7 @@ export const login = wrapAsyncMiddleware(async function login(req, res, next) {
     }
   } else {
     let urlName = slugify(userName, {mode: "rfc3986"})
-    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [urlName]))
+    user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE url_name = $1", urlName))
     if (user === null) {
       res.status(401)  // Unauthorized
       res.json({
@@ -253,7 +253,7 @@ export const requireUser = wrapAsyncMiddleware(async function requireUser(req, r
 
   let user
   if (userName.indexOf("@") >= 0) {
-    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE email = $1`, [userName]))
+    user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE email = $1", userName))
     if (user === null) {
       res.status(404)
       res.json({
@@ -265,7 +265,7 @@ export const requireUser = wrapAsyncMiddleware(async function requireUser(req, r
     }
   } else {
     let urlName = slugify(userName, {mode: "rfc3986"})
-    user = entryToUser(await db.oneOrNone(`SELECT * FROM users WHERE url_name = $1`, [urlName]))
+    user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE url_name = $1", urlName))
     if (user === null) {
       res.status(404)
       res.json({
