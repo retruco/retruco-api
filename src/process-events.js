@@ -320,11 +320,11 @@ async function processEvent(event) {
 async function processEvents () {
   while (true) {
     // Handle existing pending events.
-    let events = (await db.any(`SELECT * FROM events ORDER BY created_at`)).map(entryToEvent)
+    let events = (await db.any("SELECT * FROM events ORDER BY created_at")).map(entryToEvent)
     for (let event of events) {
       await processEvent(event)
     }
-    await db.none(`LISTEN $1~`, 'new_event')
+    await db.none("LISTEN $1~", "new_event")
   }
 }
 
