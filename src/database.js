@@ -45,7 +45,7 @@ async function checkDatabase() {
 
   assert(await existsTable("version"), 'Database is not initialized. Run "node configure" to configure it.')
 
-  let version = await db.one(`SELECT * FROM version`)
+  let version = await db.one("SELECT * FROM version")
   assert(version.number <= versionNumber, "Database format is too recent. Upgrade Retruco-API.")
   assert.strictEqual(version.number, versionNumber, 'Database must be upgraded. Run "node configure" to configure it.')
 }
@@ -62,15 +62,15 @@ async function configure() {
       number integer NOT NULL
     )
   `)
-  let version = await db.oneOrNone(`SELECT * FROM version`)
+  let version = await db.oneOrNone("SELECT * FROM version")
   if (version === null) {
-    await db.none(`INSERT INTO version(number) VALUES (0)`)
-    version = await db.one(`SELECT * FROM version`)
+    await db.none("INSERT INTO version(number) VALUES (0)")
+    version = await db.one("SELECT * FROM version")
   }
 
   if (version.number === 0) {
     // Remove non UNIQUE index to recreate it.
-    await db.none(`DROP INDEX IF EXISTS statements_hash_idx`)
+    await db.none("DROP INDEX IF EXISTS statements_hash_idx")
   }
 
   // Table: statements
@@ -108,16 +108,16 @@ async function configure() {
       ON statements((data->>'claimId'), (data->>'groundId'))
       WHERE data->>'claimId' IS NOT NULL and data->>'groundId' IS NOT NULL
     `)
-  await db.none(`CREATE INDEX IF NOT EXISTS statements_created_at_idx ON statements(created_at)`)
+  await db.none("CREATE INDEX IF NOT EXISTS statements_created_at_idx ON statements(created_at)")
   await db.none(`CREATE INDEX IF NOT EXISTS statements_ground_id_idx ON statements((data->>'groundId'))
     WHERE data->>'groundId' IS NOT NULL`)
-  await db.none(`CREATE UNIQUE INDEX IF NOT EXISTS statements_hash_idx ON statements(hash)`)
+  await db.none("CREATE UNIQUE INDEX IF NOT EXISTS statements_hash_idx ON statements(hash)")
   await db.none(`
     CREATE INDEX IF NOT EXISTS statements_tag_statement_id_name_idx
       ON statements((data->>'statementId'), (data->>'name'))
       WHERE type = 'Tag'
     `)
-  await db.none(`CREATE INDEX IF NOT EXISTS statements_tags_idx ON statements USING GIN ((data->'tags'))`)
+  await db.none("CREATE INDEX IF NOT EXISTS statements_tags_idx ON statements USING GIN ((data->'tags'))")
   await db.none(`
     CREATE INDEX IF NOT EXISTS statements_type_statement_id_idx
       ON statements(type, (data->>'statementId'))
@@ -138,10 +138,10 @@ async function configure() {
       url_name text NOT NULL
     )
   `)
-  await db.none(`CREATE INDEX IF NOT EXISTS users_api_key_idx ON users(api_key)`)
-  await db.none(`CREATE INDEX IF NOT EXISTS users_created_at_idx ON users(created_at)`)
-  await db.none(`CREATE INDEX IF NOT EXISTS users_email_idx ON users(email)`)
-  await db.none(`CREATE INDEX IF NOT EXISTS users_url_name_idx ON users(url_name)`)
+  await db.none("CREATE INDEX IF NOT EXISTS users_api_key_idx ON users(api_key)")
+  await db.none("CREATE INDEX IF NOT EXISTS users_created_at_idx ON users(created_at)")
+  await db.none("CREATE INDEX IF NOT EXISTS users_email_idx ON users(email)")
+  await db.none("CREATE INDEX IF NOT EXISTS users_url_name_idx ON users(url_name)")
 
   // Table: ballots
   await db.none(`
@@ -153,9 +153,9 @@ async function configure() {
       PRIMARY KEY (statement_id, voter_id)
     )
   `)
-  await db.none(`CREATE INDEX IF NOT EXISTS ballots_statement_id_idx ON ballots(statement_id)`)
-  // await db.none(`CREATE INDEX IF NOT EXISTS ballots_updated_at_idx ON ballots(updated_at)`)
-  await db.none(`CREATE INDEX IF NOT EXISTS ballots_voter_id_idx ON ballots(voter_id)`)
+  await db.none("CREATE INDEX IF NOT EXISTS ballots_statement_id_idx ON ballots(statement_id)")
+  // await db.none("CREATE INDEX IF NOT EXISTS ballots_updated_at_idx ON ballots(updated_at)")
+  await db.none("CREATE INDEX IF NOT EXISTS ballots_voter_id_idx ON ballots(voter_id)")
 
   // Table: events
   await db.none(`
@@ -176,8 +176,8 @@ async function configure() {
       type event_type NOT NULL
     )
   `)
-  await db.none(`CREATE INDEX IF NOT EXISTS events_created_at_idx ON events(created_at)`)
-  await db.none(`CREATE INDEX IF NOT EXISTS events_type_statement_id_idx ON events(type, statement_id)`)
+  await db.none("CREATE INDEX IF NOT EXISTS events_created_at_idx ON events(created_at)")
+  await db.none("CREATE INDEX IF NOT EXISTS events_type_statement_id_idx ON events(type, statement_id)")
   await db.none(`
     CREATE OR REPLACE FUNCTION notify_new_event() RETURNS trigger AS $$
     BEGIN
@@ -187,7 +187,7 @@ async function configure() {
     $$ LANGUAGE plpgsql
   `)
   try {
-    await db.none(`DROP TRIGGER event_inserted ON events`)
+    await db.none("DROP TRIGGER event_inserted ON events")
   } catch (e) {}
   await db.none(`
     CREATE TRIGGER event_inserted AFTER INSERT ON events
@@ -259,7 +259,7 @@ async function configure() {
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)
   assert(version.number >= previousVersionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} < ${previousVersionNumber}.`)
-  if (version.number !== previousVersionNumber) await db.none(`UPDATE version SET number = $1`, [version.number])
+  if (version.number !== previousVersionNumber) await db.none("UPDATE version SET number = $1", version.number)
 
   // if (version.number !== previousVersionNumber) await versionTable.get(version.id).update({number: version.number})
 }
