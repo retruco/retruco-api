@@ -177,7 +177,7 @@ async function processEvent(event) {
             } else {
               delete flaggedData.isAbuse
             }
-            db.none(
+            await db.none(
               `UPDATE statements
                 SET data = $<data>
                 WHERE id = $<id>`,
@@ -292,7 +292,7 @@ async function processEvent(event) {
               taggedData.tags.splice(taggedData.tags.indexOf(statement.name), 1)
             }
             if (taggedData.tags.length === 0) delete taggedData.tags
-            db.none(
+            await db.none(
               `UPDATE statements
                 SET data = $<data>
                 WHERE id = $<id>`,
