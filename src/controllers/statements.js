@@ -22,7 +22,9 @@
 import deepEqual from "deep-equal"
 import {randomBytes} from "mz/crypto"
 
-import {db, entryToStatement, entryToUser} from "../database"
+import config from "../config"
+import {db, entryToStatement, entryToUser, generateStatementTextSearch,
+  languageConfigurationNameByCode} from "../database"
 import {hashStatement, ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData,
   unrateStatement, wrapAsyncMiddleware} from "../model"
 
@@ -175,6 +177,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         ratingSum: result.rating_sum,
         type: cardType,
       })
+      await generateStatementTextSearch(card)
     }
     await rateStatement(card.id, authenticatedUser.id, 1)
     let existingPropertiesByName = existingPropertiesByNameByCardId[card.id] || {}
@@ -221,6 +224,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           ratingSum: result.rating_sum,
           type: propertyType,
         })
+        await generateStatementTextSearch(property)
       }
       await rateStatement(property.id, authenticatedUser.id, 1)
     }
@@ -288,6 +292,7 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
       ratingSum: result.rating_sum,
       type: statementType,
     })
+    await generateStatementTextSearch(statement)
   } else {
     statement = existingStatement
   }
@@ -372,7 +377,8 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
   let languageCode = req.query.languageCode
   let show = req.query.show || []
   let tagsName = req.query.tag || []
-  let type = req.query.type
+  let term = req.query.term
+  let types = req.query.type || []
   let userName = req.query.user  // email or urlName
 
   let user = null
@@ -424,25 +430,46 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
 
   let whereClauses = []
   if (languageCode) {
-    whereClauses.push("data->'languageCode' = $<languageCode>")
+    whereClauses.push("data->>'languageCode' = $<languageCode>")
   }
   if (tagsName.length > 0) {
     whereClauses.push("data->'tags' @> $<tagsName>")
   }
-  if (type) {
-    whereClauses.push("type = $<type>")
+  if (term) {
+    term = term.trim()
+    if (term) {
+      let languageCodes = languageCode ? [languageCode] : config.languageCodes
+      let termClauses = languageCodes.map( languageCode =>
+        `id IN (
+          SELECT statement_id
+            FROM statements_text_search
+            WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[languageCode]}', $<term>)
+            AND configuration_name = '${languageConfigurationNameByCode[languageCode]}'
+        )`
+      )
+      if (termClauses.length === 1) {
+        whereClauses.push(termClauses[0])
+      } else if (termClauses.length > 1) {
+        let termClause = termClauses.join(" OR ")
+        whereClauses.push(`(${termClause})`)
+      }
+    }
+  }
+  if (types.length > 0) {
+    whereClauses.push("type IN ($<types:csv>)")
   }
   if (user !== null) {
-    whereClauses.push("id in (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)")
+    whereClauses.push("id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)")
   }
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
   let statements = (await db.any(
-    `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC`,
+    `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC LIMIT 20`,
     {
       languageCode,
       tagsName,
-      type,
+      term,
+      types,
       userId: user === null ? null : user.id,
     }
   )).map(entryToStatement)

@@ -22,7 +22,8 @@
 import assert from "assert"
 import deepEqual from "deep-equal"
 
-import {checkDatabase, db, entryToAction, entryToBallot, entryToStatement} from "./database"
+import {checkDatabase, db, entryToAction, entryToBallot, entryToStatement,
+  generateStatementTextSearch} from "./database"
 import {addBallotAction} from "./model"
 
 
@@ -197,7 +198,7 @@ async function processAction(action) {
         await addBallotAction(statement.claimId)
       } else if (statement.type === "Property") {
         let cardEntry = await db.oneOrNone(
-            `SELECT id, data FROM statements
+            `SELECT * FROM statements
               WHERE id = $<statementId>`,
             statement,
         )
@@ -271,11 +272,12 @@ async function processAction(action) {
                 WHERE id = $<id>`,
               cardEntry,
             )
+            await generateStatementTextSearch(entryToStatement(cardEntry))
           }
         }
       } else if (statement.type === "Tag") {
         let taggedEntry = await db.oneOrNone(
-            `SELECT data FROM statements
+            `SELECT * FROM statements
               WHERE id = $<statementId>`,
             statement,
           )
@@ -298,6 +300,7 @@ async function processAction(action) {
                 WHERE id = $<id>`,
               taggedEntry,
             )
+            await generateStatementTextSearch(entryToStatement(taggedEntry))
           }
         }
       }

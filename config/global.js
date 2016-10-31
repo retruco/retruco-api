@@ -38,6 +38,11 @@ export default {
     // Keys for Keygrip <https://github.com/crypto-utils/keygrip>, used by signed cookie keys, etc
     "Retruco-API not very secret key, to override",
   ],
+  languageCodes: [
+    "en",
+    "es",
+    "fr",
+  ],
   license: {
     // API license (not software license)
     name: "MIT",

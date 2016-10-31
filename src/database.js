@@ -25,6 +25,13 @@ import pgPromiseFactory from "pg-promise"
 import config from "./config"
 
 
+export const languageConfigurationNameByCode = {
+  en: "english",
+  fr: "french",
+  es: "spanish",
+}
+
+
 const pgPromise = pgPromiseFactory()
 export const db = pgPromise({
   database: config.db.database,
@@ -35,7 +42,7 @@ export const db = pgPromise({
 })
 
 
-const versionNumber = 2
+const versionNumber = 4
 
 
 export {checkDatabase}
@@ -87,7 +94,10 @@ async function configure() {
           'Abuse',
           'Argument',
           'Card',
+          'Citation',
+          'Event',
           'PlainStatement',
+          'Person',
           'Property',
           'Tag'
         );
@@ -112,7 +122,7 @@ async function configure() {
     CREATE INDEX IF NOT EXISTS statements_claim_id_ground_id_idx
       ON statements((data->>'claimId'), (data->>'groundId'))
       WHERE data->>'claimId' IS NOT NULL and data->>'groundId' IS NOT NULL
-    `)
+  `)
   await db.none("CREATE INDEX IF NOT EXISTS statements_created_at_idx ON statements(created_at)")
   await db.none(`CREATE INDEX IF NOT EXISTS statements_ground_id_idx ON statements((data->>'groundId'))
     WHERE data->>'groundId' IS NOT NULL`)
@@ -121,13 +131,28 @@ async function configure() {
     CREATE INDEX IF NOT EXISTS statements_tag_statement_id_name_idx
       ON statements((data->>'statementId'), (data->>'name'))
       WHERE type = 'Tag'
-    `)
+  `)
   await db.none("CREATE INDEX IF NOT EXISTS statements_tags_idx ON statements USING GIN ((data->'tags'))")
   await db.none(`
     CREATE INDEX IF NOT EXISTS statements_type_statement_id_idx
       ON statements(type, (data->>'statementId'))
       WHERE type IN ('Abuse', 'Property', 'Tag')
-    `)
+  `)
+
+  // Table: statements_text_search
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS statements_text_search(
+      configuration_name text NOT NULL,
+      statement_id bigint NOT NULL REFERENCES statements(id) ON DELETE CASCADE,
+      text_search tsvector,
+      PRIMARY KEY (statement_id, configuration_name)
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS statements_text_search_idx
+      ON statements_text_search
+      USING GIN (text_search)
+  `)
 
   // Table: users
   await db.none(`
@@ -210,6 +235,26 @@ async function configure() {
     await db.none("DROP TABLE IF EXISTS events")
     version.number += 1
   }
+  if (version.number === 2) {
+    // TODO: User "retruco" must be owner of type statement_type.
+    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Citation' AFTER 'Card'")
+    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation'")
+    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'PlainStatement'")
+    console.log(`
+      YOU MUST manually execute the following SQL commands:
+        ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Citation' AFTER 'Card';
+        ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation';
+        ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'PlainStatement';
+    `)
+    version.number += 1
+  }
+  if (version.number === 3) {
+    let statements = (await db.any("SELECT * FROM statements")).map(entryToStatement)
+    for (let statement of statements) {
+      await generateStatementTextSearch(statement)
+    }
+    version.number += 1
+  }
 
   assert(version.number <= versionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)
@@ -279,4 +324,34 @@ function entryToUser(entry) {
 async function existsTable(tableName) {
   return (await db.one("SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=$1)", [tableName]))
     .exists
+}
+
+
+export {generateStatementTextSearch}
+async function generateStatementTextSearch(statement) {
+  let languageConfigurationNames = []
+  let searchableText = null
+  if (statement.type === "PlainStatement") {
+    languageConfigurationNames = [languageConfigurationNameByCode[statement.languageCode]]
+    searchableText = statement.name
+  }
+
+  if (searchableText === null || languageConfigurationNames.length === 0) {
+    await db.none("DELETE FROM statements_text_search WHERE statement_id = $1", statement.id)
+  } else {
+    for (let languageConfigurationName of languageConfigurationNames) {
+      await db.none(
+        `INSERT INTO statements_text_search(statement_id, configuration_name, text_search)
+          VALUES ($1, $2, to_tsvector($2, $3))
+          ON CONFLICT (statement_id, configuration_name)
+          DO UPDATE SET text_search = to_tsvector($2, $3)
+        `,
+        [statement.id, languageConfigurationName, searchableText],
+      )
+    }
+    await db.none(
+      "DELETE FROM statements_text_search WHERE statement_id = $1 AND configuration_name NOT IN ($2:csv)",
+      [statement.id, languageConfigurationNames],
+    )
+  }
 }

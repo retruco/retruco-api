@@ -26,6 +26,9 @@ const types = [
   "Abuse",
   "Argument",
   "Card",
+  "Citation",
+  "Event",
+  "Person",
   "PlainStatement",
   "Property",
   "Tag",
@@ -159,6 +162,12 @@ const SPEC = {
           },
           {
             $ref: "#/parameters/tagsNameQueryParam",
+          },
+          {
+            $ref: "#/parameters/termQueryParam",
+          },
+          {
+            $ref: "#/parameters/typesQueryParam",
           },
           {
             $ref: "#/parameters/userNameQueryParam",
@@ -1887,6 +1896,7 @@ const SPEC = {
     },
     LanguageCode: {
       type: "string",
+      enum: config.languageCodes,
       pattern: "^[a-z]{2}$",
     },
     PlainStatement: {
@@ -2134,6 +2144,7 @@ const SPEC = {
       in: "query",
       name: "languageCode",
       type: "string",
+      enum: config.languageCodes,
       pattern: "^[a-z]{2}$",
     },
     ratingDataParam: {
@@ -2203,12 +2214,22 @@ const SPEC = {
       },
       collectionFormat: "multi",
     },
-    typeQueryParam: {
+    termQueryParam: {
+      // description: "",
+      in: "query",
+      name: "term",
+      type: "string",
+    },
+    typesQueryParam: {
       // description: "",
       in: "query",
       name: "type",
-      type: "string",
-      enum: types,
+      type: "array",
+      items: {
+        type: "string",
+        enum: types,
+      },
+      collectionFormat: "multi",
     },
     userNamePathParam: {
       // description: "",
