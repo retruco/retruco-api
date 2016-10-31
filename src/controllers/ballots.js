@@ -19,12 +19,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {r} from "../database"
-import {addBallotEvent, propagateOptimisticOptimization, rateStatement, toBallotData, unrateStatement,
-  wrapAsyncMiddleware} from "../model"
+import {db, entryToBallot} from "../database"
+import {propagateOptimisticOptimization, rateStatement, toBallotData, unrateStatement,
+    wrapAsyncMiddleware} from "../model"
 
 
-export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res, next) {
+export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res) {
   // Delete a statement rating.
   let show = req.query.show || []
   let statement = req.statement
@@ -79,7 +79,7 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
 })
 
 
-export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res, next) {
+export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) {
   // Respond an existing statement rating.
   let show = req.query.show || []
   let statement = req.statement
@@ -89,7 +89,7 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res, 
     voterId: req.authenticatedUser.id,
   }
   let existingBallot = entryToBallot(await db.oneOrNone(
-    `SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>`,
+    "SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
     ballot,
   ))
   if (existingBallot !== null) ballot = existingBallot
@@ -109,7 +109,7 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res, 
 })
 
 
-export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req, res, next) {
+export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req, res) {
   // Insert or update a statement rating.
   let show = req.query.show || []
   let statement = req.statement
