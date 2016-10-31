@@ -19,8 +19,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {db, entryToStatement} from "../database"
-import {hashStatement, toStatementsData, wrapAsyncMiddleware} from "../model"
+import {db, entryToStatement, generateStatementTextSearch, hashStatement} from "../database"
+import {toStatementsData, wrapAsyncMiddleware} from "../model"
 
 
 export const listStatementTags = wrapAsyncMiddleware(async function listStatementTags(req, res, next) {
@@ -80,6 +80,7 @@ export const requireTag = wrapAsyncMiddleware(async function requireTag(req, res
       ratingSum: result.rating_sum,
       type: tagType,
     })
+    await generateStatementTextSearch(tag)
   }
   req.statement = tag
 

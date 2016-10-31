@@ -19,8 +19,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import crypto from "crypto"
-
 import {db, entryToAction, entryToBallot, entryToStatement, entryToUser} from "./database"
 
 
@@ -46,37 +44,6 @@ async function addBallotAction(statementId) {
   action.createdAt = result.created_at
   action.id = result.id
   return action
-}
-
-
-export function hashStatement(statementType, statement) {
-  // Two statements have the same hash if and only if the statements have exactly the same content (except ID, dates,
-  // etc).
-  const hash = crypto.createHash("sha256")
-  hash.update(statementType)
-  if (statementType === "Abuse") {
-    hash.update(statement.statementId)
-  } else if (statementType === "Argument") {
-    hash.update(statement.claimId)
-    hash.update(statement.groundId)
-  } else if (statementType === "Card") {
-    // TODO: Hash what?
-    if (statement.randomId) hash.update(statement.randomId)
-  } else if (statementType === "PlainStatement") {
-    hash.update(statement.languageCode)
-    hash.update(statement.name)
-  } else if (statementType === "Property") {
-    hash.update(statement.statementId)
-    // hash.update(statement.languageCode)
-    hash.update(statement.name)
-    hash.update(JSON.stringify(statement.schema))
-    hash.update(JSON.stringify(statement.widget))
-    hash.update(JSON.stringify(statement.value))
-  } else if (statementType === "Tag") {
-    hash.update(statement.statementId)
-    hash.update(statement.name)
-  }
-  return hash.digest("base64")
 }
 
 

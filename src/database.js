@@ -20,6 +20,7 @@
 
 
 import assert from "assert"
+import crypto from "crypto"
 import pgPromiseFactory from "pg-promise"
 
 import config from "./config"
@@ -354,4 +355,44 @@ async function generateStatementTextSearch(statement) {
       [statement.id, languageConfigurationNames],
     )
   }
+}
+
+
+export function hashStatement(statementType, statement) {
+  // Two statements have the same hash if and only if the statements have exactly the same content (except ID, dates,
+  // etc).
+  const hash = crypto.createHash("sha256")
+  hash.update(statementType)
+  if (statementType === "Abuse") {
+    hash.update(statement.statementId)
+  } else if (statementType === "Argument") {
+    hash.update(statement.claimId)
+    hash.update(statement.groundId)
+  } else if (statementType === "Card") {
+    // TODO: Hash what?
+    if (statement.randomId) hash.update(statement.randomId)
+  } else if (statementType === "Citation") {
+    hash.update(statement.citedId)
+    hash.update(statement.eventId)
+    hash.update(statement.personId)
+  } else if (statementType === "Event") {
+    hash.update(statement.name)
+  } else if (statementType === "Person") {
+    hash.update(statement.name)
+    if (statement.twitterName) hash.update(statement.twitterName)
+  } else if (statementType === "PlainStatement") {
+    hash.update(statement.languageCode)
+    hash.update(statement.name)
+  } else if (statementType === "Property") {
+    hash.update(statement.statementId)
+    // hash.update(statement.languageCode)
+    hash.update(statement.name)
+    hash.update(JSON.stringify(statement.schema))
+    hash.update(JSON.stringify(statement.widget))
+    hash.update(JSON.stringify(statement.value))
+  } else if (statementType === "Tag") {
+    hash.update(statement.statementId)
+    hash.update(statement.name)
+  }
+  return hash.digest("base64")
 }

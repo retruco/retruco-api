@@ -19,8 +19,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {db, entryToStatement} from "../database"
-import {hashStatement, wrapAsyncMiddleware} from "../model"
+import {db, entryToStatement, generateStatementTextSearch, hashStatement} from "../database"
+import {wrapAsyncMiddleware} from "../model"
 
 
 export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req, res, next) {
@@ -59,6 +59,7 @@ export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req,
       ratingSum: result.rating_sum,
       type: abuseType,
     })
+    await generateStatementTextSearch(abuse)
   }
   req.statement = abuse
 

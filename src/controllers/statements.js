@@ -23,9 +23,9 @@ import deepEqual from "deep-equal"
 import {randomBytes} from "mz/crypto"
 
 import config from "../config"
-import {db, entryToStatement, entryToUser, generateStatementTextSearch,
+import {db, entryToStatement, entryToUser, generateStatementTextSearch, hashStatement,
   languageConfigurationNameByCode} from "../database"
-import {hashStatement, ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData,
+import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData,
   unrateStatement, wrapAsyncMiddleware} from "../model"
 
 
