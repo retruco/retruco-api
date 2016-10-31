@@ -332,12 +332,18 @@ export {generateStatementTextSearch}
 async function generateStatementTextSearch(statement) {
   let languageConfigurationNames = []
   let searchableText = null
-  if (statement.type === "PlainStatement") {
+  if (statement.type === "Event") {
+    languageConfigurationNames = config.languageCodes
+    searchableText = statement.name
+  } else if (statement.type === "PlainStatement") {
     languageConfigurationNames = [languageConfigurationNameByCode[statement.languageCode]]
     searchableText = statement.name
+  } else if (statement.type === "Person") {
+    languageConfigurationNames = config.languageCodes
+    searchableText = [statement.name, statement.twitterName].filter(Boolean).join(" ")
   }
 
-  if (searchableText === null || languageConfigurationNames.length === 0) {
+  if (!searchableText || languageConfigurationNames.length === 0) {
     await db.none("DELETE FROM statements_text_search WHERE statement_id = $1", statement.id)
   } else {
     for (let languageConfigurationName of languageConfigurationNames) {

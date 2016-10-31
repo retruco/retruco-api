@@ -248,11 +248,11 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
   let statement = req.body
   let statementType = statement.type
 
-  if (["Argument", "Card", "PlainStatement", "Property"].includes(statementType)) {
+  if (["Argument", "Card", "Citation", "Event", "Person", "PlainStatement", "Property"].includes(statementType)) {
     delete statement.abuseId
     delete statement.isAbuse
   }
-  if (["PlainStatement", "Tag"].includes(statementType)) {
+  if (["Event", "Person", "PlainStatement", "Tag"].includes(statementType)) {
     statement.name = statement.name.replace(/[\n\r]+/g," ").replace(/\s+/g," ").trim()
     if (statement.name.length === 0) {
       res.status(400)
