@@ -35,7 +35,7 @@ export const db = pgPromise({
 })
 
 
-const versionNumber = 1
+const versionNumber = 2
 
 
 export {checkDatabase}
@@ -157,7 +157,7 @@ async function configure() {
   // await db.none("CREATE INDEX IF NOT EXISTS ballots_updated_at_idx ON ballots(updated_at)")
   await db.none("CREATE INDEX IF NOT EXISTS ballots_voter_id_idx ON ballots(voter_id)")
 
-  // Table: events
+  // Table: actions
   await db.none(`
     DO $$
     BEGIN
@@ -169,91 +169,42 @@ async function configure() {
     END$$
   `)
   await db.none(`
-    CREATE TABLE IF NOT EXISTS events(
+    CREATE TABLE IF NOT EXISTS actions(
       created_at timestamp without time zone NOT NULL,
       id bigserial NOT NULL PRIMARY KEY,
       statement_id bigint NOT NULL REFERENCES statements(id) ON DELETE CASCADE,
       type event_type NOT NULL
     )
   `)
-  await db.none("CREATE INDEX IF NOT EXISTS events_created_at_idx ON events(created_at)")
-  await db.none("CREATE INDEX IF NOT EXISTS events_type_statement_id_idx ON events(type, statement_id)")
+  await db.none("CREATE INDEX IF NOT EXISTS actions_created_at_idx ON actions(created_at)")
+  await db.none("CREATE INDEX IF NOT EXISTS actions_type_statement_id_idx ON actions(type, statement_id)")
   await db.none(`
-    CREATE OR REPLACE FUNCTION notify_new_event() RETURNS trigger AS $$
+    CREATE OR REPLACE FUNCTION notify_new_action() RETURNS trigger AS $$
     BEGIN
-      PERFORM pg_notify('new_event', '');
+      PERFORM pg_notify('new_action', '');
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql
   `)
   try {
-    await db.none("DROP TRIGGER event_inserted ON events")
+    await db.none("DROP TRIGGER action_inserted ON actions")
   } catch (e) {}
   await db.none(`
-    CREATE TRIGGER event_inserted AFTER INSERT ON events
+    CREATE TRIGGER action_inserted AFTER INSERT ON actions
     FOR EACH ROW
-    EXECUTE PROCEDURE notify_new_event()
+    EXECUTE PROCEDURE notify_new_action()
   `)
 
   const previousVersionNumber = version.number
 
   if (version.number === 0) version.number += 1
-  // if (version.number === 1) version.number += 1
-  // if (version.number === 2) {
-  //   // Add type to statements.
-  //   let statementsId = await statementsTable
-  //     .filter(r.row.hasFields("type").not())
-  //     .getField("id")
-  //   for (let statementId of statementsId) {
-  //     await statementsTable
-  //       .get(statementId)
-  //       .update({
-  //         type: "PlainStatement",
-  //       })
-  //   }
-  //   version.number += 1
-  // }
-  // if (version.number === 3) version.number += 1
-  // if (version.number === 4) version.number += 1
-  // if (version.number === 5) version.number += 1
-  // if (version.number === 6) {
-  //   let users = await usersTable.filter(r.row.hasFields("email").not())
-  //   for (let user of users) {
-  //     await usersTable
-  //       .get(user.id)
-  //       .update({
-  //         email: `${user.urlName}@localhost`,
-  //       })
-  //   }
-  //   version.number += 1
-  // }
-  // if (version.number === 7) version.number += 1
-  // if (version.number === 8) {
-  //   let statements = await statementsTable
-  //   for (let statement of statements) {
-  //     hashStatement(statement)
-  //     await statementsTable
-  //       .get(statement.id)
-  //       .update({
-  //         hash: statement.hash,
-  //       })
-  //   }
-  //   version.number += 1
-  // }
-  // if (version.number === 9) {
-  //   let arguments1 = await statementsTable.getAll("Argument", {index: "type"})
-  //   for (let argument of arguments1) {
-  //       if (!argument.argumentType) {
-  //       await statementsTable
-  //         .get(argument.id)
-  //         .update({
-  //           argumentType: "because",
-  //         })
-  //     }
-  //   }
-  //   version.number += 1
-  // }
-
+  if (version.number === 1) {
+    try {
+      await db.none("DROP TRIGGER event_inserted ON events")
+    } catch (e) {}
+    await db.none("DROP TABLE IF EXISTS events")
+    version.number += 1
+  }
 
   assert(version.number <= versionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)
@@ -277,8 +228,8 @@ function entryToBallot(entry) {
 }
 
 
-export {entryToEvent}
-function entryToEvent(entry) {
+export {entryToAction}
+function entryToAction(entry) {
   return entry === null ? null : {
     createdAt: entry.created_at,
     id: entry.id,  // Use string for id.

@@ -21,31 +21,31 @@
 
 import crypto from "crypto"
 
-import {db, entryToBallot, entryToEvent, entryToStatement, entryToUser} from "./database"
+import {db, entryToAction, entryToBallot, entryToStatement, entryToUser} from "./database"
 
 
-export {addBallotEvent}
-async function addBallotEvent(statementId) {
-  let event = {
+export {addBallotAction}
+async function addBallotAction(statementId) {
+  let action = {
     statementId,
     type: "rating",
   }
-  let existingEvent = entryToEvent(await db.oneOrNone(
-    `SELECT * FROM events
+  let existingAction = entryToAction(await db.oneOrNone(
+    `SELECT * FROM actions
       WHERE statement_id = $<statementId> AND type = 'rating'
       LIMIT 1`,
-    event,
+    action,
   ))
-  if (existingEvent !== null) return existingEvent
+  if (existingAction !== null) return existingAction
   let result = await db.one(
-    `INSERT INTO events(created_at, statement_id, type)
+    `INSERT INTO actions(created_at, statement_id, type)
       VALUES (current_timestamp, $<statementId>, $<type>)
       RETURNING created_at, id`,
-    event,
+    action,
   )
-  event.createdAt = result.created_at
-  event.id = result.id
-  return event
+  action.createdAt = result.created_at
+  action.id = result.id
+  return action
 }
 
 
@@ -155,7 +155,7 @@ async function rateStatement(statementId, voterId, rating) {
       ballot,
     )
     ballot.updatedAt = result.updated_at
-    await addBallotEvent(statementId)
+    await addBallotAction(statementId)
   } else if (rating !== oldBallot.rating) {
     let result = await db.one(
       `UPDATE ballots
@@ -165,7 +165,7 @@ async function rateStatement(statementId, voterId, rating) {
       ballot,
     )
     ballot.updatedAt = result.updated_at
-    await addBallotEvent(statementId)
+    await addBallotAction(statementId)
   } else {
     ballot = oldBallot
   }
@@ -463,7 +463,7 @@ async function unrateStatement(statementId, voterId) {
       "DELETE FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
       ballot,
     )
-    await addBallotEvent(statementId)
+    await addBallotAction(statementId)
   }
   return oldBallot
 }

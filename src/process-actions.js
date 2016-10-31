@@ -22,8 +22,8 @@
 import assert from "assert"
 import deepEqual from "deep-equal"
 
-import {checkDatabase, db, entryToBallot, entryToEvent, entryToStatement} from "./database"
-import {addBallotEvent} from "./model"
+import {checkDatabase, db, entryToAction, entryToBallot, entryToStatement} from "./database"
+import {addBallotAction} from "./model"
 
 
 function addRatedValue(requestedSchemaType, values, schema, value) {
@@ -84,16 +84,16 @@ async function describe(statement) {
 }
 
 
-async function processEvent(event) {
-  await db.none("DELETE FROM events WHERE id = $<id>", event)
-  if (event.type === "rating") {
+async function processAction(action) {
+  await db.none("DELETE FROM actions WHERE id = $<id>", action)
+  if (action.type === "rating") {
     let statement = entryToStatement(await db.oneOrNone(
       "SELECT * FROM statements WHERE id = $<statementId>",
-      event,
+      action,
     ))
     if (statement === null) return
     let description = await describe(statement)
-    console.log(`Processing ${event.type} of ${event.createdAt.toISOString()} for ${description}...`)
+    console.log(`Processing ${action.type} of ${action.createdAt.toISOString()} for ${description}...`)
 
     // Compute statement rating.
     let ratingCount = 0
@@ -160,7 +160,7 @@ async function processEvent(event) {
         statement,
       )).map(entryToStatement)
       for (let argument of claimArguments) {
-        addBallotEvent(argument.claimId)
+        addBallotAction(argument.claimId)
       }
       if (statement.type === "Abuse") {
         let flaggedEntry = await db.oneOrNone(
@@ -189,12 +189,12 @@ async function processEvent(event) {
               flaggedEntry,
             )).map(entryToStatement)
             for (let argument of claimArguments) {
-              addBallotEvent(argument.claimId)
+              addBallotAction(argument.claimId)
             }
           }
         }
       } else if (statement.type === "Argument") {
-        await addBallotEvent(statement.claimId)
+        await addBallotAction(statement.claimId)
       } else if (statement.type === "Property") {
         let cardEntry = await db.oneOrNone(
             `SELECT id, data FROM statements
@@ -303,32 +303,33 @@ async function processEvent(event) {
       }
     }
   } else {
-    console.warn(`Unexpected event ${event.type} of ${event.createdAt.toISOString()}.`)
-    // Reinsert event.
+    console.warn(`Unexpected action ${action.type} of ${action.createdAt.toISOString()}.`)
+    // Reinsert action.
     let result = await db.one(
-      `INSERT INTO events(created_at, statement_id, type)
+      `INSERT INTO actions(created_at, statement_id, type)
         VALUES (current_timestamp, $<statementId>, $<type>)
         RETURNING created_at, id`,
-      event,
+      action,
     )
-    event.createdAt = result.created_at
-    event.id = result.id
+    action.createdAt = result.created_at
+    action.id = result.id
   }
 }
 
 
-async function processEvents () {
+async function processActions () {
   while (true) {
-    // Handle existing pending events.
-    let events = (await db.any("SELECT * FROM events ORDER BY created_at")).map(entryToEvent)
-    for (let event of events) {
-      await processEvent(event)
+    // Handle existing pending actions.
+    let actions = (await db.any("SELECT * FROM actions ORDER BY created_at")).map(entryToAction)
+    for (let action of actions) {
+      await processAction(action)
     }
-    await db.none("LISTEN $1~", "new_event")
+    // Wait for new actions.
+    await db.none("LISTEN $1~", "new_action")
   }
 }
 
 
 checkDatabase()
-  .then(processEvents)
+  .then(processActions)
   .catch(error => console.log(error.stack))
