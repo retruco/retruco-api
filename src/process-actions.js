@@ -335,4 +335,7 @@ async function processActions () {
 
 checkDatabase()
   .then(processActions)
-  .catch(error => console.log(error.stack))
+  .catch(error => {
+    console.log(error.stack)
+    process.exit(1)
+  })
