@@ -67,6 +67,11 @@ async function configure() {
     await db.none("INSERT INTO version(number) VALUES (0)")
     version = await db.one("SELECT * FROM version")
   }
+  assert(version.number <= versionNumber,
+    `Database is too recent for current version of application: ${version.number} > ${versionNumber}.`)
+  if (version.number < versionNumber) {
+    console.log(`Upgrading database from version ${version.number} to ${versionNumber}...`)
+  }
 
   if (version.number === 0) {
     // Remove non UNIQUE index to recreate it.
@@ -210,9 +215,10 @@ async function configure() {
     `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)
   assert(version.number >= previousVersionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} < ${previousVersionNumber}.`)
-  if (version.number !== previousVersionNumber) await db.none("UPDATE version SET number = $1", version.number)
-
-  // if (version.number !== previousVersionNumber) await versionTable.get(version.id).update({number: version.number})
+  if (version.number !== previousVersionNumber) {
+    await db.none("UPDATE version SET number = $1", version.number)
+    console.log(`Upgraded database from version ${previousVersionNumber} to ${version.number}.`)
+  }
 }
 
 
