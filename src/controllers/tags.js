@@ -23,7 +23,7 @@ import {db, entryToStatement, generateStatementTextSearch, hashStatement} from "
 import {toStatementsData, wrapAsyncMiddleware} from "../model"
 
 
-export const listStatementTags = wrapAsyncMiddleware(async function listStatementTags(req, res, next) {
+export const listStatementTags = wrapAsyncMiddleware(async function listStatementTags(req, res) {
   let show = req.query.show || []
   let statement = req.statement
 
@@ -64,7 +64,7 @@ export const requireTag = wrapAsyncMiddleware(async function requireTag(req, res
       name: tagName, 
       statementId: statement.id,
     }
-    const tagType = 'Tag'
+    const tagType = "Tag"
     let hash = hashStatement(tagType, tag)
     let result = await db.one(
       `INSERT INTO statements(created_at, hash, type, data)

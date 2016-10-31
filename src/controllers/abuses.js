@@ -44,7 +44,7 @@ export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req,
     abuse = {
       statementId: statement.id,
     }
-    const abuseType = 'Abuse'
+    const abuseType = "Abuse"
     let hash = hashStatement(abuseType, abuse)
     let result = await db.one(
       `INSERT INTO statements(created_at, hash, type, data)

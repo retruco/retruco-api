@@ -97,8 +97,8 @@ async function configure() {
           'Card',
           'Citation',
           'Event',
-          'PlainStatement',
           'Person',
+          'PlainStatement',
           'Property',
           'Tag'
         );
@@ -245,7 +245,7 @@ async function configure() {
       YOU MUST manually execute the following SQL commands:
         ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Citation' AFTER 'Card';
         ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation';
-        ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'PlainStatement';
+        ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'Event';
     `)
     version.number += 1
   }
