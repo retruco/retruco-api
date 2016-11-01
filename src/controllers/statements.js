@@ -477,7 +477,7 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
 
   let whereClauses = []
   if (languageCode) {
-    whereClauses.push("data->>'languageCode' = $<languageCode>")
+    whereClauses.push("data->>'languageCode' = $<languageCode> OR data->'languageCode' IS NULL")
   }
   if (tagsName.length > 0) {
     whereClauses.push("data->'tags' @> $<tagsName>")
