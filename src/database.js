@@ -333,13 +333,13 @@ async function generateStatementTextSearch(statement) {
   let languageConfigurationNames = []
   let searchableText = null
   if (statement.type === "Event") {
-    languageConfigurationNames = config.languageCodes
+    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
     searchableText = statement.name
   } else if (statement.type === "PlainStatement") {
     languageConfigurationNames = [languageConfigurationNameByCode[statement.languageCode]]
     searchableText = statement.name
   } else if (statement.type === "Person") {
-    languageConfigurationNames = config.languageCodes
+    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
     searchableText = [statement.name, statement.twitterName].filter(Boolean).join(" ")
   }
 
