@@ -54,7 +54,7 @@ app.ws("/test", function (ws, req) {
 })
 
 const swaggerMiddleware = new swagger.Middleware()
-swaggerMiddleware.init(swaggerSpecification, function (err) {
+swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   app.use(swaggerMiddleware.metadata())
   app.use(swaggerMiddleware.CORS())
   app.use(swaggerMiddleware.files({
@@ -78,7 +78,7 @@ swaggerMiddleware.init(swaggerSpecification, function (err) {
 
   // Swagger-based API
 
-  app.get("/", function (req, res, next) {
+  app.get("/", function (req, res) {
     res.json({
       api: 1,
       title: config.title,
@@ -146,7 +146,7 @@ swaggerMiddleware.init(swaggerSpecification, function (err) {
     usersController.getUser)
   // app.patch("/users/:userName", usersController.requireUser, usersController.patchUser)
 
-  app.use(function (err, req, res, next) {
+  app.use(function (err, req, res) {
       // Error handling middleware (must be last use of app)
       const status = err.status || 500
       if (status === 500) console.error(err.stack)
