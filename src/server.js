@@ -90,6 +90,7 @@ swaggerMiddleware.init(swaggerSpecification, function (err) {
   app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
   app.post("/statements", usersController.authenticate(true),
     statementsController.createStatement)
+  app.get("/statements/autocomplete", statementsController.autocompleteStatements)
   app.delete("/statements/:statementId", usersController.authenticate(true),
     statementsController.requireStatement, statementsController.deleteStatement)
   app.get("/statements/:statementId", usersController.authenticate(false),

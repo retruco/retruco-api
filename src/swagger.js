@@ -259,6 +259,57 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/statements/autocomplete": {
+      get: {
+        tags: ["autocompletion", "statement"],
+        summary: "Autocomplete statements",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statements.list",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/languageCodeParam",
+          },
+          {
+            $ref: "#/parameters/termQueryParam",
+          },
+          {
+            $ref: "#/parameters/typesQueryParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing statements and their autocompletion",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/StatementsAutocompletionList",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/statements/{statementId}": {
       delete: {
         tags: ["statement"],
@@ -2077,6 +2128,29 @@ const SPEC = {
       required: [
         "type",
       ],
+    },
+    StatementsAutocompletionList: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          autocomplete: {
+            type: "string",
+          },
+          distance: {
+            maximum: 1,
+            minimum: 0,
+            type: "number",
+          },
+          statement: {
+            $ref: "#/definitions/AbstractStatement",
+          },
+        },
+        required: [
+          "autocomplete",
+          "statement",
+        ],
+      },
     },
     Tag: {
       allOf: [

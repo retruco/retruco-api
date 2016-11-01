@@ -396,7 +396,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
 }
 
 
-function toStatementJson(statement) {
+export function toStatementJson(statement) {
   let statementJson = {...statement}
   statementJson.createdAt = statementJson.createdAt.toISOString()
   delete statementJson.hash

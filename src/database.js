@@ -43,7 +43,7 @@ export const db = pgPromise({
 })
 
 
-const versionNumber = 4
+const versionNumber = 5
 
 
 export {checkDatabase}
@@ -84,6 +84,15 @@ async function configure() {
   if (version.number === 0) {
     // Remove non UNIQUE index to recreate it.
     await db.none("DROP INDEX IF EXISTS statements_hash_idx")
+  }
+  if (version.number <= 4) {
+    // Add support for trigrams.
+    // TODO: Database user must be database owner.
+    // await db.none("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+    console.log(`
+      YOU MUST manually execute the following SQL commands:
+        CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    `)
   }
 
   // Table: statements
@@ -138,6 +147,19 @@ async function configure() {
     CREATE INDEX IF NOT EXISTS statements_type_statement_id_idx
       ON statements(type, (data->>'statementId'))
       WHERE type IN ('Abuse', 'Property', 'Tag')
+  `)
+
+  // Table: statements_autocomplete
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS statements_autocomplete(
+      autocomplete text NOT NULL,
+      statement_id bigint NOT NULL PRIMARY KEY REFERENCES statements(id) ON DELETE CASCADE
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS statements_autocomplete_trigrams_idx
+      ON statements_autocomplete
+      USING GIST (autocomplete gist_trgm_ops)
   `)
 
   // Table: statements_text_search
@@ -325,17 +347,35 @@ async function existsTable(tableName) {
 
 export {generateStatementTextSearch}
 async function generateStatementTextSearch(statement) {
+  let autocomplete = null
   let languageConfigurationNames = []
   let searchableText = null
   if (statement.type === "Event") {
+    autocomplete = statement.name
     languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
     searchableText = statement.name
   } else if (statement.type === "PlainStatement") {
+    autocomplete = statement.name
     languageConfigurationNames = [languageConfigurationNameByCode[statement.languageCode]]
     searchableText = statement.name
   } else if (statement.type === "Person") {
+    autocomplete = statement.name
+    if (statement.twitterName) autocomplete = `${autocomplete} (${statement.twitterName})`
     languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
     searchableText = [statement.name, statement.twitterName].filter(Boolean).join(" ")
+  }
+
+  if (!autocomplete) {
+    await db.none("DELETE FROM statements_autocomplete WHERE statement_id = $1", statement.id)
+  } else {
+    await db.none(
+      `INSERT INTO statements_autocomplete(statement_id, autocomplete)
+        VALUES ($1, $2)
+        ON CONFLICT (statement_id)
+        DO UPDATE SET autocomplete = $2
+      `,
+      [statement.id, autocomplete],
+    )
   }
 
   if (!searchableText || languageConfigurationNames.length === 0) {

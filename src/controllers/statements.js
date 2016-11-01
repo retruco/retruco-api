@@ -25,8 +25,55 @@ import {randomBytes} from "mz/crypto"
 import config from "../config"
 import {db, entryToStatement, entryToUser, generateStatementTextSearch, hashStatement,
   languageConfigurationNameByCode} from "../database"
-import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData,
+import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData, toStatementJson,
   unrateStatement, wrapAsyncMiddleware} from "../model"
+
+
+export const autocompleteStatements = wrapAsyncMiddleware(async function autocompleteStatements(req, res) {
+  // Respond a list of statements.
+  let languageCode = req.query.languageCode
+  let term = req.query.term
+  let types = req.query.type || []
+
+  let whereClauses = []
+  if (languageCode) {
+    whereClauses.push("data->>'languageCode' = $<languageCode> OR data->'languageCode' IS NULL")
+  }
+  if (types.length > 0) {
+    whereClauses.push("type IN ($<types:csv>)")
+  }
+  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
+
+  let statementsEntries = await db.any(
+    `SELECT statements.*, statements_autocomplete.autocomplete,
+        statements_autocomplete.autocomplete <-> $<term> AS distance
+      FROM statements
+      LEFT JOIN statements_autocomplete ON statements.id = statements_autocomplete.statement_id
+      ${whereClause}
+      ORDER BY distance
+      LIMIT 10`,
+    {
+      languageCode,
+      term: term || "",
+      types,
+    }
+  )
+
+  res.json({
+    apiVersion: "1",
+    data: statementsEntries.map(function (statementEntry) {
+      let autocomplete = statementEntry.autocomplete
+      delete statementEntry.autocomplete
+      let distance = statementEntry.distance
+      delete statementEntry.distance
+      return {
+        autocomplete,
+        distance,
+        statement: toStatementJson(entryToStatement(statementEntry)),
+      }
+    }),
+  })
+})
 
 
 export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, res) {
