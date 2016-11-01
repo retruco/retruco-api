@@ -385,7 +385,6 @@ export function hashStatement(statementType, statement) {
     hash.update(statement.name)
   } else if (statementType === "Person") {
     hash.update(statement.name)
-    if (statement.twitterName) hash.update(statement.twitterName)
   } else if (statementType === "PlainStatement") {
     hash.update(statement.languageCode)
     hash.update(statement.name)
