@@ -228,16 +228,14 @@ async function configure() {
 
   const previousVersionNumber = version.number
 
-  if (version.number === 0) version.number += 1
-  if (version.number === 1) {
+  if (version.number <= 1) {
     try {
       await db.none("DROP TRIGGER event_inserted ON events")
     } catch (e) {}
     await db.none("DROP TABLE IF EXISTS events")
-    version.number += 1
   }
-  if (version.number === 2) {
-    // TODO: User "retruco" must be owner of type statement_type.
+  if (version.number <= 2) {
+    // TODO: Database user must be owner of type statement_type.
     // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Citation' AFTER 'Card'")
     // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation'")
     // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'PlainStatement'")
@@ -247,18 +245,15 @@ async function configure() {
         ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation';
         ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'Event';
     `)
-    version.number += 1
   }
-  if (version.number === 3) {
+  if (version.number <= 3) {
     let statements = (await db.any("SELECT * FROM statements")).map(entryToStatement)
     for (let statement of statements) {
       await generateStatementTextSearch(statement)
     }
-    version.number += 1
   }
 
-  assert(version.number <= versionNumber,
-    `Error in database upgrade script: Wrong version number: ${version.number} > ${versionNumber}.`)
+  version.number = versionNumber
   assert(version.number >= previousVersionNumber,
     `Error in database upgrade script: Wrong version number: ${version.number} < ${previousVersionNumber}.`)
   if (version.number !== previousVersionNumber) {
