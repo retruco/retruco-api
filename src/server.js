@@ -159,9 +159,11 @@ swaggerMiddleware.init(swaggerSpecification, function (err) {
     })
 
   checkDatabase()
-    // .then(startKoa)
     .then(startExpress)
-    .catch(console.log.bind(console))
+  .catch(error => {
+    console.log(error.stack)
+    process.exit(1)
+  })
 })
 
 

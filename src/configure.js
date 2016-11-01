@@ -24,4 +24,7 @@ import {configure as configureDatabase} from "./database"
 
 configureDatabase()
   .then(() => process.exit(0))
-  .catch(error => console.log(error.stack))
+  .catch(error => {
+    console.log(error.stack)
+    process.exit(1)
+  })
