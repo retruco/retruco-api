@@ -1850,8 +1850,26 @@ const SPEC = {
               type: "boolean",
               default: false,
             },
+            schemas: {
+              type: "object",
+              additionalProperties: {
+                $ref: "#/definitions/Schema",
+              },
+            },
+            values: {
+              type: "object",
+              additionalProperties: {
+                type: "object",
+              },
+            },
+            widgets: {
+              type: "object",
+              additionalProperties: {
+                $ref: "#/definitions/Widget",
+              },
+            },
           },
-          required: [],
+          // required: [],
         },
       ],
     },
