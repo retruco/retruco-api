@@ -19,6 +19,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import bodyParser from "body-parser"
 import express from "express"
 import expressWs from "express-ws"
 import http from "http"
@@ -44,6 +45,8 @@ app.set("trust proxy", config.proxy)
 // Enable Express case-sensitive and strict options.
 app.enable("case sensitive routing")
 app.enable("strict routing")
+
+app.use(bodyParser.json({limit: "5mb"}))
 
 app.ws("/test", function (ws, req) {
   ws.on("message", function (msg) {
