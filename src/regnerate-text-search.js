@@ -19,19 +19,35 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {checkDatabase, db, entryToStatement, generateStatementTextSearch} from "./database"
+import assert from "assert"
+
+import {checkDatabase, db, entryToStatement, generateStatementTextSearch, versionTextSearchNumber} from "./database"
 
 
 async function generateTextSearch () {
+  let version = await db.one("SELECT * FROM version")
+  assert(version.text <= versionTextSearchNumber,
+    `Text search is too recent for current version of application: ${version.text} > ${versionTextSearchNumber}.`)
+  if (version.text < versionTextSearchNumber) {
+    console.log(`Upgrading text search indexes from version ${version.text} to ${versionTextSearchNumber}...`)
+  }
+
   let statements = (await db.any("SELECT * FROM statements")).map(entryToStatement)
   for (let statement of statements) {
     await generateStatementTextSearch(statement)
   }
+
+  if (version.text < versionTextSearchNumber) {
+    await db.none("UPDATE version SET text = $1", versionTextSearchNumber)
+    version.text = versionTextSearchNumber
+    console.log(`Upgraded text search indexes to version ${version.text}.`)
+  }
+
   process.exit(0)
 }
 
 
-checkDatabase()
+checkDatabase({ignoreTextSearchVersion: true})
   .then(generateTextSearch)
   .catch(error => {
     console.log(error.stack)

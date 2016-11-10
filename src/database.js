@@ -43,11 +43,12 @@ export const db = pgPromise({
 })
 
 
-const versionNumber = 6
+export const versionNumber = 7
+export const versionTextSearchNumber = 1
 
 
 export {checkDatabase}
-async function checkDatabase() {
+async function checkDatabase({ignoreTextSearchVersion = false} = {}) {
   // Check that database exists.
   await db.connect()
 
@@ -56,6 +57,11 @@ async function checkDatabase() {
   let version = await db.one("SELECT * FROM version")
   assert(version.number <= versionNumber, "Database format is too recent. Upgrade Retruco-API.")
   assert.strictEqual(version.number, versionNumber, 'Database must be upgraded. Run "node configure" to configure it.')
+  assert(version.text <= versionTextSearchNumber, "Text search is too recent. Upgrade Retruco-API.")
+  if (!ignoreTextSearchVersion) {
+    assert.strictEqual(version.text, versionTextSearchNumber,
+      'Text search must be upgraded. Run "regenerate-text-search.js" to regenerate text search indexes.')
+  }
 }
 
 
@@ -67,12 +73,16 @@ async function configure() {
   // Table: version
   await db.none(`
     CREATE TABLE IF NOT EXISTS version(
-      number integer NOT NULL
+      number integer NOT NULL,
+      text integer NOT NULL
     )
   `)
   let version = await db.oneOrNone("SELECT * FROM version")
   if (version === null) {
-    await db.none("INSERT INTO version(number) VALUES (0)")
+    await db.none("INSERT INTO version(number, text) VALUES ($<number>, $<text>)", {
+      number: versionNumber,
+      text: 0,
+    })
     version = await db.one("SELECT * FROM version")
   }
   assert(version.number <= versionNumber,
@@ -93,6 +103,11 @@ async function configure() {
       YOU MUST manually execute the following SQL commands:
         CREATE EXTENSION IF NOT EXISTS pg_trgm;
     `)
+  }
+  if (version.number < 7) {
+    await db.none("ALTER TABLE version ADD COLUMN IF NOT EXISTS text integer")
+    await db.none("UPDATE version SET text = $1", 0)
+    await db.none("ALTER TABLE version ALTER COLUMN text SET NOT NULL")
   }
 
   // Table: statements
