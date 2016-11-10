@@ -26,22 +26,34 @@ import config from "../config"
 import {db, entryToStatement, entryToUser, generateStatementTextSearch, hashStatement,
   languageConfigurationNameByCode} from "../database"
 import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData, toStatementJson,
-  unrateStatement, wrapAsyncMiddleware} from "../model"
+  types, unrateStatement, wrapAsyncMiddleware} from "../model"
 
 
 export const autocompleteStatements = wrapAsyncMiddleware(async function autocompleteStatements(req, res) {
   // Respond a list of statements.
   let languageCode = req.query.languageCode
+  let queryTypes = req.query.type || []
   let term = req.query.term
-  let types = req.query.type || []
 
   let whereClauses = []
+
   if (languageCode) {
     whereClauses.push("data->>'languageCode' = $<languageCode> OR data->'languageCode' IS NULL")
   }
-  if (types.length > 0) {
-    whereClauses.push("type IN ($<types:csv>)")
+
+  let cardTypes = []
+  let statementTypes = []
+  for (let type of queryTypes) {
+    if (types.includes(type)) statementTypes.push(type)
+    else cardTypes.push(type)
   }
+  if (cardTypes.length > 0) {
+    whereClauses.push("data->'values'->'Card Type' ?| array[$<cardTypes:csv>]")
+  }
+  if (statementTypes.length > 0) {
+    whereClauses.push("type IN ($<statementTypes:csv>)")
+  }
+
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
   let statementsEntries = await db.any(
@@ -53,9 +65,10 @@ export const autocompleteStatements = wrapAsyncMiddleware(async function autocom
       ORDER BY distance
       LIMIT 10`,
     {
+      cardTypes,
       languageCode,
+      statementTypes,
       term: term || "",
-      types,
     }
   )
 
@@ -422,10 +435,10 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
   // Respond a list of statements.
   let authenticatedUser = req.authenticatedUser
   let languageCode = req.query.languageCode
+  let queryTypes = req.query.type || []
   let show = req.query.show || []
   let tagsName = req.query.tag || []
   let term = req.query.term
-  let types = req.query.type || []
   let userName = req.query.user  // email or urlName
 
   let user = null
@@ -476,12 +489,15 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
   }
 
   let whereClauses = []
+
   if (languageCode) {
     whereClauses.push("data->>'languageCode' = $<languageCode> OR data->'languageCode' IS NULL")
   }
+
   if (tagsName.length > 0) {
     whereClauses.push("data->'tags' @> $<tagsName>")
   }
+
   if (term) {
     term = term.trim()
     if (term) {
@@ -502,21 +518,33 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
       }
     }
   }
-  if (types.length > 0) {
-    whereClauses.push("type IN ($<types:csv>)")
+
+  let cardTypes = []
+  let statementTypes = []
+  for (let type of queryTypes) {
+    if (types.includes(type)) statementTypes.push(type)
+    else cardTypes.push(type)
   }
+  if (cardTypes.length > 0) {
+    whereClauses.push("data->'values'->'Card Type' ?| array[$<cardTypes:csv>]")
+  }
+  if (statementTypes.length > 0) {
+    whereClauses.push("type IN ($<statementTypes:csv>)")
+  }
+
   if (user !== null) {
     whereClauses.push("id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)")
   }
-  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
+  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
   let statements = (await db.any(
     `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC LIMIT 20`,
     {
+      cardTypes,
       languageCode,
+      statementTypes,
       tagsName,
       term,
-      types,
       userId: user === null ? null : user.id,
     }
   )).map(entryToStatement)

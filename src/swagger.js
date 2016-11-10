@@ -20,19 +20,8 @@
 
 
 import config from "./config"
+import {types} from "./model"
 
-
-const types = [
-  "Abuse",
-  "Argument",
-  "Card",
-  "Citation",
-  "Event",
-  "Person",
-  "PlainStatement",
-  "Property",
-  "Tag",
-]
 
 const SPEC = {
   swagger: "2.0",
@@ -2406,7 +2395,6 @@ const SPEC = {
       type: "array",
       items: {
         type: "string",
-        enum: types,
       },
       collectionFormat: "multi",
     },

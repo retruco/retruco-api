@@ -43,7 +43,7 @@ export const db = pgPromise({
 })
 
 
-const versionNumber = 5
+const versionNumber = 6
 
 
 export {checkDatabase}
@@ -81,11 +81,11 @@ async function configure() {
     console.log(`Upgrading database from version ${version.number} to ${versionNumber}...`)
   }
 
-  if (version.number === 0) {
+  if (version.number < 1) {
     // Remove non UNIQUE index to recreate it.
     await db.none("DROP INDEX IF EXISTS statements_hash_idx")
   }
-  if (version.number <= 4) {
+  if (version.number < 5) {
     // Add support for trigrams.
     // TODO: Database user must be database owner.
     // await db.none("CREATE EXTENSION IF NOT EXISTS pg_trgm")
@@ -126,6 +126,8 @@ async function configure() {
       data jsonb NOT NULL
     )
   `)
+  await db.none(`CREATE INDEX IF NOT EXISTS statements_card_type_idx ON statements((data->'values'->'Card Type'))
+    WHERE data->'values'->'Card Type' IS NOT NULL`)
   await db.none(`CREATE INDEX IF NOT EXISTS statements_claim_id_idx ON statements((data->>'claimId'))
     WHERE data->>'claimId' IS NOT NULL`)
   await db.none(`

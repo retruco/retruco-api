@@ -22,6 +22,19 @@
 import {db, entryToAction, entryToBallot, entryToStatement, entryToUser} from "./database"
 
 
+export const types = [
+  "Abuse",
+  "Argument",
+  "Card",
+  "Citation",
+  "Event",
+  "Person",
+  "PlainStatement",
+  "Property",
+  "Tag",
+]
+
+
 export {addBallotAction}
 async function addBallotAction(statementId) {
   let action = {
