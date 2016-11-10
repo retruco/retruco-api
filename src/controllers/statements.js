@@ -435,6 +435,8 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
   // Respond a list of statements.
   let authenticatedUser = req.authenticatedUser
   let languageCode = req.query.languageCode
+  let limit = req.query.limit || 20
+  let offset = req.query.offset || 0
   let queryTypes = req.query.type || []
   let show = req.query.show || []
   let tagsName = req.query.tag || []
@@ -538,10 +540,12 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
   let statements = (await db.any(
-    `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC LIMIT 20`,
+    `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC LIMIT $<limit> OFFSET $<offset>`,
     {
       cardTypes,
       languageCode,
+      limit,
+      offset,
       statementTypes,
       tagsName,
       term,

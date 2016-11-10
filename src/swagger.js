@@ -147,6 +147,12 @@ const SPEC = {
             $ref: "#/parameters/languageCodeParam",
           },
           {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/offsetQueryParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -2314,6 +2320,21 @@ const SPEC = {
       type: "string",
       enum: config.languageCodes,
       pattern: "^[a-z]{2}$",
+    },
+    limitQueryParam: {
+      // description: "",
+      in: "query",
+      maximum: 100,
+      minimum: 1,
+      name: "limit",
+      type: "integer",
+    },
+    offsetQueryParam: {
+      // description: "",
+      in: "query",
+      minimum: 0,
+      name: "offset",
+      type: "integer",
     },
     ratingDataParam: {
       // description: "",
