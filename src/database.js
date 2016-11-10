@@ -352,7 +352,27 @@ async function generateStatementTextSearch(statement) {
   let autocomplete = null
   let languageConfigurationNames = []
   let searchableText = null
-  if (statement.type === "Event") {
+  if (statement.type === "Card") {
+    // TODO: Handle card languages.
+    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    let values = statement.values
+    if (values) {
+      for (let key of ["Name", "name", "Title", "title"]) {
+        let value = values[key]
+        if (value !== null && value !== undefined && value !== "") {
+          autocomplete = String(value)
+          break
+        }
+      }
+      autocomplete = autocomplete ? `${autocomplete} #${statement.id}` : `#${statement.id}`
+      searchableText = [
+        values["Name"],
+        values["name"],
+        values["Title"],
+        values["title"],
+      ].filter(value => value !== null && value !== undefined && value !== "").map(String).join(" ")
+    }
+  } else if (statement.type === "Event") {
     autocomplete = statement.name
     languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
     searchableText = statement.name
