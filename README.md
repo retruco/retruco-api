@@ -27,6 +27,9 @@ createuser -D -P -R -S retruco
   Enter password for new role: retruco
   Enter it again: retruco
 createdb -E utf-8 -O retruco retruco
+psql retruco
+  CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  \q
 ```
 
 ### Configure the API server
