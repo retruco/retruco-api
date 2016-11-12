@@ -268,6 +268,9 @@ const SPEC = {
             $ref: "#/parameters/languageCodeParam",
           },
           {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
             $ref: "#/parameters/termQueryParam",
           },
           {

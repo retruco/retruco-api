@@ -32,6 +32,7 @@ import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementDat
 export const autocompleteStatements = wrapAsyncMiddleware(async function autocompleteStatements(req, res) {
   // Respond a list of statements.
   let languageCode = req.query.languageCode
+  let limit = req.query.limit || 10
   let queryTypes = req.query.type || []
   let term = req.query.term
 
@@ -63,10 +64,11 @@ export const autocompleteStatements = wrapAsyncMiddleware(async function autocom
       LEFT JOIN statements_autocomplete ON statements.id = statements_autocomplete.statement_id
       ${whereClause}
       ORDER BY distance
-      LIMIT 10`,
+      LIMIT $<limit>`,
     {
       cardTypes,
       languageCode,
+      limit,
       statementTypes,
       term: term || "",
     }
