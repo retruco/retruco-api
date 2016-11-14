@@ -88,11 +88,11 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
     })
   })
 
-  app.post("/cards-bundle", usersController.authenticate(true), statementsController.bundleCards)
+  app.post("/cards", usersController.authenticate(true), statementsController.createCard)
+  app.post("/cards/bundle", usersController.authenticate(true), statementsController.bundleCards)
 
   app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
-  app.post("/statements", usersController.authenticate(true),
-    statementsController.createStatement)
+  app.post("/statements", usersController.authenticate(true), statementsController.createStatement)
   app.get("/statements/autocomplete", statementsController.autocompleteStatements)
   app.delete("/statements/:statementId", usersController.authenticate(true),
     statementsController.requireStatement, statementsController.deleteStatement)
