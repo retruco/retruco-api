@@ -86,13 +86,61 @@ const SPEC = {
         // security: {},
       },
     },
-    "/cards-bundle": {
+    "/cards": {
       post: {
-        tags: ["statement"],
-        summary: "Create a new statement",
+        tags: ["card", "statement"],
+        summary: "Create a new card, giving its initial attributes, schemas & widgets",
         // description: "",
         // externalDocs: {},
-        operationId: "statements.create",
+        operationId: "statements.createCard",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/cardBodyParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "201": {
+            description: "A wrapper containing the created card",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+    },
+    "/cards/bundle": {
+      post: {
+        tags: ["card", "statement"],
+        summary: "Update all the user's cards (useful for bots)",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statements.bundleCards",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -105,7 +153,7 @@ const SPEC = {
         ],
         responses: {
           "200": {
-            description: "A wrapper containing the created statement",
+            description: "A wrapper containing optional warnings",
             schema: {
               type: "object",
               properties: {
@@ -2258,6 +2306,40 @@ const SPEC = {
       name: "retruco-api-key",
       required: true,
       type: "string",
+    },
+    cardBodyParam: {
+      // description: "",
+      in: "body",
+      name: "cardInfos",
+      required: true,
+      schema: {
+        type: "object",
+        properties: {
+          schemas: {
+            type: "object",
+            additionalProperties: {
+              $ref: "#/definitions/Schema",
+            },
+          },
+          values: {
+            type: "object",
+            additionalProperties: {
+              type: "object",
+            },
+          },
+          widgets: {
+            type: "object",
+            additionalProperties: {
+              $ref: "#/definitions/Widget",
+            },
+          },
+        },
+        required: [
+          "schemas",
+          "values",
+          "widgets",
+        ],
+      },
     },
     cardsBundleBodyParam: {
       // description: "",

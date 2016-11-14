@@ -30,6 +30,10 @@ import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementDat
   types, unrateStatement, wrapAsyncMiddleware} from "../model"
 
 
+const cardType = "Card"
+const propertyType = "Property"
+
+
 export const autocompleteStatements = wrapAsyncMiddleware(async function autocompleteStatements(req, res) {
   // Respond a list of statements.
   let languageCode = req.query.languageCode
@@ -93,6 +97,11 @@ export const autocompleteStatements = wrapAsyncMiddleware(async function autocom
 
 
 export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, res) {
+  let authenticatedUser = req.authenticatedUser
+  let bundle = req.body
+  let keyName = bundle.key
+
+  // Validate given schemas (if any).
   let ajvStrict = new Ajv({
     // See: https://github.com/epoberezkin/ajv#options
     allErrors: true,
@@ -103,11 +112,6 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     unknownFormats: true,
     verbose: true,
   })
-  let authenticatedUser = req.authenticatedUser
-  let bundle = req.body
-  let keyName = bundle.key
-
-  // Validate given schemas (if any).
   let schemaErrorsByName = {}
   for (let [name, schema] of Object.entries(bundle.schemas || {})) {
     try {
@@ -317,7 +321,6 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         // Ensure that each card has a unique hash.
         randomId: (await randomBytes(16)).toString("base64").replace(/=/g, ""),  // 128 bits
       }
-      const cardType = "Card"
       let hash = hashStatement(cardType, card)
       let result = await db.one(
         `INSERT INTO statements(created_at, hash, type, data)
@@ -402,7 +405,6 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           value,
           widget,
         }
-        const propertyType = "Property"
         let hash = hashStatement(propertyType, property)
         let result = await db.one(
           `INSERT INTO statements(created_at, hash, type, data)
@@ -437,6 +439,147 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   if (Object.keys(cardWarningsByKeyValue).length > 0) warningMessages["cards"] = cardWarningsByKeyValue
   if (Object.keys(warningMessages).length > 0) result.warnings = warningMessages
   res.json(result)
+})
+
+
+export const createCard = wrapAsyncMiddleware(async function createCard(req, res) {
+  // Create a new card, giving its initial attributes, schemas & widgets.
+  let authenticatedUser = req.authenticatedUser
+  let cardInfos = req.body
+
+  // Validate given schemas.
+  let ajvStrict = new Ajv({
+    // See: https://github.com/epoberezkin/ajv#options
+    allErrors: true,
+    format: "full",
+    formats: {
+      uriref: /^\d+$/,
+    },
+    unknownFormats: true,
+    verbose: true,
+  })
+  let schemaErrorsByName = {}
+  let schemaValidatorByName = {}
+  for (let [name, schema] of Object.entries(cardInfos.schemas || {})) {
+    try {
+      schemaValidatorByName[name] = ajvStrict.compile(schema)
+    } catch (e) {
+      schemaErrorsByName[name] = e.message
+    }
+  }
+  let schemasName = Object.keys(cardInfos.schemas || {})
+
+  // Validate given widgets.
+  // TODO
+  let widgetErrorsByName = {}
+  // for (let [name, widget] of (Object.entries(cardInfos.widgets || {}))) {
+  for (let name of (Object.keys(cardInfos.widgets || {}))) {
+    if (!schemasName.includes(name)) widgetErrorsByName[name] = `Missing schema for widget "${name}"`
+  }
+
+  let errorMessages = {}
+  if (Object.keys(schemaErrorsByName).length > 0) errorMessages["schemas"] = schemaErrorsByName
+  if (Object.keys(widgetErrorsByName).length > 0) errorMessages["widgets"] = widgetErrorsByName
+  if (Object.keys(errorMessages).length > 0) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      errors: errorMessages,
+      message: "Errors detected in schemas and/or widgets definitions.",
+    })
+    return
+  }
+
+  let ajvWithCoercion = new Ajv({
+    // See: https://github.com/epoberezkin/ajv#options
+    allErrors: true,
+    coerceTypes: "array",
+    format: "full",
+    formats: {
+      uriref: {
+        async: true,
+        validate: async function validateUriref(statementId) {
+          return (await db.one("SELECT EXISTS (SELECT 1 FROM statements WHERE id = $1)", statementId)).exists
+        },
+      },
+    },
+    unknownFormats: true,
+    verbose: true,
+  })
+  let schemaValidator = ajvWithCoercion.compile({
+    type: "object",
+    properties: cardInfos.schemas,
+  })
+  if (!schemaValidator(cardInfos.values)) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      errors: {values: schemaValidator.errors},
+      message: "Errors detected in given values.",
+    })
+    return
+  }
+
+  // Create new card.
+  let card = {
+    // Ensure that each card has a unique hash.
+    randomId: (await randomBytes(16)).toString("base64").replace(/=/g, ""),  // 128 bits
+  }
+  let hash = hashStatement(cardType, card)
+  let result = await db.one(
+    `INSERT INTO statements(created_at, hash, type, data)
+      VALUES (current_timestamp, $1, $2, $3)
+      RETURNING created_at, id, rating, rating_count, rating_sum`,
+    [hash, cardType, card],
+  )
+  Object.assign(card, {
+    createdAt: result.created_at,
+    id: result.id,
+    rating: result.rating,
+    ratingCount: result.rating_count,
+    ratingSum: result.rating_sum,
+    type: cardType,
+  })
+  await generateStatementTextSearch(card)
+  await rateStatement(card.id, authenticatedUser.id, 1)
+
+  // Insert and rate properties of card.
+  for (let [name, value] of Object.entries(cardInfos.values)) {
+    let property = {
+      name,
+      schema: cardInfos.schemas[name],
+      statementId: card.id,
+      value,
+      widget: cardInfos.widgets[name],
+    }
+    let hash = hashStatement(propertyType, property)
+    let result = await db.one(
+      `INSERT INTO statements(created_at, hash, type, data)
+        VALUES (current_timestamp, $1, $2, $3)
+        RETURNING created_at, id, rating, rating_count, rating_sum`,
+      [hash, propertyType, property],
+    )
+    Object.assign(property, {
+      createdAt: result.created_at,
+      id: result.id,
+      rating: result.rating,
+      ratingCount: result.rating_count,
+      ratingSum: result.rating_sum,
+      type: propertyType,
+    })
+    await generateStatementTextSearch(property)
+    await rateStatement(property.id, authenticatedUser.id, 1)
+  }
+
+  // No optimistic optimization for card.
+
+  res.status(201)  // Created
+  res.json({
+    apiVersion: "1",
+    data: await toStatementData(card, req.authenticatedUser),
+  })
 })
 
 
