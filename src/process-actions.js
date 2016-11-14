@@ -254,15 +254,15 @@ async function processAction(action) {
           if (removeAttribute) {
             if (cardData.values) {
               delete cardData.values[statement.name]
-              if (cardData.values.length === 0) delete cardData.values
+              if (Object.keys(cardData.values).length === 0) delete cardData.values
             }
             if (cardData.schemas) {
               delete cardData.schemas[statement.name]
-              if (cardData.schemas.length === 0) delete cardData.schemas
+              if (Object.keys(cardData.schemas).length === 0) delete cardData.schemas
             }
             if (cardData.widgets) {
               delete cardData.widgets[statement.name]
-              if (cardData.widgets.length === 0) delete cardData.widgets
+              if (Object.keys(cardData.widgets).length === 0) delete cardData.widgets
             }
           }
           if (!deepEqual(cardData, oldCardData)) {
