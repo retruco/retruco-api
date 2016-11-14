@@ -359,7 +359,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         if (referencedCardId === undefined) {
           let cardWarnings = cardWarningsByKeyValue[keyValue]
           if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-          cardWarnings[name] = `Unknown key ${value} for referenced card.`
+          cardWarnings[name] = `Unknown key "${value}" for referenced card.`
         } else {
           value = referencedCardId
         }
@@ -372,7 +372,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
             let attributeWarnings = cardWarnings[name]
             if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
-            attributeWarnings[String(index)] = `Unknown key ${value} for card`
+            attributeWarnings[String(index)] = `Unknown key "${value}" for card`
             cardWarnings[name] = {"0": `Unknown key ${item} for referenced card.`}
           } else {
             item = referencedCardId
