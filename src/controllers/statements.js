@@ -19,6 +19,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import Ajv from "ajv"
 import deepEqual from "deep-equal"
 import {randomBytes} from "mz/crypto"
 
@@ -92,67 +93,70 @@ export const autocompleteStatements = wrapAsyncMiddleware(async function autocom
 
 
 export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, res) {
+  let ajvStrict = new Ajv({
+    // See: https://github.com/epoberezkin/ajv#options
+    allErrors: true,
+    format: "full",
+    formats: {
+      uriref: () => true,  // Accept every string.
+    },
+    unknownFormats: true,
+    verbose: true,
+  })
   let authenticatedUser = req.authenticatedUser
   let bundle = req.body
   let keyName = bundle.key
 
-  // Retrieve all cards rated by user.
-  let existingUserCards = (await db.any(`
-    SELECT * FROM statements
-    WHERE type = 'Card'
-    AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
-    `, authenticatedUser.id)).map(entryToStatement)
-  let existingUserCardById = {}
-  let remainingUserStatementsIds = new Set()
-  for (let card of existingUserCards) {
-    existingUserCardById[card.id] = card
-    remainingUserStatementsIds.add(card.id)
+  // Validate given schemas (if any).
+  let schemaErrorsByName = {}
+  for (let [name, schema] of Object.entries(bundle.schemas || {})) {
+    try {
+      ajvStrict.compile(schema)
+    } catch (e) {
+      schemaErrorsByName[name] = e.message
+    }
+  }
+  let schemasName = Object.keys(bundle.schemas || {})
+
+  // Validate given widgets (if any).
+  // TODO
+  let widgetErrorsByName = {}
+  // for (let [name, widget] of (Object.entries(bundle.widgets || {}))) {
+  for (let name of (Object.keys(bundle.widgets || {}))) {
+    if (!schemasName.includes(name)) widgetErrorsByName[name] = `Missing schema for widget "${name}"`
   }
 
-  // Retrieve all properties of the cards rated by user.
-  let existingProperties = (await db.any(`
-    SELECT * FROM statements
-    WHERE type = 'Property'
-    AND (data->>'statementId')::bigint IN (
-      SELECT id FROM statements
-      WHERE type = 'Card'
-      AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
-    )
-    `, authenticatedUser.id)).map(entryToStatement)
-  let existingPropertiesByNameByCardId = {}
-  for (let property of existingProperties) {
-    let existingPropertiesByName = existingPropertiesByNameByCardId[property.statementId]
-    if (!existingPropertiesByName) {
-      existingPropertiesByNameByCardId[property.statementId] = existingPropertiesByName = {}
-    }
-    let sameNameExistingProperties = existingPropertiesByName[property.name]
-    if (!sameNameExistingProperties) existingPropertiesByName[property.name] = sameNameExistingProperties = []
-    sameNameExistingProperties.push(property)
+  let errorMessages = {}
+  if (Object.keys(schemaErrorsByName).length > 0) errorMessages["schemas"] = schemaErrorsByName
+  if (Object.keys(widgetErrorsByName).length > 0) errorMessages["widgets"] = widgetErrorsByName
+  if (Object.keys(errorMessages).length > 0) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      errors: errorMessages,
+      message: "Errors detected in schemas and/or widgets definitions.",
+    })
+    return
   }
-  let existingUserProperties = (await db.any(`
-    SELECT * FROM statements
-    WHERE type = 'Property'
-    AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
-    AND (data->>'statementId')::bigint IN (
-      SELECT id FROM statements
-      WHERE type = 'Card'
-      AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
-    )
-    `, authenticatedUser.id)).map(entryToStatement)
-  let existingUserPropertyByKeyValue = {}
-  let existingUserPropertyByNameByCardId = {}
-  for (let property of existingUserProperties) {
-    let existingUserPropertyByName = existingUserPropertyByNameByCardId[property.statementId]
-    if (!existingUserPropertyByName) {
-      existingUserPropertyByNameByCardId[property.statementId] = existingUserPropertyByName = {}
+
+  let fieldByName = {} 
+  for (let [name, schema] of Object.entries(bundle.schemas || {})) {
+    // If schema is for an array, only keep the schema of its items.
+    if (schema.type === "array") {
+      schema = schema.items
     }
-    existingUserPropertyByName[property.name] = property
-    if (property.name == keyName) existingUserPropertyByKeyValue[property.value] = property
-    remainingUserStatementsIds.add(property.id)
+    fieldByName[name] = {
+      maxLength: 0,
+      schema,
+      widget: {},
+    }
+  }
+  for (let [name, widget] of Object.entries(bundle.widgets || {})) {
+    fieldByName[name]["widget"] = widget
   }
 
   // Guess schema and widget of each attribute.
-  let fieldByName = {} 
   for (let attributes of bundle.cards) {
     for (let [name, value] of Object.entries(attributes)) {
       let values = Array.isArray(value) ? value : [value]
@@ -209,7 +213,97 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     }
   }
 
-  // Upsert and rate cards, and their properties
+  let ajvWithCoercion = new Ajv({
+    // See: https://github.com/epoberezkin/ajv#options
+    allErrors: true,
+    coerceTypes: "array",
+    format: "full",
+    formats: {
+      uriref: () => true,  // Accept every string.
+    },
+    unknownFormats: true,
+    verbose: true,
+  })
+  let schemaValidator = ajvWithCoercion.compile({
+    type: "object",
+    properties: Object.entries(fieldByName).reduce((schemaByName, [name, {schema}]) => {
+      schemaByName[name] = schema
+      return schemaByName
+    }, {}),
+  })
+  let cardErrorsByKeyValue = {}
+  for (let attributes of bundle.cards) {
+    if (!schemaValidator(attributes)) cardErrorsByKeyValue[attributes[keyName]] = schemaValidator.errors
+  }
+  if (Object.keys(cardErrorsByKeyValue).length > 0) errorMessages["cards"] = cardErrorsByKeyValue
+  if (Object.keys(errorMessages).length > 0) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      errors: errorMessages,
+      message: "Errors detected in given cards.",
+    })
+    return
+  }
+
+  // Retrieve all cards rated by user.
+  let existingUserCards = (await db.any(`
+    SELECT * FROM statements
+    WHERE type = 'Card'
+    AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
+    `, authenticatedUser.id)).map(entryToStatement)
+  let existingUserCardById = {}
+  let remainingUserStatementsIds = new Set()
+  for (let card of existingUserCards) {
+    existingUserCardById[card.id] = card
+    remainingUserStatementsIds.add(card.id)
+  }
+
+  // Retrieve all properties of the cards rated by user.
+  let existingProperties = (await db.any(`
+    SELECT * FROM statements
+    WHERE type = 'Property'
+    AND (data->>'statementId')::bigint IN (
+      SELECT id FROM statements
+      WHERE type = 'Card'
+      AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
+    )
+    `, authenticatedUser.id)).map(entryToStatement)
+  let existingPropertiesByNameByCardId = {}
+  for (let property of existingProperties) {
+    let existingPropertiesByName = existingPropertiesByNameByCardId[property.statementId]
+    if (!existingPropertiesByName) {
+      existingPropertiesByNameByCardId[property.statementId] = existingPropertiesByName = {}
+    }
+    let sameNameExistingProperties = existingPropertiesByName[property.name]
+    if (!sameNameExistingProperties) existingPropertiesByName[property.name] = sameNameExistingProperties = []
+    sameNameExistingProperties.push(property)
+  }
+  let existingUserProperties = (await db.any(`
+    SELECT * FROM statements
+    WHERE type = 'Property'
+    AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
+    AND (data->>'statementId')::bigint IN (
+      SELECT id FROM statements
+      WHERE type = 'Card'
+      AND id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
+    )
+    `, authenticatedUser.id)).map(entryToStatement)
+  let existingUserPropertyByKeyValue = {}
+  let existingUserPropertyByNameByCardId = {}
+  for (let property of existingUserProperties) {
+    let existingUserPropertyByName = existingUserPropertyByNameByCardId[property.statementId]
+    if (!existingUserPropertyByName) {
+      existingUserPropertyByNameByCardId[property.statementId] = existingUserPropertyByName = {}
+    }
+    existingUserPropertyByName[property.name] = property
+    if (property.name == keyName) existingUserPropertyByKeyValue[property.value] = property
+    remainingUserStatementsIds.add(property.id)
+  }
+
+  // Upsert and rate cards.
+  let cardIdByKeyValue = {}
   for (let attributes of bundle.cards) {
     let keyValue = attributes[keyName]
     let keyProperty = existingUserPropertyByKeyValue[keyValue]
@@ -242,14 +336,52 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       await generateStatementTextSearch(card)
     }
     await rateStatement(card.id, authenticatedUser.id, 1)
-    let existingPropertiesByName = existingPropertiesByNameByCardId[card.id] || {}
+    cardIdByKeyValue[keyValue] = card.id
+  }
+
+  // Upsert and rate properties of cards.
+  let cardWarningsByKeyValue = {}
+  for (let attributes of bundle.cards) {
+    let keyValue = attributes[keyName]
+    let cardId = cardIdByKeyValue[keyValue]
+    let existingPropertiesByName = existingPropertiesByNameByCardId[cardId] || {}
     for (let [name, value] of Object.entries(attributes)) {
       let {maxLength, schema, widget} = fieldByName[name]
+
       if (maxLength > 1) {
         if (!Array.isArray(value)) value = [value]
       } else {
         if (Array.isArray(value)) value = value.length > 0 ? value[0] : null
       }
+
+      if (schema.type === "string" && schema.format === "uriref") {
+        let referencedCardId = cardIdByKeyValue[value]
+        if (referencedCardId === undefined) {
+          let cardWarnings = cardWarningsByKeyValue[keyValue]
+          if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+          cardWarnings[name] = `Unknown key ${value} for referenced card.`
+        } else {
+          value = referencedCardId
+        }
+      } else if (schema.type === "array" && schema.items.type === "string" && schema.items.format === "uriref") {
+        let items = []
+        for (let [index, item] of value.entries()) {
+          let referencedCardId = cardIdByKeyValue[item]
+          if (referencedCardId === undefined) {
+            let cardWarnings = cardWarningsByKeyValue[keyValue]
+            if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+            let attributeWarnings = cardWarnings[name]
+            if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
+            attributeWarnings[String(index)] = `Unknown key ${value} for card`
+            cardWarnings[name] = {"0": `Unknown key ${item} for referenced card.`}
+          } else {
+            item = referencedCardId
+          }
+          items.push(item)
+        }
+        value = items
+      }
+
       let property = null
       let sameNameExistingProperties = existingPropertiesByName[name] || []
       for (let existingProperty of sameNameExistingProperties)  {
@@ -266,7 +398,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         property = {
           name,
           schema,
-          statementId: card.id,
+          statementId: cardId,
           value,
           widget,
         }
@@ -298,9 +430,13 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     await unrateStatement(statementId, authenticatedUser.id)
   }
 
-  res.json({
+  let result = {
     apiVersion: "1",
-  })
+  }
+  let warningMessages = {}
+  if (Object.keys(cardWarningsByKeyValue).length > 0) warningMessages["cards"] = cardWarningsByKeyValue
+  if (Object.keys(warningMessages).length > 0) result.warnings = warningMessages
+  res.json(result)
 })
 
 

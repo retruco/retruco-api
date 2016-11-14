@@ -112,6 +112,9 @@ const SPEC = {
                 apiVersion: {
                   type: "string",
                 },
+                warnings: {
+                  type: "object",
+                },
               },
               required: [
                 "apiVersion",
@@ -1976,6 +1979,9 @@ const SPEC = {
           minimum: 100,
           maximum: 600,
         },
+        errors: {
+          type: "object",
+        },
         message: {
           type: "string",
         },
@@ -2132,18 +2138,18 @@ const SPEC = {
     },
     Schema: {
       type: "object",
-      properties: {
-        type: {
-          type: "string",
-          enum: [
-            "integer",
-            "string",
-          ],
-        },
-      },
-      required: [
-        "type",
-      ],
+      // properties: {
+      //   type: {
+      //     type: "string",
+      //     enum: [
+      //       "integer",
+      //       "string",
+      //     ],
+      //   },
+      // },
+      // required: [
+      //   "type",
+      // ],
     },
     StatementsAutocompletionList: {
       type: "array",
@@ -2223,18 +2229,18 @@ const SPEC = {
     },
     Widget: {
       type: "object",
-      properties: {
-        type: {
-          type: "string",
-          enum: [
-            "textarea",
-            "textline",
-          ],
-        },
-      },
-      required: [
-        "type",
-      ],
+      // properties: {
+      //   type: {
+      //     type: "string",
+      //     enum: [
+      //       "textarea",
+      //       "textline",
+      //     ],
+      //   },
+      // },
+      // required: [
+      //   "type",
+      // ],
     },
   },
   parameters: {
@@ -2269,6 +2275,18 @@ const SPEC = {
           },
           key: {
             type: "string",
+          },
+          schemas: {
+            type: "object",
+            additionalProperties: {
+              $ref: "#/definitions/Schema",
+            },
+          },
+          widgets: {
+            type: "object",
+            additionalProperties: {
+              $ref: "#/definitions/Widget",
+            },
           },
         },
         required: [
