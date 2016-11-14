@@ -22,7 +22,7 @@
 import assert from "assert"
 import deepEqual from "deep-equal"
 
-import {checkDatabase, db, entryToAction, entryToBallot, entryToStatement,
+import {checkDatabase, db, dbSharedConnectionObject, entryToAction, entryToBallot, entryToStatement,
   generateStatementTextSearch} from "./database"
 import {addBallotAction} from "./model"
 
@@ -321,15 +321,24 @@ async function processAction(action) {
 
 
 async function processActions () {
-  while (true) {
-    // Handle existing pending actions.
-    let actions = (await db.any("SELECT * FROM actions ORDER BY created_at")).map(entryToAction)
-    for (let action of actions) {
-      await processAction(action)
+  dbSharedConnectionObject.client.on("notification", async data => {
+    if (data.channel === "new_action") {
+      console.log("### Processing new actions...")
+      let actions = (await db.any("SELECT * FROM actions ORDER BY created_at")).map(entryToAction)
+      for (let action of actions) {
+        await processAction(action)
+      }
+      console.log("### All actions processed.")
+    } else {
+      console.log(`Ignoring unknown channel "${data.channel}" (in notification: $}{data}).`)
     }
-    // Wait for new actions.
-    await db.none("LISTEN $1~", "new_action")
-  }
+  })
+
+  // Wait for new actions.
+  await dbSharedConnectionObject.none("LISTEN $1~", "new_action")
+
+  // Notify new_action to process pending actions.
+  db.none("NOTIFY new_action")
 }
 
 

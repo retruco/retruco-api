@@ -41,7 +41,7 @@ export const db = pgPromise({
   port: config.db.port,
   user: config.db.user,
 })
-
+export let dbSharedConnectionObject = null
 
 export const versionNumber = 7
 export const versionTextSearchNumber = 1
@@ -50,7 +50,7 @@ export const versionTextSearchNumber = 1
 export {checkDatabase}
 async function checkDatabase({ignoreTextSearchVersion = false} = {}) {
   // Check that database exists.
-  await db.connect()
+  dbSharedConnectionObject = await db.connect()
 
   assert(await existsTable("version"), 'Database is not initialized. Run "node configure" to configure it.')
 
