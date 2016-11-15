@@ -25,7 +25,7 @@ import {wrapAsyncMiddleware} from "../model"
 
 export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req, res, next) {
   let statement = req.statement
-  if (!["Argument", "Card", "Citation", "Card", "Event", "Person", "PlainStatement", "Property"].includes(
+  if (!["Argument", "Card", "PlainStatement", "Property"].includes(
     statement.type)) {
     res.status(404)
     res.json({

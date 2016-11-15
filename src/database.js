@@ -43,7 +43,7 @@ export const db = pgPromise({
 })
 export let dbSharedConnectionObject = null
 
-export const versionNumber = 7
+export const versionNumber = 8
 export const versionTextSearchNumber = 1
 
 
@@ -119,9 +119,6 @@ async function configure() {
           'Abuse',
           'Argument',
           'Card',
-          'Citation',
-          'Event',
-          'Person',
           'PlainStatement',
           'Property',
           'Tag'
@@ -267,13 +264,13 @@ async function configure() {
 
   const previousVersionNumber = version.number
 
-  if (version.number <= 1) {
+  if (version.number < 2) {
     try {
       await db.none("DROP TRIGGER event_inserted ON events")
     } catch (e) {}
     await db.none("DROP TABLE IF EXISTS events")
   }
-  if (version.number <= 2) {
+  if (version.number < 3) {
     // TODO: Database user must be owner of type statement_type.
     // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Citation' AFTER 'Card'")
     // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation'")
@@ -285,11 +282,18 @@ async function configure() {
         ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'Event';
     `)
   }
-  if (version.number <= 3) {
+  if (version.number < 4) {
     let statements = (await db.any("SELECT * FROM statements")).map(entryToStatement)
     for (let statement of statements) {
       await generateStatementTextSearch(statement)
     }
+  }
+  if (version.number < 8) {
+    console.log(`
+      YOU MUST manually execute the following SQL commands:
+        DROP TABLE actions, ballots, statements, statements_autocomplete, statements_text_search;
+        DROP TYPE statement_type;
+    `)
   }
 
   version.number = versionNumber
@@ -379,6 +383,13 @@ async function generateStatementTextSearch(statement) {
           break
         }
       }
+      for (let key of ["Twitter Name", "Twitter name"]) {
+        let value = values[key]
+        if (value !== null && value !== undefined && value !== "") {
+          autocomplete = autocomplete ? `${autocomplete} (${value})` : `(${value})`
+          break
+        }
+      }
       autocomplete = autocomplete ? `${autocomplete} #${statement.id}` : `#${statement.id}`
       searchableText = [
         values["Name"],
@@ -387,19 +398,10 @@ async function generateStatementTextSearch(statement) {
         values["title"],
       ].filter(value => value !== null && value !== undefined && value !== "").map(String).join(" ")
     }
-  } else if (statement.type === "Event") {
-    autocomplete = statement.name
-    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
-    searchableText = statement.name
   } else if (statement.type === "PlainStatement") {
     autocomplete = statement.name
     languageConfigurationNames = [languageConfigurationNameByCode[statement.languageCode]]
     searchableText = statement.name
-  } else if (statement.type === "Person") {
-    autocomplete = statement.name
-    if (statement.twitterName) autocomplete = `${autocomplete} (${statement.twitterName})`
-    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
-    searchableText = [statement.name, statement.twitterName].filter(Boolean).join(" ")
   }
 
   if (!autocomplete) {
@@ -449,14 +451,6 @@ export function hashStatement(statementType, statement) {
   } else if (statementType === "Card") {
     // TODO: Hash what?
     if (statement.randomId) hash.update(statement.randomId)
-  } else if (statementType === "Citation") {
-    hash.update(statement.citedId)
-    hash.update(statement.eventId)
-    hash.update(statement.personId)
-  } else if (statementType === "Event") {
-    hash.update(statement.name)
-  } else if (statementType === "Person") {
-    hash.update(statement.name)
   } else if (statementType === "PlainStatement") {
     hash.update(statement.languageCode)
     hash.update(statement.name)

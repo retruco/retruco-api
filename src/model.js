@@ -26,9 +26,6 @@ export const types = [
   "Abuse",
   "Argument",
   "Card",
-  "Citation",
-  "Event",
-  "Person",
   "PlainStatement",
   "Property",
   "Tag",
@@ -248,34 +245,6 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         statement,
       ))
       await toStatementData1(data, ground, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
-    }
-  } else if (statement.type === "Citation") {
-    if (statement.citedId) {
-      const cited = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<citedId>`,
-        statement,
-      ))
-      await toStatementData1(data, cited, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
-    }
-    if (statement.eventId) {
-      const event = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<eventId>`,
-        statement,
-      ))
-      await toStatementData1(data, event, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
-    }
-    if (statement.personId) {
-      const person = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<personId>`,
-        statement,
-      ))
-      await toStatementData1(data, person, statementsCache, user,
         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
     }
   } else if (statement.type === "Property") {

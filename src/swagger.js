@@ -1922,39 +1922,6 @@ const SPEC = {
         },
       ],
     },
-    Citation: {
-      allOf: [
-        {
-          $ref: "#/definitions/AbstractStatement",
-        },
-        {
-          type: "object",
-          properties: {
-            abuseId: {
-              $ref: "#/definitions/Id",
-            },
-            citedId: {
-              $ref: "#/definitions/Id",
-            },
-            eventId: {
-              $ref: "#/definitions/Id",
-            },
-            isAbuse: {
-              type: "boolean",
-              default: false,
-            },
-            personId: {
-              $ref: "#/definitions/Id",
-            },
-          },
-          required: [
-            "citedId",
-            "eventId",
-            "personId",
-          ],
-        },
-      ],
-    },
     DataId: {
       type: "object",
       properties: {
@@ -2040,31 +2007,6 @@ const SPEC = {
         "message",
       ],
     },
-    Event: {
-      allOf: [
-        {
-          $ref: "#/definitions/AbstractStatement",
-        },
-        {
-          type: "object",
-          properties: {
-            abuseId: {
-              $ref: "#/definitions/Id",
-            },
-            isAbuse: {
-              type: "boolean",
-              default: false,
-            },
-            name: {
-              type: "string",
-            },
-          },
-          required: [
-            "name",
-          ],
-        },
-      ],
-    },
     Id: {
       type: "string",
       pattern: "^[0-9]+$",
@@ -2077,35 +2019,6 @@ const SPEC = {
       type: "string",
       enum: config.languageCodes,
       pattern: "^[a-z]{2}$",
-    },
-    Person: {
-      allOf: [
-        {
-          $ref: "#/definitions/AbstractStatement",
-        },
-        {
-          type: "object",
-          properties: {
-            abuseId: {
-              $ref: "#/definitions/Id",
-            },
-            isAbuse: {
-              type: "boolean",
-              default: false,
-            },
-            name: {
-              type: "string",
-            },
-            twitterName: {
-              type: "string",
-              pattern: "^@?(\w){1,15}$",
-            },
-          },
-          required: [
-            "name",
-          ],
-        },
-      ],
     },
     PlainStatement: {
       allOf: [
