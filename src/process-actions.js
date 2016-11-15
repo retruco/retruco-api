@@ -219,14 +219,14 @@ async function processAction(action) {
           let removeAttribute = true
           if (sameNameProperties.length > 0) {
             // TODO: Improve search of best property. For example, if any of the best rated properties is of type
-            // "rated set", it wins even when it is not the oldest (lowest id).
+            // "RatedItem", it wins even when it is not the oldest (lowest id).
             let bestProperty = sameNameProperties[0]
             let bestRating = bestProperty.rating
             if (bestRating > 0) {
               // Sometimes the best property is not the oldest of the best rated properties.
               for (let property of sameNameProperties) {
                 if (property.rating < bestRating) break
-                if (property.widget.tag === "RatedSet") {
+                if (property.widget.tag === "RatedItem") {
                   let requestedSchemaType = property.schema.type
                   let ratedValues = new Set()
                   for (let property1 of sameNameProperties) {
