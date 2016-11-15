@@ -459,10 +459,9 @@ export const createCard = wrapAsyncMiddleware(async function createCard(req, res
     verbose: true,
   })
   let schemaErrorsByName = {}
-  let schemaValidatorByName = {}
   for (let [name, schema] of Object.entries(cardInfos.schemas || {})) {
     try {
-      schemaValidatorByName[name] = ajvStrict.compile(schema)
+      ajvStrict.compile(schema)
     } catch (e) {
       schemaErrorsByName[name] = e.message
     }
