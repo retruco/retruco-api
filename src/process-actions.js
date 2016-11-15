@@ -321,14 +321,27 @@ async function processAction(action) {
 
 
 async function processActions () {
+  let processingActions = false
+
   dbSharedConnectionObject.client.on("notification", async data => {
     if (data.channel === "new_action") {
-      console.log("### Processing new actions...")
-      let actions = (await db.any("SELECT * FROM actions ORDER BY created_at")).map(entryToAction)
-      for (let action of actions) {
-        await processAction(action)
+      if (!processingActions) {
+        processingActions = true
+        console.log("### Processing new actions...")
+        while (true) {
+          let actions = (await db.any("SELECT * FROM actions ORDER BY created_at")).map(entryToAction)
+          if (actions.length === 0) break
+          for (let action of actions) {
+            await processAction(action)
+          }
+        }
+        processingActions = false
+        console.log("### All actions processed.")
+        if ((await db.one("SELECT EXISTS (SELECT 1 FROM actions)")).exists) {
+          // Some actions have been created in the mean time...
+          db.none("NOTIFY new_action")
+        }
       }
-      console.log("### All actions processed.")
     } else {
       console.log(`Ignoring unknown channel "${data.channel}" (in notification: $}{data}).`)
     }
