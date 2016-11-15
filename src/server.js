@@ -33,6 +33,7 @@ import * as ballotsController from "./controllers/ballots"
 import * as statementsController from "./controllers/statements"
 import * as tagsController from "./controllers/tags"
 import * as usersController from "./controllers/users"
+import * as schemas from "./schemas"
 import swaggerSpecification from "./swagger"
 
 
@@ -91,6 +92,10 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   app.post("/cards", usersController.authenticate(true), statementsController.createCard)
   app.post("/cards/bundle", usersController.authenticate(true), statementsController.bundleCards)
 
+  app.post("/login", usersController.login)
+
+  app.get("/schemas/bijective-uri-reference", (req, res) => res.json(schemas.bijectiveUriReference))
+
   app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
   app.post("/statements", usersController.authenticate(true), statementsController.createStatement)
   app.get("/statements/autocomplete", statementsController.autocompleteStatements)
@@ -137,8 +142,6 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   app.post("/statements/:statementId/tags/:tagName/rating",
     usersController.authenticate(true), statementsController.requireStatement, tagsController.requireTag,
     ballotsController.upsertBallot)
-
-  app.post("/login", usersController.login)
 
   app.get("/users", usersController.listUsersUrlName)
   app.post("/users", usersController.createUser)

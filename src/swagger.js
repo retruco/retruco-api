@@ -181,6 +181,19 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/schemas/bijective-uri-reference": {
+      get: {
+        tags: ["schema"],
+        summary: "JSON Schema for a property of type bijective URI reference",
+        responses: {
+          "200": {
+            schema: {
+              type: "object",
+            },
+          },
+        },
+      },
+    },
     "/statements": {
       get: {
         tags: ["statement"],
