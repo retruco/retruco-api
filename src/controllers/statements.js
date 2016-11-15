@@ -819,22 +819,29 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
-  let statements = (await db.any(
-    `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC LIMIT $<limit> OFFSET $<offset>`,
-    {
+
+  let coreArguments = {
       cardTypes,
       languageCode,
-      limit,
-      offset,
       statementTypes,
       tagsName,
       term,
       userId: user === null ? null : user.id,
     }
+  let count = (await db.one(`SELECT count(*) as count FROM statements ${whereClause}`, coreArguments)).count
+
+  let statements = (await db.any(
+    `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC LIMIT $<limit> OFFSET $<offset>`,
+    {
+      ...coreArguments,
+      limit,
+      offset,
+    },
   )).map(entryToStatement)
 
   res.json({
     apiVersion: "1",
+    count: count,
     data: await toStatementsData(statements, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
@@ -844,6 +851,8 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
       showProperties: show.includes("properties"),
       showTags: show.includes("tags"),
     }),
+    limit: limit,
+    offset: offset,
   })
 })
 
