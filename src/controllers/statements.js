@@ -28,7 +28,63 @@ import {db, entryToStatement, entryToUser, generateStatementTextSearch, hashStat
   languageConfigurationNameByCode} from "../database"
 import {ownsUser, propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData, toStatementJson,
   types, unrateStatement, wrapAsyncMiddleware} from "../model"
+import * as schemas from "../schemas"
 
+
+const ajvStrict = new Ajv({
+  // See: https://github.com/epoberezkin/ajv#options
+  allErrors: true,
+  format: "full",
+  formats: {
+    uriref: /^\d+$/,
+  },
+  unknownFormats: true,
+  verbose: true,
+})
+ajvStrict.addSchema(schemas.bijectiveUriReference, "/schemas/bijective-uri-reference")
+
+const ajvStrictForBundle = new Ajv({
+  // See: https://github.com/epoberezkin/ajv#options
+  allErrors: true,
+  format: "full",
+  formats: {
+    uriref: () => true,  // Accept every string.
+  },
+  unknownFormats: true,
+  verbose: true,
+})
+ajvStrictForBundle.addSchema(schemas.bijectiveUriReferenceForBundle, "/schemas/bijective-uri-reference")
+
+const ajvWithCoercion = new Ajv({
+  // See: https://github.com/epoberezkin/ajv#options
+  allErrors: true,
+  coerceTypes: "array",
+  format: "full",
+  formats: {
+    uriref: {
+      async: true,
+      validate: async function validateUriref(statementId) {
+        return (await db.one("SELECT EXISTS (SELECT 1 FROM statements WHERE id = $1)", statementId)).exists
+      },
+    },
+  },
+  unknownFormats: true,
+  verbose: true,
+})
+ajvWithCoercion.addSchema(schemas.bijectiveUriReference, "/schemas/bijective-uri-reference")
+
+const ajvWithCoercionForBundle = new Ajv({
+  // See: https://github.com/epoberezkin/ajv#options
+  allErrors: true,
+  coerceTypes: "array",
+  format: "full",
+  formats: {
+    uriref: () => true,  // Accept every string.
+  },
+  unknownFormats: true,
+  verbose: true,
+})
+ajvWithCoercionForBundle.addSchema(schemas.bijectiveUriReferenceForBundle, "/schemas/bijective-uri-reference")
 
 const cardType = "Card"
 const propertyType = "Property"
@@ -102,22 +158,16 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let keyName = bundle.key
 
   // Validate given schemas (if any).
-  let ajvStrict = new Ajv({
-    // See: https://github.com/epoberezkin/ajv#options
-    allErrors: true,
-    format: "full",
-    formats: {
-      uriref: () => true,  // Accept every string.
-    },
-    unknownFormats: true,
-    verbose: true,
-  })
   let schemaErrorsByName = {}
   for (let [name, schema] of Object.entries(bundle.schemas || {})) {
     try {
-      ajvStrict.compile(schema)
+      ajvStrictForBundle.compile(schema)
     } catch (e) {
       schemaErrorsByName[name] = e.message
+      continue
+    }
+    if (schema.type === "array" && Array.isArray(schema.items)) {
+      schemaErrorsByName[name] = "In a bundle, a schema of type array must not use an array to define its items."
     }
   }
   let schemasName = Object.keys(bundle.schemas || {})
@@ -210,25 +260,14 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         items: field.schema,
         type: "array",
       }
-      field.widget = {
-        items: field.widget,
-        tag: "array",
-      }
+      // field.widget = {
+      //   items: field.widget,
+      //   tag: "array",
+      // }
     }
   }
 
-  let ajvWithCoercion = new Ajv({
-    // See: https://github.com/epoberezkin/ajv#options
-    allErrors: true,
-    coerceTypes: "array",
-    format: "full",
-    formats: {
-      uriref: () => true,  // Accept every string.
-    },
-    unknownFormats: true,
-    verbose: true,
-  })
-  let schemaValidator = ajvWithCoercion.compile({
+  let schemaValidator = ajvWithCoercionForBundle.compile({
     type: "object",
     properties: Object.entries(fieldByName).reduce((schemaByName, [name, {schema}]) => {
       schemaByName[name] = schema
@@ -316,7 +355,6 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     if (card) {
       remainingUserStatementsIds.delete(card.id)
     } else {
-      console.log(`Creating new card for ${keyValue}`)
       card = {
         // Ensure that each card has a unique hash.
         randomId: (await randomBytes(16)).toString("base64").replace(/=/g, ""),  // 128 bits
@@ -352,17 +390,64 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       let {maxLength, schema, widget} = fieldByName[name]
 
       if (maxLength > 1) {
-        if (!Array.isArray(value)) value = [value]
-      } else {
-        if (Array.isArray(value)) value = value.length > 0 ? value[0] : null
+        if (!Array.isArray(value)) {
+          schema = schema.items
+        } else if (value.length === 0) {
+          schema = schema.items
+          value = null
+        } else if (value.length === 1) {
+          schema = schema.items
+          value = value[0]
+        }
+      } else if (Array.isArray(value)) {
+        value = value.length > 0 ? value[0] : null
       }
 
-      if (schema.type === "string" && schema.format === "uriref") {
+      if (schema.$ref === "/schemas/bijective-uri-reference") {
+        let referencedCardId = cardIdByKeyValue[value.targetId]
+        if (referencedCardId === undefined) {
+          let cardWarnings = cardWarningsByKeyValue[keyValue]
+          if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+          cardWarnings[name] = `Unknown key "${value.targetId}" for referenced card.`
+          value = value.targetId
+
+          schema = {type: "string"}
+          // TODO: Change widget.
+        } else {
+          value.targetId = referencedCardId
+        }
+      } else if (schema.type === "array" && schema.items.$ref === "/schemas/bijective-uri-reference") {
+        let items = []
+        for (let [index, item] of value.entries()) {
+          let referencedCardId = cardIdByKeyValue[item.targetId]
+          if (referencedCardId === undefined) {
+            let cardWarnings = cardWarningsByKeyValue[keyValue]
+            if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+            let attributeWarnings = cardWarnings[name]
+            if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
+            attributeWarnings[String(index)] = `Unknown key "${item.targetId}" for referenced card`
+            item = item.targetId
+
+            schema = {...schema}
+            if (Array.isArray(schema.items)) schema.items = [...schema.items]
+            else schema.items = value.map(() => ({...schema.items}))
+            schema.items[index] = {type: "string"}
+            // TODO: Change widget.
+          } else {
+            item.targetId = referencedCardId
+          }
+          items.push(item)
+        }
+        value = items
+      } else if (schema.type === "string" && schema.format === "uriref") {
         let referencedCardId = cardIdByKeyValue[value]
         if (referencedCardId === undefined) {
           let cardWarnings = cardWarningsByKeyValue[keyValue]
           if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
           cardWarnings[name] = `Unknown key "${value}" for referenced card.`
+
+          schema = {type: "string"}
+          // TODO: Change widget.
         } else {
           value = referencedCardId
         }
@@ -375,8 +460,13 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
             let attributeWarnings = cardWarnings[name]
             if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
-            attributeWarnings[String(index)] = `Unknown key "${value}" for card`
-            cardWarnings[name] = {"0": `Unknown key ${item} for referenced card.`}
+            attributeWarnings[String(index)] = `Unknown key "${item}" for referenced card`
+
+            schema = {...schema}
+            if (Array.isArray(schema.items)) schema.items = [...schema.items]
+            else schema.items = value.map(() => ({...schema.items}))
+            schema.items[index] = {type: "string"}
+            // TODO: Change widget.
           } else {
             item = referencedCardId
           }
@@ -397,7 +487,6 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       if (property !== null) {
         remainingUserStatementsIds.delete(property.id)
       } else {
-        console.log(`Creating property ${name} = ${value} of card ${cardId} for ${keyValue}`)
         property = {
           name,
           schema,
@@ -448,16 +537,6 @@ export const createCard = wrapAsyncMiddleware(async function createCard(req, res
   let cardInfos = req.body
 
   // Validate given schemas.
-  let ajvStrict = new Ajv({
-    // See: https://github.com/epoberezkin/ajv#options
-    allErrors: true,
-    format: "full",
-    formats: {
-      uriref: /^\d+$/,
-    },
-    unknownFormats: true,
-    verbose: true,
-  })
   let schemaErrorsByName = {}
   for (let [name, schema] of Object.entries(cardInfos.schemas || {})) {
     try {
@@ -490,22 +569,6 @@ export const createCard = wrapAsyncMiddleware(async function createCard(req, res
     return
   }
 
-  let ajvWithCoercion = new Ajv({
-    // See: https://github.com/epoberezkin/ajv#options
-    allErrors: true,
-    coerceTypes: "array",
-    format: "full",
-    formats: {
-      uriref: {
-        async: true,
-        validate: async function validateUriref(statementId) {
-          return (await db.one("SELECT EXISTS (SELECT 1 FROM statements WHERE id = $1)", statementId)).exists
-        },
-      },
-    },
-    unknownFormats: true,
-    verbose: true,
-  })
   let schemaValidator = ajvWithCoercion.compile({
     type: "object",
     properties: cardInfos.schemas,

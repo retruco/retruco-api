@@ -27,14 +27,19 @@ import {checkDatabase, db, dbSharedConnectionObject, entryToAction, entryToBallo
 import {addBallotAction} from "./model"
 
 
-function addRatedValue(requestedSchemaType, values, schema, value) {
-  assert(requestedSchemaType !== "array")
-  let schemaType = schema.type
-  if (schemaType === "array") {
-    for (let itemValue of value) {
-      addRatedValue(requestedSchemaType, values, schema.items.type, itemValue)
+function addRatedValue(requestedSchema, values, schema, value) {
+  assert(requestedSchema.type !== "array")
+  if (schema.type === "array") {
+    if (Array.isArray(schema.items)) {
+      for (let [index, itemValue] of value.entries()) {
+        addRatedValue(requestedSchema, values, schema.items[index], itemValue)
+      }
+    } else {
+      for (let itemValue of value) {
+        addRatedValue(requestedSchema, values, schema.items, itemValue)
+      }
     }
-  } else if (schemaType === requestedSchemaType) {
+  } else if (schema.$ref === requestedSchema.$ref && schema.type === requestedSchema.type) {
     values.add(value)
   }
 }
@@ -81,6 +86,215 @@ async function describe(statement) {
     return `tag "${statement.name}" of ${taggedDescription}` 
   } else {
     return `statement of unknown type ${type}` 
+  }
+}
+
+
+async function handlePropertyChange(cardId, propertyName) {
+  let cardEntry = await db.oneOrNone("SELECT * FROM statements WHERE id = $1", cardId)
+  if (cardEntry === null) return
+
+  // Retrieve all the properties of the card having the same name.
+  let sameNameProperties = (await db.any(
+    `SELECT * FROM statements
+      WHERE type = 'Property'
+      AND (data->>'statementId')::bigint = $<cardId>
+      AND data->>'name' = $<propertyName>`,
+    {
+      cardId: cardEntry.id,
+      propertyName,
+    },
+  )).map(entryToStatement)
+
+  // Add inverse properties of bijective URI references.
+  let inverseSameNameProperties = (await db.any(
+    `SELECT * FROM statements
+      WHERE type = 'Property'
+      AND (data->'schema'->>'$ref') = '/schemas/bijective-uri-reference'
+      AND (data->'value'->>'targetId')::bigint = $<cardId>
+      AND (data->'value'->>'reverseName') = $<propertyName>`,
+    {
+      cardId: cardEntry.id,
+      propertyName,
+    },
+  )).map(entryToStatement)
+  for (let inverseProperty of inverseSameNameProperties) {
+    sameNameProperties.push({
+      id: inverseProperty.id,
+      name: inverseProperty.value.reverseName,
+      rating: inverseProperty.rating,
+      ratingCount: inverseProperty.ratingCount,
+      ratingSum: inverseProperty.ratingSum,
+      schema: {
+        type: "string",
+        format: "uriref",
+      },
+      statementId: inverseProperty.value.targetId,
+      value: inverseProperty.statementId,
+      widget: {
+        tag: "RatedItemOrSet",
+      },
+    })
+  }
+
+  // Add inverse properties of arrays of bijective URI references.
+  let inverseSameNameArrayProperties = (await db.any(
+    `SELECT * FROM statements
+      WHERE type = 'Property'
+      AND (data->'schema'->>'type') = 'array'
+      AND (data->'schema'->'items') @> '{"$ref": "/schemas/bijective-uri-reference"}'
+      AND (data->'value') @> '{"reverseName": $<propertyName~>, "targetId": $<cardId~>}'`,
+    {
+      cardId: cardEntry.id,
+      propertyName,
+    },
+  )).map(entryToStatement)
+  for (let inverseProperty of inverseSameNameArrayProperties) {
+    let schemaItems = inverseProperty.schema.items
+    if (Array.isArray(schemaItems)) {
+      for (let [index, itemSchema] of schemaItems) {
+        if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
+          let itemValue = inverseProperty.value[index]
+          sameNameProperties.push({
+            id: inverseProperty.id,
+            name: itemValue.reverseName,
+            rating: inverseProperty.rating,
+            ratingCount: inverseProperty.ratingCount,
+            ratingSum: inverseProperty.ratingSum,
+            schema: {
+              type: "string",
+              format: "uriref",
+            },
+            statementId: itemValue.targetId,
+            value: inverseProperty.statementId,
+            widget: {
+              tag: "RatedItemOrSet",
+            },
+          })
+        }
+      }
+    } else {
+      let itemSchema =  inverseProperty.schema.items
+      if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
+        for (let itemValue of inverseProperty.value) {
+          sameNameProperties.push({
+            id: inverseProperty.id,
+            name: itemValue.reverseName,
+            rating: inverseProperty.rating,
+            ratingCount: inverseProperty.ratingCount,
+            ratingSum: inverseProperty.ratingSum,
+            schema: {
+              type: "string",
+              format: "uriref",
+            },
+            statementId: itemValue.targetId,
+            value: inverseProperty.statementId,
+            widget: {
+              tag: "RatedItemOrSet",
+            },
+          })
+        }
+      }
+    }
+  }
+
+  // Sort properties by rating and id.
+  sameNameProperties.sort(function (a, b) {
+    if (a.rating > b.rating) return -1
+    else if (a.rating < b.rating) return 1
+    else {
+      let aId = parseInt(a.id)
+      let bId = parseInt(b.id)
+      if (aId > bId) return -1
+      else if (aId < bId) return 1
+      else return 0
+    }
+  })
+
+  let cardData = cardEntry.data
+  let oldCardData = JSON.parse(JSON.stringify(cardData))
+  let removeAttribute = true
+  if (sameNameProperties.length > 0) {
+    // TODO: Improve search of best property. For example, if any of the best rated properties is of type
+    // "RatedItemOrSet", it wins even when it is not the oldest (lowest id).
+    let bestProperty = sameNameProperties[0]
+    let bestRating = bestProperty.rating
+    if (bestRating > 0) {
+      // Sometimes the best property is not the oldest of the best rated properties.
+      for (let property of sameNameProperties) {
+        if (property.rating < bestRating) break
+        if (property.widget.tag === "RatedItemOrSet") {
+          let requestedSchema = property.schema
+          if (requestedSchema.type === "array") {
+            requestedSchema = (Array.isArray(requestedSchema.items)) ? requestedSchema.items[0] : requestedSchema.items
+          }
+          let ratedValues = new Set()
+          for (let property1 of sameNameProperties) {
+            if (property1.rating <= 0) break
+            addRatedValue(requestedSchema, ratedValues, property1.schema, property1.value)
+          }
+          bestProperty = {
+            name: property.name,
+            schema: property.schema,
+            value: [...ratedValues].sort(),
+            widget: property.widget,
+          }
+          break
+        }
+      }
+
+      // Simplify value to use it as an attribute.
+      let bestSchema = bestProperty.schema
+      let bestValue = bestProperty.value
+      if (bestSchema.$ref === "/schemas/bijective-uri-reference") {
+        bestValue = bestValue.targetId
+      } else if (bestSchema.type === "array") {
+        if (Array.isArray(bestSchema.items)) {
+          bestValue = Array.from(bestValue.entries()).map(function ([index, itemValue]) {
+            let itemSchema = bestSchema.items[index]
+            if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
+              itemValue = itemValue.targetId
+            }
+            return itemValue
+          })
+        } else if (bestSchema.items.$ref === "/schemas/bijective-uri-reference") {
+          if (bestSchema.items.$ref === "/schemas/bijective-uri-reference") {
+            bestValue = bestValue.map(itemValue => itemValue.targetId)
+          }
+        }
+      }
+
+      removeAttribute = false
+      if (!cardData.values) cardData.values = {}
+      cardData.values[bestProperty.name] = bestValue
+      if (!cardData.schemas) cardData.schemas = {}
+      cardData.schemas[bestProperty.name] = bestProperty.schema
+      if (!cardData.widgets) cardData.widgets = {}
+      cardData.widgets[bestProperty.name] = bestProperty.widget
+    }
+  }
+  if (removeAttribute) {
+    if (cardData.values) {
+      delete cardData.values[propertyName]
+      if (Object.keys(cardData.values).length === 0) delete cardData.values
+    }
+    if (cardData.schemas) {
+      delete cardData.schemas[propertyName]
+      if (Object.keys(cardData.schemas).length === 0) delete cardData.schemas
+    }
+    if (cardData.widgets) {
+      delete cardData.widgets[propertyName]
+      if (Object.keys(cardData.widgets).length === 0) delete cardData.widgets
+    }
+  }
+  if (!deepEqual(cardData, oldCardData)) {
+    await db.none(
+      `UPDATE statements
+        SET data = $<data>
+        WHERE id = $<id>`,
+      cardEntry,
+    )
+    await generateStatementTextSearch(entryToStatement(cardEntry))
   }
 }
 
@@ -154,7 +368,7 @@ async function processAction(action) {
         )
       }
 
-      // Propagate statement rating change.
+      // Propagate change of statement rating.
       let claimArguments = (await db.any(
         `SELECT * FROM statements
           WHERE (data->>'groundId')::bigint = $<id>`,
@@ -197,82 +411,24 @@ async function processAction(action) {
       } else if (statement.type === "Argument") {
         await addBallotAction(statement.claimId)
       } else if (statement.type === "Property") {
-        let cardEntry = await db.oneOrNone(
-            `SELECT * FROM statements
-              WHERE id = $<statementId>`,
-            statement,
-        )
-        if (cardEntry !== null) {
-          let sameNameProperties = (await db.any(
-            `SELECT * FROM statements
-              WHERE type = 'Property'
-              AND (data->>'statementId')::bigint = $<cardId>
-              AND data->>'name' = $<propertyName>
-              ORDER BY rating DESC, id DESC`,
-            {
-              cardId: cardEntry.id,
-              propertyName: statement.name,
-            },
-          )).map(entryToStatement)
-          let cardData = cardEntry.data
-          let oldCardData = JSON.parse(JSON.stringify(cardData))
-          let removeAttribute = true
-          if (sameNameProperties.length > 0) {
-            // TODO: Improve search of best property. For example, if any of the best rated properties is of type
-            // "RatedItem", it wins even when it is not the oldest (lowest id).
-            let bestProperty = sameNameProperties[0]
-            let bestRating = bestProperty.rating
-            if (bestRating > 0) {
-              // Sometimes the best property is not the oldest of the best rated properties.
-              for (let property of sameNameProperties) {
-                if (property.rating < bestRating) break
-                if (property.widget.tag === "RatedItem") {
-                  let requestedSchemaType = property.schema.type
-                  let ratedValues = new Set()
-                  for (let property1 of sameNameProperties) {
-                    if (property1.rating <= 0) break
-                    addRatedValue(requestedSchemaType, ratedValues, property1.schema, property1.value)
-                  }
-                  bestProperty = {
-                    schema: property.schema,
-                    value: [...ratedValues].sort(),
-                    widget: property.widget,
-                  }
-                  break
-                }
+        await handlePropertyChange(statement.statementId, statement.name)
+        // If property contains bijective links between 2 cards, also handle the change of the reverse properties.
+        let schema = statement.schema
+        if (schema.$ref === "/schemas/bijective-uri-reference") {
+          let value = statement.value
+          await handlePropertyChange(value.targetId, value.reverseName)
+        } else if (schema.type === "array") {
+          if (Array.isArray(schema.items)) {
+            for (let [index, itemSchema] of schema.items.entries()) {
+              if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
+                let itemValue = statement.value[index]
+                await handlePropertyChange(itemValue.targetId, itemValue.reverseName)
               }
-
-              removeAttribute = false
-              if (!cardData.values) cardData.values = {}
-              cardData.values[bestProperty.name] = bestProperty.value
-              if (!cardData.schemas) cardData.schemas = {}
-              cardData.schemas[bestProperty.name] = bestProperty.schema
-              if (!cardData.widgets) cardData.widgets = {}
-              cardData.widgets[bestProperty.name] = bestProperty.widget
             }
-          }
-          if (removeAttribute) {
-            if (cardData.values) {
-              delete cardData.values[statement.name]
-              if (Object.keys(cardData.values).length === 0) delete cardData.values
+          } else if (schema.items.$ref === "/schemas/bijective-uri-reference") {
+            for (let itemValue of statement.value) {
+              await handlePropertyChange(itemValue.targetId, itemValue.reverseName)
             }
-            if (cardData.schemas) {
-              delete cardData.schemas[statement.name]
-              if (Object.keys(cardData.schemas).length === 0) delete cardData.schemas
-            }
-            if (cardData.widgets) {
-              delete cardData.widgets[statement.name]
-              if (Object.keys(cardData.widgets).length === 0) delete cardData.widgets
-            }
-          }
-          if (!deepEqual(cardData, oldCardData)) {
-            await db.none(
-              `UPDATE statements
-                SET data = $<data>
-                WHERE id = $<id>`,
-              cardEntry,
-            )
-            await generateStatementTextSearch(entryToStatement(cardEntry))
           }
         }
       } else if (statement.type === "Tag") {
