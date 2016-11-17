@@ -12,8 +12,11 @@
     "deep-equal": "^1.0.1",
     "express": "^4.14.0",
     "express-ws": "^2.0.0-rc.1",
+    "gm": "^1.23.0",
+    "md5-file": "^3.1.1",
     "mz": "^2.4.0",
     "pg-promise": "^5.3.4",
+    "quickthumb": "0.0.12",
     "slug": "^0.9.1",
     "swagger-express-middleware": "^1.0.0-alpha.12"
   },

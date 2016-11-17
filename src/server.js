@@ -23,6 +23,8 @@ import bodyParser from "body-parser"
 import express from "express"
 import expressWs from "express-ws"
 import http from "http"
+import path from "path"
+import quickthumb from "quickthumb"
 import swagger from "swagger-express-middleware"
 
 import config from "./config"
@@ -32,6 +34,7 @@ import * as argumentsController from "./controllers/arguments"
 import * as ballotsController from "./controllers/ballots"
 import * as statementsController from "./controllers/statements"
 import * as tagsController from "./controllers/tags"
+import * as uploadsController from "./controllers/uploads"
 import * as usersController from "./controllers/users"
 import * as schemas from "./schemas"
 import swaggerSpecification from "./swagger"
@@ -56,6 +59,8 @@ app.ws("/test", function (ws, req) {
   })
   console.log("socket", req.testing)
 })
+
+app.use("/images", quickthumb.static(path.join(config.uploads, "images"), {type: "resize"}))
 
 const swaggerMiddleware = new swagger.Middleware()
 swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
@@ -142,6 +147,8 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   app.post("/statements/:statementId/tags/:tagName/rating",
     usersController.authenticate(true), statementsController.requireStatement, tagsController.requireTag,
     ballotsController.upsertBallot)
+
+  app.post("/uploads/images", usersController.authenticate(true), uploadsController.uploadImage)
 
   app.get("/users", usersController.listUsersUrlName)
   app.post("/users", usersController.createUser)

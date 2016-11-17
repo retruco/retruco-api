@@ -19,6 +19,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import path from "path"
+
+
 export default {
   contact: {
     // email:
@@ -55,4 +58,5 @@ export default {
   port: 3000,
   proxy: false,  // Is this application used behind a trusted proxy?
   title: "Retruco-API",
+  uploads: path.normalize(path.join(__dirname, "..", "uploads")),
 }
