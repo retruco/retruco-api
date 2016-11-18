@@ -393,13 +393,19 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         if (!Array.isArray(value)) {
           schema = schema.items
         } else if (value.length === 0) {
-          schema = schema.items
+          schema = {type: null}
           value = null
         } else if (value.length === 1) {
           schema = schema.items
           value = value[0]
         }
       } else if (Array.isArray(value)) {
+        if (value.length > 0) {
+          value = value[0]
+        } else {
+          schema = {type: null}
+          value = null
+        }
         value = value.length > 0 ? value[0] : null
       }
 
@@ -722,6 +728,7 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
       showTags: show.includes("tags"),
       statements,
     }),
@@ -744,6 +751,7 @@ export const deleteStatement = wrapAsyncMiddleware(async function deleteStatemen
     showBallot: show.includes("ballot"),
     showGrounds: show.includes("grounds"),
     showProperties: show.includes("properties"),
+    showReferences: show.includes("references"),
     showTags: show.includes("tags"),
   })
   // TODO: If delete is kept, also remove all other linked statements (grounds, tags, abuse, etc).
@@ -768,6 +776,7 @@ export const getStatement = wrapAsyncMiddleware(async function getStatement(req,
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
       showTags: show.includes("tags"),
     }),
   })
@@ -912,6 +921,7 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
       showTags: show.includes("tags"),
     }),
     limit: limit,

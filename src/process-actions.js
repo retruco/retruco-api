@@ -236,6 +236,7 @@ async function handlePropertyChange(cardId, propertyName) {
             addRatedValue(requestedSchema, ratedValues, property1.schema, property1.value)
           }
           if (ratedValues.length === 0) {
+            requestedSchema = {type: null}
             ratedValues = null
           } else if (ratedValues.length === 1) {
             ratedValues = ratedValues[0]

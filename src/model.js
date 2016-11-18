@@ -57,6 +57,25 @@ async function addBallotAction(statementId) {
 }
 
 
+function addReferences(referencedIds, schema, value) {
+  if (schema.$ref === "/schemas/bijective-uri-reference") {
+    referencedIds.add(value.targetId)
+  } else if (schema.type === "array") {
+    if (Array.isArray(schema.items)) {
+      for (let [index, itemSchema] of schema.items.entries()) {
+        addReferences(referencedIds, itemSchema, value[index])
+      }
+    } else {
+      for (let itemValue of value) {
+        addReferences(referencedIds, schema.items, itemValue)
+      }
+    }
+  } else if (schema.type === "string" && schema.format === "uriref") {
+    referencedIds.add(value)
+  }
+}
+
+
 export function ownsUser(user, otherUser) {
   if (!user) return false
   if (user.isAdmin) return true
@@ -152,7 +171,7 @@ async function rateStatement(statementId, voterId, rating) {
 
 export {toBallotData}
 async function toBallotData(ballot, statements, user, {depth = 0, showAbuse = false, showAuthor = false,
-  showBallot = false, showGrounds = false, showProperties = false, showTags = false} = {}) {
+  showBallot = false, showGrounds = false, showProperties = false, showReferences = false, showTags = false} = {}) {
   let data = {
     ballots: {[ballot.id]: toBallotJson(ballot)},
     id: ballot.id,
@@ -166,7 +185,7 @@ async function toBallotData(ballot, statements, user, {depth = 0, showAbuse = fa
 
   for (let statement of statements) {
     await toStatementData1(data, statement, statementsCache, user,
-      {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+      {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
   }
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
@@ -185,7 +204,7 @@ function toBallotJson(ballot) {
 
 export {toStatementData}
 async function toStatementData(statement, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
-  showGrounds = false, showProperties = false, showTags = false, statements = []} = {}) {
+  showGrounds = false, showProperties = false, showReferences = false, showTags = false, statements = []} = {}) {
   let data = {
     ballots: {},
     id: statement.id,
@@ -198,7 +217,7 @@ async function toStatementData(statement, user, {depth = 0, showAbuse = false, s
   }
 
   await toStatementData1(data, statement, statementsCache, user,
-    {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+    {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
   if (Object.keys(data.statements).length === 0) delete data.statements
@@ -208,7 +227,8 @@ async function toStatementData(statement, user, {depth = 0, showAbuse = false, s
 
 
 async function toStatementData1(data, statement, statementsCache, user, {depth = 0, showAbuse = false,
-  showAuthor = false, showBallot = false, showGrounds = false, showProperties = false, showTags = false} = {}) {
+  showAuthor = false, showBallot = false, showGrounds = false, showProperties = false, showReferences = false,
+  showTags = false} = {}) {
   let statementJsonById = data.statements
   if (statementJsonById[statement.id]) return
 
@@ -226,7 +246,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         statement,
       ))
       await toStatementData1(data, flaggedStatement, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
     }
   } else if (statement.type === "Argument") {
     if (statement.claimId) {
@@ -236,7 +256,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         statement,
       ))
       await toStatementData1(data, claim, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
     }
     if (statement.groundId) {
       const ground = entryToStatement(await db.oneOrNone(
@@ -245,7 +265,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         statement,
       ))
       await toStatementData1(data, ground, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
     }
   } else if (statement.type === "Property") {
     if (statement.statementId) {
@@ -255,7 +275,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         statement,
       ))
       await toStatementData1(data, statementWithProperties, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
     }
   } else if (statement.type === "Tag") {
     if (statement.statementId) {
@@ -265,7 +285,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
         statement,
       ))
       await toStatementData1(data, taggedStatement, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
     }
   }
 
@@ -278,7 +298,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     statementJson.abuseId = abuse !== null ? abuse.id : null
     if (depth > 0 && abuse !== null) {
       await toStatementData1(data, abuse, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
     }
   }
   if (showGrounds) {
@@ -291,7 +311,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     if (groundArguments.length > 0 && depth > 0) {
       for (let groundArgument of groundArguments) {
         await toStatementData1(data, groundArgument, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
       }
       const groundStatements = (await db.any(
         `SELECT * FROM statements
@@ -300,7 +320,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
       )).map(entryToStatement)
       for (let groundStatement of groundStatements) {
         await toStatementData1(data, groundStatement, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
       }
     }
   }
@@ -335,10 +355,29 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
       }
       if (depth > 0 && (activePropertiesIds.includes(property.id) || userPropertiesIds.includes(property.id))) {
         await toStatementData1(data, property, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
       }
     }
     if (userPropertiesIds.length > 0) statement.userPropertiesIds = userPropertiesIds
+  }
+  if (showReferences && depth > 0 && statement.type === "Card") {
+    let referencedIds = new Set()
+    for (let [name, schema] of Object.entries(statement.schemas)) {
+      addReferences(referencedIds, schema, statement.values[name])
+    }
+    if (referencedIds.length > 0) {
+      const references = (await db.any(
+        `SELECT * FROM statements
+          WHERE id IN ($<referencedIds:csv>)`,
+        {
+          referencedIds: [...referencedIds].sort(),
+        },
+      )).map(entryToStatement)
+      for (let reference of references) {
+        await toStatementData1(data, reference, statementsCache, user,
+          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+      }
+    }
   }
   if (showTags) {
     const tags = (await db.any(
@@ -350,7 +389,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     if (depth > 0) {
       for (let tag of tags) {
         await toStatementData1(data, tag, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
       }
     }
   }
@@ -388,7 +427,7 @@ export function toStatementJson(statement) {
 
 export {toStatementsData}
 async function toStatementsData(statements, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
-  showGrounds = false, showProperties = false, showTags = false} = {}) {
+  showGrounds = false, showProperties = false, showReferences = false, showTags = false} = {}) {
   let data = {
     ballots: {},
     ids: statements.map(statement => statement.id),
@@ -402,7 +441,7 @@ async function toStatementsData(statements, user, {depth = 0, showAbuse = false,
 
   for (let statement of statements) {
     await toStatementData1(data, statement, statementsCache, user,
-      {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showTags})
+      {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
   }
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots

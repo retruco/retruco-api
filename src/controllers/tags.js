@@ -41,6 +41,7 @@ export const listStatementTags = wrapAsyncMiddleware(async function listStatemen
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
       showTags: show.includes("tags"),
     }),
   })

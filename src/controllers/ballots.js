@@ -70,6 +70,7 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
     showBallot: show.includes("ballot"),
     showGrounds: show.includes("grounds"),
     showProperties: show.includes("properties"),
+    showReferences: show.includes("references"),
     showTags: show.includes("tags"),
   })
   res.json({
@@ -103,6 +104,7 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) 
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
       showTags: show.includes("tags"),
     }),
   })
@@ -143,6 +145,7 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
       showBallot: show.includes("ballot"),
       showGrounds: show.includes("grounds"),
       showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
       showTags: show.includes("tags"),
     }),
   })
