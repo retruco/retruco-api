@@ -233,10 +233,21 @@ async function handlePropertyChange(cardId, propertyName) {
             if (property1.rating <= 0) break
             addRatedValue(requestedSchema, ratedValues, property1.schema, property1.value)
           }
+          if (ratedValues.length === 0) {
+            ratedValues = null
+          } else if (ratedValues.length === 1) {
+            ratedValues = ratedValues[0]
+          } else {
+            requestedSchema = {
+              type: "array",
+              items: requestedSchema,
+            }
+            ratedValues = [...ratedValues].sort()
+          }
           bestProperty = {
             name: property.name,
-            schema: property.schema,
-            value: [...ratedValues].sort(),
+            schema: requestedSchema,
+            value: ratedValues,
             widget: property.widget,
           }
           break
