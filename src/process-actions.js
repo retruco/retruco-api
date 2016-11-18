@@ -40,7 +40,9 @@ function addRatedValue(requestedSchema, values, schema, value) {
       }
     }
   } else if (schema.$ref === requestedSchema.$ref && schema.type === requestedSchema.type) {
-    values.add(value)
+    if (values.every(item => !deepEqual(item, value))) {
+      values.push(value)
+    }
   }
 }
 
@@ -198,7 +200,7 @@ async function handlePropertyChange(cardId, propertyName) {
     }
   }
 
-  // Sort properties by rating and id.
+  // Sort properties by decreasing rating and id.
   sameNameProperties.sort(function (a, b) {
     if (a.rating > b.rating) return -1
     else if (a.rating < b.rating) return 1
@@ -228,7 +230,7 @@ async function handlePropertyChange(cardId, propertyName) {
           if (requestedSchema.type === "array") {
             requestedSchema = (Array.isArray(requestedSchema.items)) ? requestedSchema.items[0] : requestedSchema.items
           }
-          let ratedValues = new Set()
+          let ratedValues = []
           for (let property1 of sameNameProperties) {
             if (property1.rating <= 0) break
             addRatedValue(requestedSchema, ratedValues, property1.schema, property1.value)
@@ -254,30 +256,9 @@ async function handlePropertyChange(cardId, propertyName) {
         }
       }
 
-      // Simplify value to use it as an attribute.
-      let bestSchema = bestProperty.schema
-      let bestValue = bestProperty.value
-      if (bestSchema.$ref === "/schemas/bijective-uri-reference") {
-        bestValue = bestValue.targetId
-      } else if (bestSchema.type === "array") {
-        if (Array.isArray(bestSchema.items)) {
-          bestValue = Array.from(bestValue.entries()).map(function ([index, itemValue]) {
-            let itemSchema = bestSchema.items[index]
-            if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
-              itemValue = itemValue.targetId
-            }
-            return itemValue
-          })
-        } else if (bestSchema.items.$ref === "/schemas/bijective-uri-reference") {
-          if (bestSchema.items.$ref === "/schemas/bijective-uri-reference") {
-            bestValue = bestValue.map(itemValue => itemValue.targetId)
-          }
-        }
-      }
-
       removeAttribute = false
       if (!cardData.values) cardData.values = {}
-      cardData.values[bestProperty.name] = bestValue
+      cardData.values[bestProperty.name] = bestProperty.value
       if (!cardData.schemas) cardData.schemas = {}
       cardData.schemas[bestProperty.name] = bestProperty.schema
       if (!cardData.widgets) cardData.widgets = {}
