@@ -48,5 +48,9 @@
     "discussion",
     "statement",
     "vote"
-  ]
+  ],
+  "engineStrict" : true,
+  "engines": {
+    "node": ">= 5.10.0"
+  }
 }
