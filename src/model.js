@@ -921,7 +921,7 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
     for (let [name, schema] of Object.entries(statement.schemas)) {
       addReferences(referencedIds, schema, statement.values[name])
     }
-    if (referencedIds.length > 0) {
+    if (referencedIds.size > 0) {
       const references = (await db.any(
         `SELECT * FROM statements
           WHERE id IN ($<referencedIds:csv>)`,
