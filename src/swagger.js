@@ -21,6 +21,25 @@
 
 import config from "./config"
 import {types} from "./model"
+import {schemaByPath} from "./schemas"
+
+
+const schemaSpecificationByPath = {}
+for (let [path, schema] of Object.entries(schemaByPath)) {
+  schemaSpecificationByPath[path] = {
+    get: {
+      tags: ["schema"],
+      summary: schema.description,
+      responses: {
+        "200": {
+          schema: {
+            type: "object",
+          },
+        },
+      },
+    },
+  }
+}
 
 
 const SPEC = {
@@ -39,6 +58,7 @@ const SPEC = {
   consumes: ["application/json"],
   produces: ["application/json"],
   paths: {
+    ...schemaSpecificationByPath,
     "/": {
       get: {
         tags: ["home"],
@@ -87,25 +107,49 @@ const SPEC = {
       },
     },
     "/cards": {
-      post: {
-        tags: ["card", "statement"],
-        summary: "Create a new card, giving its initial attributes, schemas & widgets",
+      get: {
+        tags: ["cards"],
+        summary: "List cards",
         // description: "",
         // externalDocs: {},
-        operationId: "statements.createCard",
+        operationId: "cards.list",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/cardBodyParam",
+            $ref: "#/parameters/depthParam",
           },
           {
-            $ref: "#/parameters/apiKeyRequiredParam",
+            $ref: "#/parameters/languageCodeParam",
+          },
+          {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/offsetQueryParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/tagsNameQueryParam",
+          },
+          {
+            $ref: "#/parameters/termQueryParam",
+          },
+          {
+            $ref: "#/parameters/typesQueryParam",
+          },
+          {
+            $ref: "#/parameters/userNameQueryParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
           },
         ],
         responses: {
-          "201": {
-            description: "A wrapper containing the created card",
+          "200": {
+            description: "A wrapper containing cards",
             schema: {
               type: "object",
               properties: {
@@ -113,7 +157,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataIdsList",
                 },
               },
               required: [
@@ -131,7 +175,7 @@ const SPEC = {
         },
         // deprecated: true,
         // schemes: ["http", "https", "ws", "wss"],
-        // security: [{apiKey: []}, {basic: []}],
+        // security: {},
       },
     },
     "/cards/bundle": {
@@ -181,17 +225,52 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
-    "/schemas/bijective-uri-reference": {
-      get: {
-        tags: ["schema"],
-        summary: "JSON Schema for a property of type bijective URI reference",
+    "/cards/easy": {
+      post: {
+        tags: ["card", "statement"],
+        summary: "Create a new card, giving its initial attributes, schemas & widgets",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statements.createCard",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/cardBodyParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
         responses: {
-          "200": {
+          "201": {
+            description: "A wrapper containing the created card",
             schema: {
               type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
             },
           },
         },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
       },
     },
     "/statements": {
@@ -2325,6 +2404,10 @@ const SPEC = {
           key: {
             type: "string",
           },
+          language: {
+            description: "Language used by default by the cards (for example, for the keys of their attributes)",
+            $ref: "#/definitions/LanguageCode",
+          },
           schemas: {
             type: "object",
             additionalProperties: {
@@ -2341,6 +2424,7 @@ const SPEC = {
         required: [
           "cards",
           "key",
+          "language",
         ],
       },
     },

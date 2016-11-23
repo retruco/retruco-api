@@ -21,7 +21,8 @@
 
 import assert from "assert"
 
-import {checkDatabase, db, entryToStatement, generateStatementTextSearch, versionTextSearchNumber} from "./database"
+import {checkDatabase, db, versionTextSearchNumber} from "./database"
+import {generateObjectTextSearch, getObjectFromId} from "./model"
 
 
 async function generateTextSearch () {
@@ -32,9 +33,10 @@ async function generateTextSearch () {
     console.log(`Upgrading text search indexes from version ${version.text} to ${versionTextSearchNumber}...`)
   }
 
-  let statements = (await db.any("SELECT * FROM statements")).map(entryToStatement)
-  for (let statement of statements) {
-    await generateStatementTextSearch(statement)
+  let ids = (await db.any("SELECT id FROM objects")).map(entry => entry.id)
+  for (let id of ids) {
+    let object = await getObjectFromId(id)
+    await generateObjectTextSearch(object)
   }
 
   if (version.text < versionTextSearchNumber) {
@@ -50,6 +52,6 @@ async function generateTextSearch () {
 checkDatabase({ignoreTextSearchVersion: true})
   .then(generateTextSearch)
   .catch(error => {
-    console.log(error.stack)
+    console.log(error.stack || error)
     process.exit(1)
   })

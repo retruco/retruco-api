@@ -19,12 +19,484 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {configure as configureDatabase} from "./database"
+import assert from "assert"
+
+import {db, entryToStatement, versionNumber} from "./database"
+import {entryToValue, generateObjectTextSearch, getOrNewValue, types} from "./model"
+import {getIdFromSymbol, symbolizedTypedValues, valueIdBySymbol} from "./symbols"
+
+
+async function configureDatabase() {
+  // Check that database exists.
+  await db.connect()
+
+  // Table: version
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS version(
+      number integer NOT NULL,
+      text integer NOT NULL
+    )
+  `)
+  let version = await db.oneOrNone("SELECT * FROM version")
+  if (version === null) {
+    await db.none("INSERT INTO version(number, text) VALUES ($<number>, $<text>)", {
+      number: versionNumber,
+      text: 0,
+    })
+    version = await db.one("SELECT * FROM version")
+  }
+  assert(version.number <= versionNumber,
+    `Database is too recent for current version of application: ${version.number} > ${versionNumber}.`)
+  if (version.number < versionNumber) {
+    console.log(`Upgrading database from version ${version.number} to ${versionNumber}...`)
+  }
+
+  if (version.number < 1) {
+    // Remove non UNIQUE index to recreate it.
+    await db.none("DROP INDEX IF EXISTS statements_hash_idx")
+  }
+  if (version.number < 5) {
+    // Add support for trigrams.
+    // TODO: Database user must be database owner.
+    // await db.none("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+    console.log(`
+      YOU MUST manually execute the following SQL commands:
+        CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    `)
+  }
+  if (version.number < 7) {
+    await db.none("ALTER TABLE version ADD COLUMN IF NOT EXISTS text integer")
+    await db.none("UPDATE version SET text = $1", 0)
+    await db.none("ALTER TABLE version ALTER COLUMN text SET NOT NULL")
+  }
+  if (version.number < 9) {
+    console.log(`
+      Database schema has changed and is not upgradable.
+      YOU MUST manually execute the following SQL commands:
+        DROP TABLE actions, ballots, statements, statements_autocomplete, statements_text_search, users;
+        DROP TYPE event_type, statement_type;
+    `)
+  }
+
+  // Objects
+
+  // Table: objects
+  // An object is something that may have properties.
+  await db.none(
+    `
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'object_type') THEN
+          CREATE TYPE object_type AS ENUM ($<types:csv>);
+        END IF;
+      END$$
+    `,
+    {
+      types,
+    },
+  )
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS objects(
+      created_at timestamp without time zone NOT NULL,
+      id bigserial NOT NULL PRIMARY KEY,
+      properties jsonb,
+      type object_type NOT NULL
+    )
+  `)
+  await db.none("CREATE INDEX IF NOT EXISTS objects_created_at_idx ON objects(created_at)")
+
+  // Table: users
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS users(
+      api_key text NOT NULL,
+      email text NOT NULL,
+      id bigint NOT NULL PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+      is_admin boolean NOT NULL DEFAULT FALSE,
+      name text NOT NULL,
+      password_digest text NOT NULL,
+      salt text NOT NULL,
+      url_name text NOT NULL
+    )
+  `)
+  await db.none("CREATE INDEX IF NOT EXISTS users_api_key_idx ON users(api_key)")
+  await db.none("CREATE INDEX IF NOT EXISTS users_email_idx ON users(email)")
+  await db.none("CREATE INDEX IF NOT EXISTS users_url_name_idx ON users(url_name)")
+
+  // Table: users_autocomplete
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS users_autocomplete(
+      autocomplete text NOT NULL,
+      id bigint NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS users_autocomplete_trigrams_idx
+      ON users_autocomplete
+      USING GIST (autocomplete gist_trgm_ops)
+  `)
+
+  // Table: users_text_search
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS users_text_search(
+      configuration_name text NOT NULL,
+      id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      text_search tsvector,
+      PRIMARY KEY (id, configuration_name)
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS users_text_search_idx
+      ON users_text_search
+      USING GIN (text_search)
+  `)
+
+  // Table: values
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS values(
+      id bigint NOT NULL PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+      schema_id bigint NOT NULL REFERENCES values(id) ON DELETE RESTRICT,
+      value jsonb NOT NULL,
+      widget_id bigint REFERENCES values(id) ON DELETE RESTRICT
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS values_schema_id_widget_id_value_idx
+    ON values(schema_id, widget_id, value)
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS values_value_idx
+    ON values USING GIN (value jsonb_path_ops)
+  `)
+
+  // Table: values_autocomplete
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS values_autocomplete(
+      autocomplete text NOT NULL,
+      id bigint NOT NULL PRIMARY KEY REFERENCES values(id) ON DELETE CASCADE
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS values_autocomplete_trigrams_idx
+      ON values_autocomplete
+      USING GIST (autocomplete gist_trgm_ops)
+  `)
+
+  // Table: values_symbols
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS values_symbols(
+      id bigint NOT NULL REFERENCES values(id) ON DELETE CASCADE,
+      symbol text NOT NULL PRIMARY KEY
+    )
+  `)
+
+  // Table: values_text_search
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS values_text_search(
+      configuration_name text NOT NULL,
+      id bigint NOT NULL REFERENCES values(id) ON DELETE CASCADE,
+      text_search tsvector,
+      PRIMARY KEY (id, configuration_name)
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS values_text_search_idx
+      ON values_text_search
+      USING GIN (text_search)
+  `)
+
+  // Rated Objects (aka statements)
+
+  // Table: statements
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS statements(
+      id bigint NOT NULL PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+      rating double precision NOT NULL DEFAULT 0,
+      rating_count integer NOT NULL DEFAULT 0,
+      rating_sum integer NOT NULL DEFAULT 0
+    )
+  `)
+
+  // Table: cards
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS cards(
+      id bigint NOT NULL PRIMARY KEY REFERENCES statements(id) ON DELETE CASCADE
+    )
+  `)
+
+  // Table: cards_autocomplete
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS cards_autocomplete(
+      autocomplete text NOT NULL,
+      id bigint NOT NULL PRIMARY KEY REFERENCES cards(id) ON DELETE CASCADE
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS cards_autocomplete_trigrams_idx
+      ON cards_autocomplete
+      USING GIST (autocomplete gist_trgm_ops)
+  `)
+
+  // Table: cards_text_search
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS cards_text_search(
+      configuration_name text NOT NULL,
+      id bigint NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+      text_search tsvector,
+      PRIMARY KEY (id, configuration_name)
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS cards_text_search_idx
+      ON cards_text_search
+      USING GIN (text_search)
+  `)
+
+  // Table: concepts
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS concepts(
+      id bigint NOT NULL PRIMARY KEY REFERENCES statements(id) ON DELETE CASCADE,
+      value_id bigint NOT NULL REFERENCES values(id) ON DELETE RESTRICT
+    )
+  `)
+
+  // Table: concepts_autocomplete
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS concepts_autocomplete(
+      autocomplete text NOT NULL,
+      id bigint NOT NULL PRIMARY KEY REFERENCES concepts(id) ON DELETE CASCADE
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS concepts_autocomplete_trigrams_idx
+      ON concepts_autocomplete
+      USING GIST (autocomplete gist_trgm_ops)
+  `)
+
+  // Table: concepts_text_search
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS concepts_text_search(
+      configuration_name text NOT NULL,
+      id bigint NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
+      text_search tsvector,
+      PRIMARY KEY (id, configuration_name)
+    )
+  `)
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS concepts_text_search_idx
+      ON concepts_text_search
+      USING GIN (text_search)
+  `)
+
+  // Table: properties
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS properties(
+      id bigint NOT NULL PRIMARY KEY REFERENCES statements(id) ON DELETE CASCADE,
+      key_id bigint NOT NULL REFERENCES values(id) ON DELETE RESTRICT,
+      object_id bigint NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+      value_id bigint NOT NULL REFERENCES values(id) ON DELETE RESTRICT
+    )
+  `)
+  await db.none("CREATE INDEX IF NOT EXISTS properties_object_id_key_id_idx ON properties(object_id, key_id)")
+
+  // Table: actions
+  await db.none(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'event_type') THEN
+        CREATE TYPE event_type AS ENUM (
+          'properties',
+          'rating'
+        );
+      END IF;
+    END$$
+  `)
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS actions(
+      created_at timestamp without time zone NOT NULL,
+      id bigserial NOT NULL PRIMARY KEY,
+      object_id bigint NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+      type event_type NOT NULL,
+      UNIQUE (object_id, type)
+    )
+  `)
+  await db.none("CREATE INDEX IF NOT EXISTS actions_created_at_idx ON actions(created_at)")
+  await db.none("CREATE INDEX IF NOT EXISTS actions_type_object_id_idx ON actions(type, object_id)")
+  await db.none(`
+    CREATE OR REPLACE FUNCTION notify_new_action() RETURNS trigger AS $$
+    BEGIN
+      PERFORM pg_notify('new_action', '');
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql
+  `)
+  try {
+    await db.none("DROP TRIGGER action_inserted ON actions")
+  } catch (e) {}
+  await db.none(`
+    CREATE TRIGGER action_inserted AFTER INSERT ON actions
+    FOR EACH ROW
+    EXECUTE PROCEDURE notify_new_action()
+  `)
+
+  // Table: ballots
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS ballots(
+      rating smallint CHECK (rating >= -1 AND rating <= 1),
+      statement_id bigint NOT NULL REFERENCES statements(id) ON DELETE CASCADE,
+      updated_at timestamp without time zone NOT NULL,
+      voter_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (statement_id, voter_id)
+    )
+  `)
+  await db.none("CREATE INDEX IF NOT EXISTS ballots_statement_id_idx ON ballots(statement_id)")
+  // await db.none("CREATE INDEX IF NOT EXISTS ballots_updated_at_idx ON ballots(updated_at)")
+  await db.none("CREATE INDEX IF NOT EXISTS ballots_voter_id_idx ON ballots(voter_id)")
+
+  const previousVersionNumber = version.number
+
+  if (version.number < 2) {
+    try {
+      await db.none("DROP TRIGGER event_inserted ON events")
+    } catch (e) {}
+    await db.none("DROP TABLE IF EXISTS events")
+  }
+  if (version.number < 3) {
+    // TODO: Database user must be owner of type statement_type.
+    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Citation' AFTER 'Card'")
+    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation'")
+    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'PlainStatement'")
+    console.log(`
+      YOU MUST manually execute the following SQL commands:
+        ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Citation' AFTER 'Card';
+        ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation';
+        ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'Event';
+    `)
+  }
+  if (version.number < 4) {
+    let statements = (await db.any("SELECT * FROM statements")).map(entryToStatement)
+    for (let statement of statements) {
+      await generateObjectTextSearch(statement)
+    }
+  }
+  if (version.number < 8) {
+    console.log(`
+      YOU MUST manually execute the following SQL commands:
+        DROP TABLE actions, ballots, statements, statements_autocomplete, statements_text_search;
+        DROP TYPE statement_type;
+    `)
+  }
+
+  await configureSymbols()
+
+  version.number = versionNumber
+  assert(version.number >= previousVersionNumber,
+    `Error in database upgrade script: Wrong version number: ${version.number} < ${previousVersionNumber}.`)
+  if (version.number !== previousVersionNumber) {
+    await db.none("UPDATE version SET number = $1", version.number)
+    console.log(`Upgraded database from version ${previousVersionNumber} to ${version.number}.`)
+  }
+}
+
+
+async function configureSymbols() {
+  // Create missing symbols and their values.
+  let symbol = "/types/object"
+  let value = {type: "object"}
+  let typedValue = entryToValue(await db.oneOrNone(
+    `
+      SELECT * FROM objects
+      INNER JOIN values ON objects.id = values.id
+      INNER JOIN values_symbols ON values.id = values_symbols.id
+      WHERE schema_id = values.id
+      AND widget_id IS NULL
+      AND symbol = $<symbol>
+    `,
+    {
+      symbol,
+      value,
+    },
+  ))
+  if (typedValue === null) {
+    typedValue = entryToValue(await db.oneOrNone(
+      `
+        SELECT * FROM objects
+        INNER JOIN values ON objects.id = values.id
+        WHERE schema_id = values.id
+        AND widget_id IS NULL
+        AND value = $<value:json>
+      `,
+      {
+        value,
+      },
+    ))
+    if (typedValue === null) {
+      let result = await db.one(`
+        INSERT INTO objects(created_at, type)
+        VALUES (current_timestamp, 'Value')
+        RETURNING id
+      `)
+      typedValue = {
+        id: result.id,
+        value,
+      }
+      await db.none(
+        `INSERT INTO values(id, schema_id, value, widget_id)
+          VALUES ($<id>, $<id>, $<value:json>, NULL)`,
+        typedValue,
+      )
+    }
+    typedValue["symbol"] = symbol
+    await db.none(
+      `INSERT INTO values_symbols(id, symbol)
+        VALUES ($<id>, $<symbol>)
+        ON CONFLICT (symbol)
+        DO UPDATE SET id = $<id>
+        `,
+      typedValue,
+    )
+  }
+  valueIdBySymbol[symbol] = typedValue.id
+
+  for (let {schemaSymbol, symbol, value, widgetSymbol} of symbolizedTypedValues) {
+    let schemaId = getIdFromSymbol(schemaSymbol)
+    let widgetId = getIdFromSymbol(widgetSymbol)
+    let widgetClause = widgetId === null ? "widget_id IS NULL" : "widget_id = $<widgetId>"
+    let typedValue = entryToValue(await db.oneOrNone(
+      `
+        SELECT * FROM objects
+        INNER JOIN values ON objects.id = values.id
+        INNER JOIN values_symbols ON values.id = values_symbols.id
+        WHERE schema_id = $<schemaId>
+        AND ${widgetClause}
+        AND symbol = $<symbol>
+      `,
+      {
+        schemaId,
+        symbol,
+        value,
+        widgetId,
+      },
+    ))
+    if (typedValue === null) {
+      typedValue = await getOrNewValue(schemaId, widgetId, value)
+      typedValue.symbol = symbol
+      await db.none(
+        `INSERT INTO values_symbols(id, symbol)
+          VALUES ($<id>, $<symbol>)
+          ON CONFLICT (symbol)
+          DO UPDATE SET id = $<id>
+          `,
+        typedValue,
+      )
+    }
+    valueIdBySymbol[symbol] = typedValue.id
+  }
+}
 
 
 configureDatabase()
   .then(() => process.exit(0))
   .catch(error => {
-    console.log(error.stack)
+    console.log(error.stack || error)
     process.exit(1)
   })

@@ -19,41 +19,43 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {db, entryToAction, entryToBallot, entryToStatement, entryToUser} from "./database"
+import assert from "assert"
+
+import config from "./config"
+import {db} from "./database"
+import {getIdFromSymbol, valueIdBySymbol} from "./symbols"
+
+
+export const languageConfigurationNameByCode = {
+  en: "english",
+  fr: "french",
+  es: "spanish",
+}
 
 
 export const types = [
-  "Abuse",
-  "Argument",
   "Card",
-  "PlainStatement",
+  "Concept",
   "Property",
-  "Tag",
+  "User",
+  "Value",
 ]
 
 
-export {addBallotAction}
-async function addBallotAction(statementId) {
-  let action = {
-    statementId,
-    type: "rating",
-  }
-  let existingAction = entryToAction(await db.oneOrNone(
-    `SELECT * FROM actions
-      WHERE statement_id = $<statementId> AND type = 'rating'
-      LIMIT 1`,
-    action,
-  ))
-  if (existingAction !== null) return existingAction
-  let result = await db.one(
-    `INSERT INTO actions(created_at, statement_id, type)
-      VALUES (current_timestamp, $<statementId>, $<type>)
-      RETURNING created_at, id`,
-    action,
+export async function addAction(objectId, type) {
+  await db.none(
+    `
+      INSERT INTO actions(created_at, object_id, type)
+      VALUES (current_timestamp, $<objectId>, $<type>)
+      ON CONFLICT (object_id, type)
+      DO NOTHING
+    `,
+    {
+      objectId,
+      type,
+    },
   )
-  action.createdAt = result.created_at
-  action.id = result.id
-  return action
+  return null
 }
 
 
@@ -73,6 +75,560 @@ function addReferences(referencedIds, schema, value) {
   } else if (schema.type === "string" && schema.format === "uriref") {
     referencedIds.add(value)
   }
+}
+
+
+export async function describe(object) {
+  if (object === null) return "missing object"
+  const type = object.type
+  if (type === "Card") {
+    return `card ${object.id}`
+  } else if (type === "Concept") {
+    const valueDescription = await describe(await getObjectFromId(object.valueId))
+    return `concept based on ${valueDescription}`
+  } else if (type === "Property") {
+    const keyDescription = await describe(await getObjectFromId(object.keyId))
+    const objectDescription = await describe(await getObjectFromId(object.objectId))
+    const valueDescription = await describe(await getObjectFromId(object.valueId))
+    return `property of ${objectDescription}: ${keyDescription} = ${valueDescription}`
+  } else if (type === "User") {
+    return `user ${object.name} <${object.email}>`
+  } else if (type === "Value") {
+    return `value ${JSON.stringify(object.value)}`
+  } else {
+    return `object of unknown type ${type}`
+  }
+}
+
+
+export {entryToAction}
+function entryToAction(entry) {
+  return entry === null ? null : {
+    createdAt: entry.created_at,
+    id: entry.id,  // Use string for id.
+    objectId: entry.object_id,
+    type: entry.type,
+  }
+}
+
+
+export {entryToBallot}
+function entryToBallot(entry) {
+  return entry === null ? null : {
+    id: `${entry.statement_id}/${entry.voter_id}`,
+    rating: parseInt(entry.rating),
+    statementId: entry.statement_id,
+    updatedAt: entry.updated_at,
+    voterId: entry.voter_id,
+  }
+}
+
+
+export {entryToCard}
+function entryToCard(entry) {
+  // return entry === null ? null : {
+  //   ...entryToStatement(entry),
+  // }
+  return entry === null ? null : Object.assign({}, entryToStatement(entry))
+}
+
+
+export {entryToConcept}
+function entryToConcept(entry) {
+  // return entry === null ? null : {
+  //   ...entryToStatement(entry),
+  //   valueId: entry.value_id,
+  // }
+  return entry === null ? null : Object.assign({}, entryToStatement(entry), {
+    valueId: entry.value_id,
+  })
+}
+
+
+export {entryToProperty}
+function entryToProperty(entry) {
+  // return entry === null ? null : {
+  //   ...entryToStatement(entry),
+  //   keyId: entry.key_id,
+  //   objectId: entry.object_id,
+  //   valueId: entry.value_id,
+  // }
+  return entry === null ? null : Object.assign({}, entryToStatement(entry), {
+    keyId: entry.key_id,
+    objectId: entry.object_id,
+    valueId: entry.value_id,
+  })
+}
+
+
+export {entryToObject}
+function entryToObject(entry) {
+  return entry === null ? null : {
+    createdAt: entry.created_at,
+    id: entry.id,
+    properties: entry.properties,
+    type: entry.type,
+  }
+}
+
+
+export {entryToStatement}
+function entryToStatement(entry) {
+  // return entry === null ? null : {
+  //   ...entryToObject(entry),
+  //   rating: entry.rating,
+  //   ratingCount: entry.rating_count,
+  //   ratingSum: entry.rating_sum,
+  // }
+  return entry === null ? null : Object.assign({}, entryToObject(entry), {
+    rating: entry.rating,
+    ratingCount: entry.rating_count,
+    ratingSum: entry.rating_sum,
+  })
+}
+
+
+export {entryToUser}
+function entryToUser(entry) {
+  // return entry === null ? null : {
+  //   ...entryToObject(entry),
+  //   apiKey: entry.api_key,
+  //   email: entry.email,
+  //   isAdmin: entry.is_admin,
+  //   name: entry.name,
+  //   passwordDigest: entry.password_digest,
+  //   salt: entry.salt,
+  //   urlName: entry.url_name,
+  // }
+  return entry === null ? null : Object.assign({}, entryToObject(entry), {
+    apiKey: entry.api_key,
+    email: entry.email,
+    isAdmin: entry.is_admin,
+    name: entry.name,
+    passwordDigest: entry.password_digest,
+    salt: entry.salt,
+    urlName: entry.url_name,
+  })
+}
+
+
+export {entryToValue}
+function entryToValue(entry) {
+  // return entry === null ? null : {
+  //   ...entryToObject(entry),
+  //   schemaId: entry.schema_id,
+  //   symbol: entry.symbol,  // Given only when JOIN with table values_symbols
+  //   value: entry.value,
+  //   widgetId: entry.widget_id,
+  // }
+  return entry === null ? null : Object.assign({}, entryToObject(entry), {
+    schemaId: entry.schema_id,
+    symbol: entry.symbol,  // Given only when JOIN with table values_symbols
+    value: entry.value,
+    widgetId: entry.widget_id,
+  })
+}
+
+
+export async function generateObjectTextSearch(object) {
+  let autocomplete = null
+  let languageConfigurationNames = []
+  let searchableText = null
+  let table = null
+  if (object.type === "Card") {
+    table = "cards"
+    // TODO: Handle card languages.
+    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    let valueIdByKeyId = object.properties
+    if (valueIdByKeyId) {
+      for (let keySymbol of ["name", "title"]) {
+        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+        if (valueId !== undefined) {
+          let value = await getObjectFromId(valueId)
+          assert.ok(value, `Missing value at ID ${valueId}`)
+          autocomplete = String(value.value)
+          break
+        }
+      }
+      for (let keySymbol of ["twitter-name"]) {
+        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+        if (valueId !== undefined) {
+          let value = await getObjectFromId(valueId)
+          assert.ok(value, `Missing value at ID ${valueId}`)
+          autocomplete = autocomplete ? `${autocomplete} (${value.value})` : `(${value.value})`
+          break
+        }
+      }
+      autocomplete = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
+      let searchableTexts = []
+      for (let keySymbol of ["name", "title", "twitter-name"]) {
+        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+        if (valueId === undefined) return null
+        let value = await getObjectFromId(valueId)
+        assert.ok(value, `Missing value at ID ${valueId}`)
+        searchableTexts.push(value)
+      }
+      searchableText = searchableTexts
+        .filter(value => value !== null && value !== undefined && value !== "")
+        .map(String)
+        .join(" ")
+    }
+  } else if (object.type === "Concept") {
+    table = "concepts"
+    autocomplete = String(object.value)
+    // languageConfigurationNames = [languageConfigurationNameByCode[object.languageCode]]
+    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    searchableText = String(object.value)
+  } else if (object.type === "Value") {
+    table = "values"
+    autocomplete = String(object.value)
+    // languageConfigurationNames = [languageConfigurationNameByCode[object.languageCode]]
+    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    searchableText = String(object.value)
+  } else if (object.type === "User") {
+    table = "users"
+    autocomplete = `${object.name} <${object.email}>`
+    // languageConfigurationNames = [languageConfigurationNameByCode[object.languageCode]]
+    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    searchableText = [
+      object.name,
+      object.email,
+    ].filter(value => value !== null && value !== undefined && value !== "")
+      .map(String)
+      .join(" ")
+  }
+
+  if (table) {
+    if (!autocomplete) {
+      await db.none(`DELETE FROM ${table}_autocomplete WHERE id = $1`, object.id)
+    } else {
+      await db.none(
+        `
+          INSERT INTO ${table}_autocomplete(id, autocomplete)
+          VALUES ($1, $2)
+          ON CONFLICT (id)
+          DO UPDATE SET autocomplete = $2
+        `,
+        [object.id, autocomplete],
+      )
+    }
+
+    if (!searchableText || languageConfigurationNames.length === 0) {
+      await db.none(`DELETE FROM ${table}_text_search WHERE id = $1`, object.id)
+    } else {
+      for (let languageConfigurationName of languageConfigurationNames) {
+        assert.ok(languageConfigurationName)
+        await db.none(
+          `INSERT INTO ${table}_text_search(id, configuration_name, text_search)
+            VALUES ($1, $2, to_tsvector($2, $3))
+            ON CONFLICT (id, configuration_name)
+            DO UPDATE SET text_search = to_tsvector($2, $3)
+          `,
+          [object.id, languageConfigurationName, searchableText],
+        )
+      }
+      await db.none(
+        `DELETE FROM ${table}_text_search WHERE id = $1 AND configuration_name NOT IN ($2:csv)`,
+        [object.id, languageConfigurationNames],
+      )
+    }
+  }
+}
+
+
+export async function getObjectFromId(id) {
+  let entry = await db.oneOrNone("SELECT * FROM objects WHERE id = $1", id)
+  if (entry === null) return null
+  if (entry.type === "Card") {
+    let cardEntry = await db.oneOrNone(
+      `
+        SELECT * FROM statements
+        INNER JOIN cards ON statements.id = cards.id
+        WHERE statements.id = $<id>
+      `,
+      entry,
+    )
+    if (cardEntry === null) {
+      console.log(`Missing cards row for object of type Card at ID ${entry.id}`)
+      return null
+    }
+    return entryToCard(Object.assign(entry, cardEntry))
+  } else if (entry.type === "Concept") {
+    let conceptEntry = await db.oneOrNone(
+      `
+        SELECT * FROM statements
+        INNER JOIN concepts ON statements.id = concepts.id
+        WHERE statements.id = $<id>
+      `,
+      entry,
+    )
+    if (conceptEntry === null) {
+      console.log(`Missing concepts row for object of type Concept at ID ${entry.id}`)
+      return null
+    }
+    return entryToConcept(Object.assign(entry, conceptEntry))
+  } else if (entry.type === "Property") {
+    let propertyEntry = await db.oneOrNone(
+      `
+        SELECT * FROM statements
+        INNER JOIN properties ON statements.id = properties.id
+        WHERE statements.id = $<id>
+      `,
+      entry,
+    )
+    if (propertyEntry === null) {
+      console.log(`Missing properties row for object of type Property at ID ${entry.id}`)
+      return null
+    }
+    return entryToProperty(Object.assign(entry, propertyEntry))
+  } else if (entry.type === "User") {
+    let userEntry = await db.oneOrNone(
+      `
+        SELECT * FROM users
+        WHERE users.id = $<id>
+      `,
+      entry,
+    )
+    if (userEntry === null) {
+      console.log(`Missing users row for object of type User at ID ${entry.id}`)
+      return null
+    }
+    return entryToUser(Object.assign(entry, userEntry))
+  } else if (entry.type === "Value") {
+    let valueEntry = await db.oneOrNone(
+      `
+        SELECT values.*, symbol
+        FROM values
+        LEFT JOIN values_symbols ON values.id = values_symbols.id
+        WHERE values.id = $<id>
+      `,
+      entry,
+    )
+    if (valueEntry === null) {
+      console.log(`Missing values row for object of type Value at ID ${entry.id}`)
+      return null
+    }
+    return entryToValue(Object.assign(entry, valueEntry))
+  } else {
+    throw `Unknown object type "${entry.type}" at ID ${id}`
+  }
+}
+
+
+export async function getOrNewLocalizedString(typedLanguage, string, {inactiveStatementIds = null, properties = null,
+  userId = null} = {}) {
+  let typedString = await getOrNewValue(getIdFromSymbol("/types/string"), null, string, {inactiveStatementIds, userId})
+  if (!properties) properties = {}
+  properties[typedLanguage.id] = typedString.id
+  let localizedString = {}
+  localizedString[typedLanguage.symbol.split(".")[1]] = string
+  return await getOrNewValue(getIdFromSymbol("/schemas/localized-string"), null, localizedString, {
+    inactiveStatementIds,
+    properties,
+    userId,
+  })
+}
+
+
+export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatementIds = null, properties = null,
+  userId = null} = {}) {
+  assert.strictEqual(typeof objectId, "string")
+  assert.strictEqual(typeof keyId, "string")
+  assert.strictEqual(typeof valueId, "string")
+  if (properties) assert(userId, "Properties can only be set when userId is not null.")
+  let property = entryToProperty(await db.oneOrNone(
+    `
+      SELECT * FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN properties ON statements.id = properties.id
+      WHERE object_id = $<objectId>
+      AND key_id = $<keyId>
+      AND value_id = $<valueId>
+    `,
+    {
+      keyId,
+      objectId,
+      valueId,
+    },
+  ))
+  if (property === null) {
+    let result = await db.one(
+      `
+        INSERT INTO objects(created_at, properties, type)
+        VALUES (current_timestamp, $<properties:json>, 'Property')
+        RETURNING created_at, id, properties, type
+      `,
+      {
+        properties,  // Note: Properties are typically set for optimistic optimization.
+      },
+    )
+    property = {
+      createdAt: result.created_at,
+      id: result.id,
+      keyId,
+      objectId,
+      properties,
+      type: result.type,
+      valueId,
+    }
+    result = await db.one(
+      `
+        INSERT INTO statements(id)
+        VALUES ($<id>)
+        RETURNING rating, rating_count, rating_sum
+      `,
+      property,
+    )
+    Object.assign(property, {
+      rating: result.rating,
+      ratingCount: result.rating_count,
+      ratingSum: result.rating_sum,
+    })
+    await db.none(
+      `
+        INSERT INTO properties(id, key_id, object_id, value_id)
+        VALUES ($<id>, $<keyId>, $<objectId>, $<valueId>)
+      `,
+      property,
+    )
+  }
+  await generateObjectTextSearch(property)
+  if (userId) {
+    await rateStatement(property.id, userId, 1)
+    inactiveStatementIds.delete(property.id)
+  }
+  if (properties) {
+    property.propertyByKeyId = {}
+    for (let [keyId, valueId] of Object.entries(properties)) {
+      assert.strictEqual(typeof keyId, "string")
+      assert.strictEqual(typeof valueId, "string")
+      property.propertyByKeyId[keyId] = await getOrNewProperty(property.id, keyId, valueId, {inactiveStatementIds,
+        userId})
+    }
+  }
+  return property
+}
+
+
+export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, properties = null,
+  userId = null} = {}) {
+  if (properties) assert(userId, "Properties can only be set when userId is not null.")
+  // Note: getOrNewValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not
+  // possible to use function getIdFromSymbol("/schemas/localized-string").
+  let localizedStringSchemaId = valueIdBySymbol["/schemas/localized-string"]
+  let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId ?
+    "value @> $<value:json>" :
+    "value = $<value:json>"
+  let widgetClause = widgetId === null || widgetId === undefined ? "widget_id IS NULL" : "widget_id = $<widgetId>"
+  let typedValue = entryToValue(await db.oneOrNone(
+    `
+      SELECT objects.*, values.*, symbol
+      FROM objects
+      INNER JOIN values ON objects.id = values.id
+      LEFT JOIN values_symbols ON values.id = values_symbols.id
+      WHERE schema_id = $<schemaId>
+      AND ${widgetClause}
+      AND ${valueClause}
+    `,
+    {
+      schemaId,
+      value,
+      widgetId,
+    },
+  ))
+  if (typedValue === null) {
+    let result = await db.one(
+      `
+        INSERT INTO objects(created_at, properties, type)
+        VALUES (current_timestamp, $<properties:json>, 'Value')
+        RETURNING created_at, id, properties, type
+      `,
+      {
+        properties,  // Note: Properties are typically set for optimistic optimization.
+      },
+    )
+    typedValue = {
+      createdAt: result.created_at,
+      id: result.id,
+      properties,
+      schemaId,
+      type: result.type,
+      value,
+      widgetId,
+    }
+    await db.none(
+      `
+        INSERT INTO values(id, schema_id, value, widget_id)
+        VALUES ($<id>, $<schemaId>, $<value:json>, $<widgetId>)
+      `,
+      typedValue,
+    )
+    await generateObjectTextSearch(typedValue)
+  }
+  if (properties) {
+    typedValue.propertyByKeyId = {}
+    for (let [keyId, valueId] of Object.entries(properties)) {
+      assert.strictEqual(typeof keyId, "string")
+      assert.strictEqual(typeof valueId, "string")
+      typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, {inactiveStatementIds,
+        userId})
+    }
+  }
+  return typedValue
+}
+
+
+export async function newCard({inactiveStatementIds = null, properties = null, userId = null} = {}) {
+  if (properties) assert(userId, "Properties can only be set when userId is not null.")
+  let result = await db.one(
+    `
+      INSERT INTO objects(created_at, properties, type)
+      VALUES (current_timestamp, $<properties:json>, 'Card')
+      RETURNING created_at, id, properties, type
+    `,
+    {
+      properties,  // Note: Properties are typically set for optimistic optimization.
+    },
+  )
+  let card = {
+    createdAt: result.created_at,
+    id: result.id,
+    properties,
+    type: result.type,
+  }
+  result = await db.one(
+    `
+      INSERT INTO statements(id)
+      VALUES ($<id>)
+      RETURNING rating, rating_count, rating_sum
+    `,
+    card,
+  )
+  Object.assign(card, {
+    rating: result.rating,
+    ratingCount: result.rating_count,
+    ratingSum: result.rating_sum,
+  })
+  await db.none(
+    `
+      INSERT INTO cards(id)
+      VALUES ($<id>)
+    `,
+    card,
+  )
+  await generateObjectTextSearch(card)
+  if (userId) {
+    await rateStatement(card.id, userId, 1)
+  }
+  if (properties) {
+    card.propertyByKeyId = {}
+    for (let [keyId, valueId] of Object.entries(properties)) {
+      assert.strictEqual(typeof keyId, "string")
+      assert.strictEqual(typeof valueId, "string")
+      card.propertyByKeyId[keyId] = await getOrNewProperty(card.id, keyId, valueId, {inactiveStatementIds, userId})
+    }
+  }
+  return card
 }
 
 
@@ -131,8 +687,7 @@ async function propagateOptimisticOptimization(statements, statement, oldRating,
 }
 
 
-export {rateStatement}
-async function rateStatement(statementId, voterId, rating) {
+export async function rateStatement(statementId, voterId, rating) {
   let ballot = {
     id: `${statementId}/${voterId}`,
     rating,
@@ -151,7 +706,7 @@ async function rateStatement(statementId, voterId, rating) {
       ballot,
     )
     ballot.updatedAt = result.updated_at
-    await addBallotAction(statementId)
+    await addAction(statementId, "rating")
   } else if (rating !== oldBallot.rating) {
     let result = await db.one(
       `UPDATE ballots
@@ -161,7 +716,7 @@ async function rateStatement(statementId, voterId, rating) {
       ballot,
     )
     ballot.updatedAt = result.updated_at
-    await addBallotAction(statementId)
+    await addAction(statementId, "rating")
   } else {
     ballot = oldBallot
   }
@@ -196,7 +751,8 @@ async function toBallotData(ballot, statements, user, {depth = 0, showAbuse = fa
 
 
 function toBallotJson(ballot) {
-  let ballotJson = {...ballot}
+  // let ballotJson = {...ballot}
+  let ballotJson = Object.assign({}, ballot)
   if (ballotJson.updatedAt) ballotJson.updatedAt = ballotJson.updatedAt.toISOString()
   return ballotJson
 }
@@ -397,7 +953,11 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
   if (showAuthor && statement.authorId){
     let userJsonById = data.users
     if (!userJsonById[statement.authorId]) {
-      let user = entryToUser(await db.oneOrNone("SELECT * FROM users WHERE id = $1", statement.authorId))
+      let user = entryToUser(await db.oneOrNone(
+        `SELECT * FROM objects
+          INNER JOIN users ON objects.id = users.id
+          WHERE id = $1
+        `, statement.authorId))
       if (user !== null) userJsonById[statement.authorId] = toUserJson(user)
     }
   }
@@ -418,7 +978,8 @@ async function toStatementData1(data, statement, statementsCache, user, {depth =
 
 
 export function toStatementJson(statement) {
-  let statementJson = {...statement}
+  // let statementJson = {...statement}
+  let statementJson = Object.assign({}, statement)
   statementJson.createdAt = statementJson.createdAt.toISOString()
   delete statementJson.hash
   return statementJson
@@ -453,7 +1014,8 @@ async function toStatementsData(statements, user, {depth = 0, showAbuse = false,
 
 export {toUserJson}
 function toUserJson(user, {showApiKey = false, showEmail = false} = {}) {
-  let userJson = {...user}
+  // let userJson = {...user}
+  let userJson = Object.assign({}, user)
   if (!showApiKey) delete userJson.apiKey
   if (!showEmail) delete userJson.email
   userJson.createdAt = userJson.createdAt.toISOString()
@@ -464,8 +1026,7 @@ function toUserJson(user, {showApiKey = false, showEmail = false} = {}) {
 }
 
 
-export {unrateStatement}
-async function unrateStatement(statementId, voterId) {
+export async function unrateStatement(statementId, voterId) {
   let ballot = {
     statementId,
     voterId,
@@ -479,7 +1040,7 @@ async function unrateStatement(statementId, voterId) {
       "DELETE FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
       ballot,
     )
-    await addBallotAction(statementId)
+    await addAction(statementId, "rating")
   }
   return oldBallot
 }

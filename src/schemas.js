@@ -19,37 +19,59 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-export const bijectiveUriReference = {
-  type: "object",
-  properties: {
-    "reverseName": {
-      type: "string",
+export const schemaByPath = {
+  "/schemas/bijective-uri-reference": {
+    description: "JSON Schema for a bijective URI reference",
+    type: "object",
+    properties: {
+      "reverseKeyId": {
+        type: "string",
+        pattern: "^[0-9]+$",
+      },
+      "targetId": {
+        type: "string",
+        pattern: "^[0-9]+$",
+      },
     },
-    "targetId": {
-      type: "string",
-      pattern: "^[0-9]+$",
+    required: [
+      "reverseKeyId",
+      "targetId",
+    ],
+  },
+  "/schemas/localized-string": {
+    description: "JSON Schema for a string localized in several languages",
+    type: "object",
+    patternProperties: {
+      "^[a-z]{2}$": {
+        type: "string",
+      },
     },
   },
-  required: [
-    "reverseName",
-    "targetId",
-  ],
+  "/schemas/uri-reference": {
+    description: "JSON Schema for a URI reference",
+    type: "string",
+    format: "uriref",
+  },
 }
 
-// The same schema, except that targetId is not required to be a number.
-// Used in bundles because the id of the cards is not known.
-export const bijectiveUriReferenceForBundle = {
-  type: "object",
-  properties: {
-    "reverseName": {
-      type: "string",
+
+export const bundleSchemaByPath = Object.assign({}, schemaByPath, {
+  // The same schema, except that targetId is not required to be a number.
+  // Used in bundles because the id of the cards is not known.
+  "/schemas/bijective-uri-reference": {
+    description: "JSON Schema for a bijective URI reference (version for bundles)",
+    type: "object",
+    properties: {
+      "reverseKeyId": {
+        type: "string",
+      },
+      "targetId": {
+        type: "string",
+      },
     },
-    "targetId": {
-      type: "string",
-    },
+    required: [
+      "reverseKeyId",
+      "targetId",
+    ],
   },
-  required: [
-    "reverseName",
-    "targetId",
-  ],
-}
+})

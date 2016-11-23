@@ -22,9 +22,14 @@
 import assert from "assert"
 import deepEqual from "deep-equal"
 
-import {checkDatabase, db, dbSharedConnectionObject, entryToAction, entryToBallot, entryToStatement,
-  generateStatementTextSearch} from "./database"
-import {addBallotAction} from "./model"
+import {checkDatabase, db, dbSharedConnectionObject} from "./database"
+import {addAction, describe, generateObjectTextSearch, getObjectFromId, getOrNewValue, entryToAction,
+  entryToBallot} from "./model"
+import {getIdFromSymbol, getValueValueFromSymbol, valueIdBySymbol} from "./symbols"
+
+
+let languageCodeByKeyId = null
+let localizationKeysId = null
 
 
 function addRatedValue(requestedSchema, values, schema, value) {
@@ -47,153 +52,126 @@ function addRatedValue(requestedSchema, values, schema, value) {
 }
 
 
-async function describe(statement) {
-  if (statement === null) return "missing statement" 
-  const type = statement.type
-  if (type === "Abuse") {
-    const flaggedStatement = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<statementId>`,
-        statement,
-      ))
-    const flaggedDescription = await describe(flaggedStatement)
-    return `abuse for ${flaggedDescription}` 
-  } else if (type === "Argument") {
-    const claim = entryToStatement(await db.oneOrNone(
-      `SELECT * FROM statements
-        WHERE id = $<claimId>`,
-      statement,
-    ))
-    const claimDescription = await describe(claim)
-    const ground = entryToStatement(await db.oneOrNone(
-      `SELECT * FROM statements
-        WHERE id = $<groundId>`,
-      statement,
-    ))
-    const groundDescription = await describe(ground)
-    return `argument for ${claimDescription} based on ${groundDescription}` 
-  } else if (type === "Card") {
-    return `card ${statement.id}`
-  } else if (type === "PlainStatement") {
-    return `plain statement ${statement.languageCode}"${statement.name}"`
-  } else if (type === "Property") {
-    return `property ${statement.name} = ${statement.value}`
-  } else if (type === "Tag") {
-    const taggedStatement = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<statementId>`,
-        statement,
-      ))
-    const taggedDescription = await describe(taggedStatement)
-    return `tag "${statement.name}" of ${taggedDescription}` 
-  } else {
-    return `statement of unknown type ${type}` 
-  }
-}
+async function handlePropertyChange(objectId, keyId) {
+  let object = await getObjectFromId(objectId)
+  assert.ok(object, `Missing objet at ID ${objectId}`)
 
-
-async function handlePropertyChange(cardId, propertyName) {
-  let cardEntry = await db.oneOrNone("SELECT * FROM statements WHERE id = $1", cardId)
-  if (cardEntry === null) return
-
-  // Retrieve all the properties of the card having the same name.
-  let sameNameProperties = (await db.any(
-    `SELECT * FROM statements
-      WHERE type = 'Property'
-      AND (data->>'statementId')::bigint = $<cardId>
-      AND data->>'name' = $<propertyName>`,
+  // Retrieve all the properties of the card having the same key.
+  let sameKeyDescriptions = (await db.any(
+    `
+      SELECT objects.id, rating, rating_count, rating_sum, schemas.id as schema_id, schemas.value AS schema,
+        widgets.id as widget_id, widgets.value AS widget, values.id as value_id, values.value
+      FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN properties ON statements.id = properties.id
+      INNER JOIN values ON properties.value_id = values.id
+      INNER JOIN values AS schemas ON values.schema_id = schemas.id
+      LEFT JOIN values AS widgets ON values.widget_id = widgets.id
+      WHERE properties.object_id = $<objectId>
+      AND properties.key_id = $<keyId>
+    `,
     {
-      cardId: cardEntry.id,
-      propertyName,
+      keyId,
+      objectId,
     },
-  )).map(entryToStatement)
+  )).map(description => {
+    description.ratingCount = description.rating_count
+    delete description.rating_count
+    description.ratingSum = description.rating_sum
+    delete description.rating_sum
+    description.schemaId = description.schema_id
+    delete description.schema_id
+    description.valueId = description.value_id
+    delete description.value_id
+    description.widgetId = description.widget_id
+    delete description.widget_id
+    return description
+  })
 
   // Add inverse properties of bijective URI references.
-  let inverseSameNameProperties = (await db.any(
-    `SELECT * FROM statements
-      WHERE type = 'Property'
-      AND (data->'schema'->>'$ref') = '/schemas/bijective-uri-reference'
-      AND (data->'value'->>'targetId')::bigint = $<cardId>
-      AND (data->'value'->>'reverseName') = $<propertyName>`,
+  let inverseDescriptions = (await db.any(
+    `
+      SELECT objects.id, object_id as value, rating, rating_count, rating_sum FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN properties ON statements.id = properties.id
+      INNER JOIN values ON properties.value_id = values.id
+      INNER JOIN values AS schemas ON values.schema_id = schemas.id
+      WHERE (schemas.value->>'$ref') = '/schemas/bijective-uri-reference'
+      AND (values.value->>'targetId')::bigint = $<objectId>
+      AND (values.value->>'reverseKeyId')::bigint = $<keyId>
+    `,
     {
-      cardId: cardEntry.id,
-      propertyName,
+      keyId,
+      objectId,
     },
-  )).map(entryToStatement)
-  for (let inverseProperty of inverseSameNameProperties) {
-    sameNameProperties.push({
-      id: inverseProperty.id,
-      name: inverseProperty.value.reverseName,
-      rating: inverseProperty.rating,
-      ratingCount: inverseProperty.ratingCount,
-      ratingSum: inverseProperty.ratingSum,
-      schema: {
-        type: "string",
-        format: "uriref",
-      },
-      statementId: inverseProperty.value.targetId,
-      value: inverseProperty.statementId,
-      widget: {
-        tag: "RatedItemOrSet",
-      },
-    })
-  }
+  )).map(description => {
+    description.ratingCount = description.rating_count
+    delete description.rating_count
+    description.ratingSum = description.rating_sum
+    delete description.rating_sum
+    description.schema = getValueValueFromSymbol("/schemas/uri-reference")
+    description.schemaId = getIdFromSymbol("/schemas/uri-reference")
+    description.valueId = null
+    description.widget = getValueValueFromSymbol("/widgets/rated-item-or-set")
+    description.widgetId = getIdFromSymbol("/widgets/rated-item-or-set")
+    return description
+  })
+  sameKeyDescriptions = sameKeyDescriptions.concat(inverseDescriptions)
 
   // Add inverse properties of arrays of bijective URI references.
-  let inverseSameNameArrayProperties = (await db.any(
-    `SELECT * FROM statements
-      WHERE type = 'Property'
-      AND (data->'schema'->>'type') = 'array'
-      AND (data->'schema'->'items') @> '{"$ref": "/schemas/bijective-uri-reference"}'
-      AND (data->'value') @> '{"reverseName": $<propertyName~>, "targetId": $<cardId~>}'`,
+  let entries = (await db.any(
+    `
+      SELECT objects.id, object_id AS value, rating, rating_count, rating_sum, schemas.value AS schema,
+        values.value AS values
+      FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN properties ON statements.id = properties.id
+      INNER JOIN values ON properties.value_id = values.id
+      INNER JOIN values AS schemas ON values.schema_id = schemas.id
+      WHERE (schemas.value->>'type') = 'array'
+      AND (schemas.value->'items') @> '{"$ref": "/schemas/bijective-uri-reference"}'
+      AND values.value @> '{"reverseKeyId": $<keyId~>, "targetId": $<objectId~>}'
+    `,
     {
-      cardId: cardEntry.id,
-      propertyName,
+      keyId,
+      objectId,
     },
-  )).map(entryToStatement)
-  for (let inverseProperty of inverseSameNameArrayProperties) {
-    let schemaItems = inverseProperty.schema.items
+  ))
+  for (let entry of entries) {
+    let schemaItems = entry.schema.items
     if (Array.isArray(schemaItems)) {
-      for (let [index, itemSchema] of schemaItems) {
+      for (let itemSchema of schemaItems) {
         if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
-          let itemValue = inverseProperty.value[index]
-          sameNameProperties.push({
-            id: inverseProperty.id,
-            name: itemValue.reverseName,
-            rating: inverseProperty.rating,
-            ratingCount: inverseProperty.ratingCount,
-            ratingSum: inverseProperty.ratingSum,
-            schema: {
-              type: "string",
-              format: "uriref",
-            },
-            statementId: itemValue.targetId,
-            value: inverseProperty.statementId,
-            widget: {
-              tag: "RatedItemOrSet",
-            },
+          // let itemValue = entry.values[index]
+          sameKeyDescriptions.push({
+            id: entry.id,
+            rating: entry.rating,
+            ratingCount: entry.rating_count,
+            ratingSum: entry.rating_sum,
+            schema: getValueValueFromSymbol("/schemas/uri-reference"),
+            schemaId: getIdFromSymbol("/schemas/uri-reference"),
+            value: entry.value,
+            valueId: null,
+            widget: getValueValueFromSymbol("/widgets/rated-item-or-set"),
+            widgetId: getIdFromSymbol("/widgets/rated-item-or-set"),
           })
         }
       }
     } else {
-      let itemSchema =  inverseProperty.schema.items
+      let itemSchema =  schemaItems
       if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
-        for (let itemValue of inverseProperty.value) {
-          sameNameProperties.push({
-            id: inverseProperty.id,
-            name: itemValue.reverseName,
-            rating: inverseProperty.rating,
-            ratingCount: inverseProperty.ratingCount,
-            ratingSum: inverseProperty.ratingSum,
-            schema: {
-              type: "string",
-              format: "uriref",
-            },
-            statementId: itemValue.targetId,
-            value: inverseProperty.statementId,
-            widget: {
-              tag: "RatedItemOrSet",
-            },
+        for (let itemValue of entry.values) {
+          sameKeyDescriptions.push({
+            id: entry.id,
+            rating: entry.rating,
+            ratingCount: entry.rating_count,
+            ratingSum: entry.rating_sum,
+            schema: getValueValueFromSymbol("/schemas/uri-reference"),
+            schemaId: getIdFromSymbol("/schemas/uri-reference"),
+            value: entry.value,
+            valueId: null,
+            widget: getValueValueFromSymbol("/widgets/rated-item-or-set"),
+            widgetId: getIdFromSymbol("/widgets/rated-item-or-set"),
           })
         }
       }
@@ -201,7 +179,7 @@ async function handlePropertyChange(cardId, propertyName) {
   }
 
   // Sort properties by decreasing rating and id.
-  sameNameProperties.sort(function (a, b) {
+  sameKeyDescriptions.sort(function (a, b) {
     if (a.rating > b.rating) return -1
     else if (a.rating < b.rating) return 1
     else {
@@ -213,27 +191,26 @@ async function handlePropertyChange(cardId, propertyName) {
     }
   })
 
-  let cardData = cardEntry.data
-  let oldCardData = JSON.parse(JSON.stringify(cardData))
+  let objectPropertiesChanged = false
   let removeAttribute = true
-  if (sameNameProperties.length > 0) {
+  if (sameKeyDescriptions.length > 0) {
     // TODO: Improve search of best property. For example, if any of the best rated properties is of type
     // "RatedItemOrSet", it wins even when it is not the oldest (lowest id).
-    let bestProperty = sameNameProperties[0]
-    let bestRating = bestProperty.rating
+    let bestDescription = sameKeyDescriptions[0]
+    let bestRating = bestDescription.rating
     if (bestRating > 0) {
       // Sometimes the best property is not the oldest of the best rated properties.
-      for (let property of sameNameProperties) {
-        if (property.rating < bestRating) break
-        if (property.widget.tag === "RatedItemOrSet") {
-          let requestedSchema = property.schema
+      for (let description of sameKeyDescriptions) {
+        if (description.rating < bestRating) break
+        if (description.widget && description.widget.tag === "RatedItemOrSet") {
+          let requestedSchema = description.schema
           if (requestedSchema.type === "array") {
             requestedSchema = (Array.isArray(requestedSchema.items)) ? requestedSchema.items[0] : requestedSchema.items
           }
           let ratedValues = []
-          for (let property1 of sameNameProperties) {
-            if (property1.rating <= 0) break
-            addRatedValue(requestedSchema, ratedValues, property1.schema, property1.value)
+          for (let description1 of sameKeyDescriptions) {
+            if (description1.rating <= 0) break
+            addRatedValue(requestedSchema, ratedValues, description1.schema, description1.value)
           }
           if (ratedValues.length === 0) {
             requestedSchema = {type: null}
@@ -245,97 +222,126 @@ async function handlePropertyChange(cardId, propertyName) {
               type: "array",
               items: requestedSchema,
             }
-            ratedValues = [...ratedValues].sort()
           }
-          bestProperty = {
-            name: property.name,
+          bestDescription = {
             schema: requestedSchema,
+            schemaId: null,
             value: ratedValues,
-            widget: property.widget,
+            valueId: null,
+            widget: description.widget,
+            widgetId: description.widgetId,
           }
           break
         }
       }
+      // Now that bestDescription is found, lets ensure that it matchs a typed value in database.
+      if (bestDescription.valueId === null) {
+        if (bestDescription.schemaId === null) {
+          let schema = await getOrNewValue(getIdFromSymbol("/types/object"), null, bestDescription.schema)
+          bestDescription.schemaId = schema.id
+        }
+        if (bestDescription.wigetId === null && bestDescription.wiget !== null) {
+          let widget = await getOrNewValue(getIdFromSymbol("/types/object"), null, bestDescription.widget)
+          bestDescription.widgetId = widget.id
+        }
+        let value = await getOrNewValue(bestDescription.schemaId, bestDescription.widgetId, bestDescription.value)
+        bestDescription.valueId = value.id
+      }
 
       removeAttribute = false
-      if (!cardData.values) cardData.values = {}
-      cardData.values[bestProperty.name] = bestProperty.value
-      if (!cardData.schemas) cardData.schemas = {}
-      cardData.schemas[bestProperty.name] = bestProperty.schema
-      if (!cardData.widgets) cardData.widgets = {}
-      cardData.widgets[bestProperty.name] = bestProperty.widget
+      if (!object.properties) object.properties = {}
+      if (object.properties[keyId] != bestDescription.valueId) {
+        object.properties[keyId] = bestDescription.valueId
+        objectPropertiesChanged = true
+      }
     }
   }
   if (removeAttribute) {
-    if (cardData.values) {
-      delete cardData.values[propertyName]
-      if (Object.keys(cardData.values).length === 0) delete cardData.values
-    }
-    if (cardData.schemas) {
-      delete cardData.schemas[propertyName]
-      if (Object.keys(cardData.schemas).length === 0) delete cardData.schemas
-    }
-    if (cardData.widgets) {
-      delete cardData.widgets[propertyName]
-      if (Object.keys(cardData.widgets).length === 0) delete cardData.widgets
+    if (object.properties && object.properties[keyId]) {
+      delete object.properties[keyId]
+      if (object.properties.length === 0) delete object.properties
+      objectPropertiesChanged = true
     }
   }
-  if (!deepEqual(cardData, oldCardData)) {
+
+  if (objectPropertiesChanged) {
     await db.none(
-      `UPDATE statements
-        SET data = $<data>
-        WHERE id = $<id>`,
-      cardEntry,
+      `
+        UPDATE objects
+        SET properties = $<properties>
+        WHERE id = $<id>
+      `,
+      object,
     )
-    await generateStatementTextSearch(entryToStatement(cardEntry))
+    await generateObjectTextSearch(object)
+    await addAction(object.id, "properties")
   }
 }
 
 
 async function processAction(action) {
   await db.none("DELETE FROM actions WHERE id = $<id>", action)
-  if (action.type === "rating") {
-    let statement = entryToStatement(await db.oneOrNone(
-      "SELECT * FROM statements WHERE id = $<statementId>",
-      action,
-    ))
-    if (statement === null) return
-    let description = await describe(statement)
-    console.log(`Processing ${action.type} of ${action.createdAt.toISOString()} for ${description}...`)
-
+  let object = await getObjectFromId(action.objectId)
+  if (object === null) return
+  let description = await describe(object)
+  console.log(`Processing ${action.type} of ${action.createdAt.toISOString()} for ${description}...`)
+  if (action.type === "properties") {
+    if (object.type === "Value") {
+      if (object.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+        let localizations = {}
+        for (let [keyId, valueId] of Object.entries(object.properties || {})) {
+          if (localizationKeysId.includes(keyId)) {
+            let localizationValue = await getObjectFromId(valueId)
+            if (localizationValue.schemaId === getIdFromSymbol("/types/string")) {
+              localizations[languageCodeByKeyId[keyId]] = localizationValue.value
+            }
+          }
+        }
+        if (!deepEqual(localizations, object.value)) {
+          await db.none("UPDATE values SET value = $<localizations:json> WHERE id = $<id>", {
+            id: object.id,
+            localizations,
+          })
+          // await addAction(object.id, "value")  TODO?
+        }
+      }
+    }
+  } else if (action.type === "rating") {
+    // object is a statement (aka a rated object)
     // Compute statement rating.
     let ratingCount = 0
     let ratingSum = 0
     let ballots = (await db.any(
       "SELECT * FROM ballots WHERE statement_id = $<id>",
-      statement,
+      object,
     )).map(entryToBallot)
     for (let ballot of ballots) {
       ratingCount += 1
       if (ballot.rating) ratingSum += ballot.rating
     }
-    let groundArguments = (await db.any(
-      "SELECT * FROM statements WHERE (data->>'claimId')::bigint = $<id>",
-      statement,
-    )).map(entryToStatement)
-    for (let argument of groundArguments) {
-      if (!argument.isAbuse && (argument.rating || 0) > 0 && ["because", "but"].includes(argument.argumentType)) {
-        let ground = entryToStatement(await db.oneOrNone(
-          "SELECT * FROM statements WHERE id = $<groundId>",
-          argument,
-        ))
-        if (!ground.isAbuse && ground.ratingCount) {
-          ratingCount += ground.ratingCount
-          ratingSum += (argument.argumentType === "because" ? 1 : -1) * ground.ratingSum
-        }
-      }
-    }
+    // TODO: Replace ground arguments with "pros" and "cons" properties.
+    // let groundArguments = (await db.any(
+    //   "SELECT * FROM statements WHERE (data->>'claimId')::bigint = $<id>",
+    //   object,
+    // )).map(entryToStatement)
+    // for (let argument of groundArguments) {
+    //   if (!argument.isAbuse && (argument.rating || 0) > 0 && ["because", "but"].includes(argument.argumentType)) {
+    //     let ground = entryToStatement(await db.oneOrNone(
+    //       "SELECT * FROM statements WHERE id = $<groundId>",
+    //       argument,
+    //     ))
+    //     if (!ground.isAbuse && ground.ratingCount) {
+    //       ratingCount += ground.ratingCount
+    //       ratingSum += (argument.argumentType === "because" ? 1 : -1) * ground.ratingSum
+    //     }
+    //   }
+    // }
 
-    if (ratingCount != statement.ratingCount || ratingSum != statement.ratingSum) {
+    if (ratingCount != object.ratingCount || ratingSum != object.ratingSum) {
       // Save statement rating.
       let rating
       if (ratingCount === 0) {
-        Object.assign(statement, {
+        Object.assign(object, {
           rating: 0,
           ratingCount: 0,
           ratingSum: 0,
@@ -344,11 +350,11 @@ async function processAction(action) {
           `UPDATE statements
             SET rating = DEFAULT, rating_count = DEFAULT, rating_sum = DEFAULT
             WHERE id = $<id>`,
-          statement,
+          object,
         )
       } else {
         rating = ratingSum / ratingCount
-        Object.assign(statement, {
+        Object.assign(object, {
           rating,
           ratingCount,
           ratingSum,
@@ -357,109 +363,120 @@ async function processAction(action) {
           `UPDATE statements
             SET rating = $<rating>, rating_count = $<ratingCount>, rating_sum = $<ratingSum>
             WHERE id = $<id>`,
-          statement,
+          object,
         )
       }
 
       // Propagate change of statement rating.
-      let claimArguments = (await db.any(
-        `SELECT * FROM statements
-          WHERE (data->>'groundId')::bigint = $<id>`,
-        statement,
-      )).map(entryToStatement)
-      for (let argument of claimArguments) {
-        addBallotAction(argument.claimId)
-      }
-      if (statement.type === "Abuse") {
-        let flaggedEntry = await db.oneOrNone(
-            `SELECT data FROM statements
-              WHERE id = $<statementId>`,
-            statement,
-          )
-        if (flaggedEntry !== null) {
-          let flaggedData = flaggedEntry.data
-          let isAbuse = rating !== null && rating > 0
-          if (isAbuse !== Boolean(flaggedData.isAbuse)) {
-            if (isAbuse) {
-              flaggedData.isAbuse = true
-            } else {
-              delete flaggedData.isAbuse
-            }
-            await db.none(
-              `UPDATE statements
-                SET data = $<data>
-                WHERE id = $<id>`,
-              flaggedEntry,
-            )
-            let claimArguments = (await db.any(
-              `SELECT * FROM statements
-                WHERE (data->>'groundId')::bigint = $<id>`,
-              flaggedEntry,
-            )).map(entryToStatement)
-            for (let argument of claimArguments) {
-              addBallotAction(argument.claimId)
-            }
-          }
-        }
-      } else if (statement.type === "Argument") {
-        await addBallotAction(statement.claimId)
-      } else if (statement.type === "Property") {
-        await handlePropertyChange(statement.statementId, statement.name)
+      // TODO: Replace ground arguments with "pros" and "cons" properties: si le statement est mis en value(_id) d'une
+      // property de key "pros" ou "cons" (ou d'autres comme advantages & disadvantages), alors il faut recalculer le
+      // rating du statement les ayant en pros ou cons.
+      // let claimArguments = (await db.any(
+      //   `SELECT * FROM statements
+      //     WHERE (data->>'groundId')::bigint = $<id>`,
+      //   object,
+      // )).map(entryToStatement)
+      // for (let argument of claimArguments) {
+      //   await addAction(argument.claimId, "rating")
+      // }
+      if (object.type === "Card") {
+        // Nothing to do yet.
+      } else if (object.type === "Concept") {
+        // Nothing to do yet.
+      } else if (object.type === "Property") {
+        await handlePropertyChange(object.objectId, object.keyId)
         // If property contains bijective links between 2 cards, also handle the change of the reverse properties.
-        let schema = statement.schema
+        let propertyValue = await getObjectFromId(object.valueId)
+        assert.ok(propertyValue, `Missing value for ${await describe(object)}`)
+        let schema = await getObjectFromId(propertyValue.schemaId)
+        assert.ok(schema, `Missing schema for ${await describe(propertyValue)}`)
         if (schema.$ref === "/schemas/bijective-uri-reference") {
-          let value = statement.value
-          await handlePropertyChange(value.targetId, value.reverseName)
+          let value = propertyValue.value
+          await handlePropertyChange(value.targetId, value.reverseKeyId)
         } else if (schema.type === "array") {
           if (Array.isArray(schema.items)) {
             for (let [index, itemSchema] of schema.items.entries()) {
               if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
-                let itemValue = statement.value[index]
-                await handlePropertyChange(itemValue.targetId, itemValue.reverseName)
+                let itemValue = propertyValue[index]
+                await handlePropertyChange(itemValue.targetId, itemValue.reverseKeyId)
               }
             }
           } else if (schema.items.$ref === "/schemas/bijective-uri-reference") {
-            for (let itemValue of statement.value) {
-              await handlePropertyChange(itemValue.targetId, itemValue.reverseName)
+            for (let itemValue of propertyValue) {
+              await handlePropertyChange(itemValue.targetId, itemValue.reverseKeyId)
             }
-          }
-        }
-      } else if (statement.type === "Tag") {
-        let taggedEntry = await db.oneOrNone(
-            `SELECT * FROM statements
-              WHERE id = $<statementId>`,
-            statement,
-          )
-        if (taggedEntry !== null) {
-          let taggedData = taggedEntry.data
-          let addTag = rating !== null && rating > 0
-          let tagExists = Boolean(taggedData.tags && taggedData.tags.includes(statement.name))
-          if (addTag !== tagExists) {
-            if (addTag) {
-              if (!taggedData.tags) taggedData.tags = []
-              taggedData.tags.push(statement.name)
-              taggedData.tags.sort()
-            } else {
-              taggedData.tags.splice(taggedData.tags.indexOf(statement.name), 1)
-            }
-            if (taggedData.tags.length === 0) delete taggedData.tags
-            await db.none(
-              `UPDATE statements
-                SET data = $<data>
-                WHERE id = $<id>`,
-              taggedEntry,
-            )
-            await generateStatementTextSearch(entryToStatement(taggedEntry))
           }
         }
       }
+      // if (object.type === "Abuse") {
+      //   let flaggedEntry = await db.oneOrNone(
+      //     `SELECT data FROM statements
+      //       WHERE id = $<statementId>`,
+      //     object,
+      //   )
+      //   if (flaggedEntry !== null) {
+      //     let flaggedData = flaggedEntry.data
+      //     let isAbuse = rating !== null && rating > 0
+      //     if (isAbuse !== Boolean(flaggedData.isAbuse)) {
+      //       if (isAbuse) {
+      //         flaggedData.isAbuse = true
+      //       } else {
+      //         delete flaggedData.isAbuse
+      //       }
+      //       await db.none(
+      //         `UPDATE statements
+      //           SET data = $<data>
+      //           WHERE id = $<id>`,
+      //         flaggedEntry,
+      //       )
+      //       let claimArguments = (await db.any(
+      //         `SELECT * FROM statements
+      //           WHERE (data->>'groundId')::bigint = $<id>`,
+      //         flaggedEntry,
+      //       )).map(entryToStatement)
+      //       for (let argument of claimArguments) {
+      //         await addAction(argument.claimId, "rating")
+      //       }
+      //     }
+      //   }
+      // } else if (object.type === "Argument") {
+      //   await addAction(object.claimId, "rating")
+      // } else if (object.type === "Tag") {
+      //   let taggedEntry = await db.oneOrNone(
+      //       `SELECT * FROM statements
+      //         WHERE id = $<statementId>`,
+      //       object,
+      //     )
+      //   if (taggedEntry !== null) {
+      //     let taggedData = taggedEntry.data
+      //     let addTag = rating !== null && rating > 0
+      //     let tagExists = Boolean(taggedData.tags && taggedData.tags.includes(object.name))
+      //     if (addTag !== tagExists) {
+      //       if (addTag) {
+      //         if (!taggedData.tags) taggedData.tags = []
+      //         taggedData.tags.push(object.name)
+      //         taggedData.tags.sort()
+      //       } else {
+      //         taggedData.tags.splice(taggedData.tags.indexOf(object.name), 1)
+      //       }
+      //       if (taggedData.tags.length === 0) delete taggedData.tags
+      //       await db.none(
+      //         `UPDATE statements
+      //           SET data = $<data>
+      //           WHERE id = $<id>`,
+      //         taggedEntry,
+      //       )
+      //       await generateObjectTextSearch(entryToStatement(taggedEntry))
+      //     }
+      //   }
+      // }
     }
   } else {
     console.warn(`Unexpected action ${action.type} of ${action.createdAt.toISOString()}.`)
     // Reinsert action.
     let result = await db.one(
-      `INSERT INTO actions(created_at, statement_id, type)
-        VALUES (current_timestamp, $<statementId>, $<type>)
+      `INSERT INTO actions(created_at, object_id, type)
+        VALUES (current_timestamp, $<objectId>, $<type>)
         RETURNING created_at, id`,
       action,
     )
@@ -470,6 +487,12 @@ async function processAction(action) {
 
 
 async function processActions () {
+  languageCodeByKeyId = Object.entries(valueIdBySymbol).reduce((d, [symbol, id]) => {
+    if (symbol.startsWith("localization.")) d[id] = symbol.slice("localization.".length)
+    return d
+  }, {})
+  localizationKeysId = Array.from(Object.keys(languageCodeByKeyId))
+
   let processingActions = false
 
   dbSharedConnectionObject.client.on("notification", async data => {
@@ -496,7 +519,7 @@ async function processActions () {
         console.log(`Ignoring unknown channel "${data.channel}" (in notification: $}{data}).`)
       }
     } catch (error) {
-      console.log(error.stack)
+      console.log(error.stack || error)
       process.exit(1)
     }
   })
@@ -512,6 +535,6 @@ async function processActions () {
 checkDatabase()
   .then(processActions)
   .catch(error => {
-    console.log(error.stack)
+    console.log(error.stack || error)
     process.exit(1)
   })

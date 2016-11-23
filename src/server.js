@@ -32,11 +32,12 @@ import {checkDatabase} from "./database"
 import * as abusesController from "./controllers/abuses"
 import * as argumentsController from "./controllers/arguments"
 import * as ballotsController from "./controllers/ballots"
+import * as cardsController from "./controllers/cards"
 import * as statementsController from "./controllers/statements"
 import * as tagsController from "./controllers/tags"
 import * as uploadsController from "./controllers/uploads"
 import * as usersController from "./controllers/users"
-import * as schemas from "./schemas"
+import {schemaByPath} from "./schemas"
 import swaggerSpecification from "./swagger"
 
 
@@ -94,12 +95,15 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
     })
   })
 
-  app.post("/cards", usersController.authenticate(true), statementsController.createCard)
-  app.post("/cards/bundle", usersController.authenticate(true), statementsController.bundleCards)
+  app.get("/cards", usersController.authenticate(false), cardsController.listCards)
+  app.post("/cards/bundle", usersController.authenticate(true), cardsController.bundleCards)
+  app.post("/cards/easy", usersController.authenticate(true), cardsController.createCardEasy)
 
   app.post("/login", usersController.login)
 
-  app.get("/schemas/bijective-uri-reference", (req, res) => res.json(schemas.bijectiveUriReference))
+  for (let [path, schema] of Object.entries(schemaByPath)) {
+    app.get(path, (req, res) => res.json(schema))
+  }
 
   app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
   app.post("/statements", usersController.authenticate(true), statementsController.createStatement)
@@ -175,7 +179,7 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   checkDatabase()
     .then(startExpress)
   .catch(error => {
-    console.log(error.stack)
+    console.log(error.stack || error)
     process.exit(1)
   })
 })
