@@ -73,7 +73,7 @@ async function configureDatabase() {
     console.log(`
       Database schema has changed and is not upgradable.
       YOU MUST manually execute the following SQL commands:
-        DROP TABLE actions, ballots, statements, statements_autocomplete, statements_text_search, users;
+        DROP TABLE actions, ballots, statements, statements_autocomplete, statements_text_search, users CASCADE;
         DROP TYPE event_type, statement_type;
     `)
   }
