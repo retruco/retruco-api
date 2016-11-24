@@ -380,11 +380,15 @@ export async function getObjectFromId(id) {
 
 export async function getOrNewLocalizedString(typedLanguage, string, {inactiveStatementIds = null, properties = null,
   userId = null} = {}) {
+  let localizedString = {
+    [typedLanguage.symbol.split(".")[1]]: string,
+  }
+  let typedLocalizedString = await getValue(getIdFromSymbol("/schemas/localized-string"), null, localizedString)
+  if (typedLocalizedString) return typedLocalizedString
+
   let typedString = await getOrNewValue(getIdFromSymbol("/types/string"), null, string, {inactiveStatementIds, userId})
   if (!properties) properties = {}
   properties[typedLanguage.id] = typedString.id
-  let localizedString = {}
-  localizedString[typedLanguage.symbol.split(".")[1]] = string
   return await getOrNewValue(getIdFromSymbol("/schemas/localized-string"), null, localizedString, {
     inactiveStatementIds,
     properties,
@@ -477,29 +481,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
 export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, properties = null,
   userId = null} = {}) {
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
-  // Note: getOrNewValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not
-  // possible to use function getIdFromSymbol("/schemas/localized-string").
-  let localizedStringSchemaId = valueIdBySymbol["/schemas/localized-string"]
-  let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId ?
-    "value @> $<value:json>" :
-    "value = $<value:json>"
-  let widgetClause = widgetId === null || widgetId === undefined ? "widget_id IS NULL" : "widget_id = $<widgetId>"
-  let typedValue = entryToValue(await db.oneOrNone(
-    `
-      SELECT objects.*, values.*, symbol
-      FROM objects
-      INNER JOIN values ON objects.id = values.id
-      LEFT JOIN values_symbols ON values.id = values_symbols.id
-      WHERE schema_id = $<schemaId>
-      AND ${widgetClause}
-      AND ${valueClause}
-    `,
-    {
-      schemaId,
-      value,
-      widgetId,
-    },
-  ))
+  let typedValue = await getValue(schemaId, widgetId, value)
   if (typedValue === null) {
     let result = await db.one(
       `
@@ -539,6 +521,33 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
     }
   }
   return typedValue
+}
+
+
+export async function getValue(schemaId, widgetId, value) {
+  // Note: getOrNewValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not
+  // possible to use function getIdFromSymbol("/schemas/localized-string").
+  let localizedStringSchemaId = idBySymbol["/schemas/localized-string"]
+  let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId ?
+    "value @> $<value:json>" :
+    "value = $<value:json>"
+  let widgetClause = widgetId === null || widgetId === undefined ? "widget_id IS NULL" : "widget_id = $<widgetId>"
+  return entryToValue(await db.oneOrNone(
+    `
+      SELECT objects.*, values.*, symbol
+      FROM objects
+      INNER JOIN values ON objects.id = values.id
+      LEFT JOIN symbols ON values.id = symbols.id
+      WHERE schema_id = $<schemaId>
+      AND ${widgetClause}
+      AND ${valueClause}
+    `,
+    {
+      schemaId,
+      value,
+      widgetId,
+    },
+  ))
 }
 
 
