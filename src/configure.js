@@ -23,7 +23,7 @@ import assert from "assert"
 
 import {db, entryToStatement, versionNumber} from "./database"
 import {entryToValue, generateObjectTextSearch, getOrNewValue, types} from "./model"
-import {getIdFromSymbol, symbolizedTypedValues, valueIdBySymbol} from "./symbols"
+import {getIdFromSymbol, symbolizedTypedValues, idBySymbol, symbolById} from "./symbols"
 
 
 async function configureDatabase() {
@@ -76,6 +76,9 @@ async function configureDatabase() {
         DROP TABLE actions, ballots, statements, statements_autocomplete, statements_text_search, users CASCADE;
         DROP TYPE event_type, statement_type;
     `)
+  }
+  if (version.number < 10) {
+    await db.none("DROP TABLE values_symbols")
   }
 
   // Objects
@@ -181,10 +184,10 @@ async function configureDatabase() {
       USING GIST (autocomplete gist_trgm_ops)
   `)
 
-  // Table: values_symbols
+  // Table: symbols
   await db.none(`
-    CREATE TABLE IF NOT EXISTS values_symbols(
-      id bigint NOT NULL REFERENCES values(id) ON DELETE CASCADE,
+    CREATE TABLE IF NOT EXISTS symbols(
+      id bigint NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
       symbol text NOT NULL PRIMARY KEY
     )
   `)
@@ -406,7 +409,7 @@ async function configureSymbols() {
     `
       SELECT * FROM objects
       INNER JOIN values ON objects.id = values.id
-      INNER JOIN values_symbols ON values.id = values_symbols.id
+      INNER JOIN symbols ON objects.id = symbols.id
       WHERE schema_id = values.id
       AND widget_id IS NULL
       AND symbol = $<symbol>
@@ -447,7 +450,7 @@ async function configureSymbols() {
     }
     typedValue["symbol"] = symbol
     await db.none(
-      `INSERT INTO values_symbols(id, symbol)
+      `INSERT INTO symbols(id, symbol)
         VALUES ($<id>, $<symbol>)
         ON CONFLICT (symbol)
         DO UPDATE SET id = $<id>
@@ -455,7 +458,9 @@ async function configureSymbols() {
       typedValue,
     )
   }
-  valueIdBySymbol[symbol] = typedValue.id
+  idBySymbol[symbol] = typedValue.id
+  symbolById[typedValue.id] = symbol
+
 
   for (let {schemaSymbol, symbol, value, widgetSymbol} of symbolizedTypedValues) {
     let schemaId = getIdFromSymbol(schemaSymbol)
@@ -465,7 +470,7 @@ async function configureSymbols() {
       `
         SELECT * FROM objects
         INNER JOIN values ON objects.id = values.id
-        INNER JOIN values_symbols ON values.id = values_symbols.id
+        INNER JOIN symbols ON objects.id = symbols.id
         WHERE schema_id = $<schemaId>
         AND ${widgetClause}
         AND symbol = $<symbol>
@@ -481,7 +486,7 @@ async function configureSymbols() {
       typedValue = await getOrNewValue(schemaId, widgetId, value)
       typedValue.symbol = symbol
       await db.none(
-        `INSERT INTO values_symbols(id, symbol)
+        `INSERT INTO symbols(id, symbol)
           VALUES ($<id>, $<symbol>)
           ON CONFLICT (symbol)
           DO UPDATE SET id = $<id>
@@ -489,7 +494,8 @@ async function configureSymbols() {
         typedValue,
       )
     }
-    valueIdBySymbol[symbol] = typedValue.id
+    idBySymbol[symbol] = typedValue.id
+    symbolById[typedValue.id] = symbol
   }
 }
 

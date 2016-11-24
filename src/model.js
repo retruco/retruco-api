@@ -23,7 +23,7 @@ import assert from "assert"
 
 import config from "./config"
 import {db} from "./database"
-import {getIdFromSymbol, valueIdBySymbol} from "./symbols"
+import {getIdFromSymbol, idBySymbol} from "./symbols"
 
 
 export const languageConfigurationNameByCode = {
@@ -167,6 +167,7 @@ function entryToObject(entry) {
     createdAt: entry.created_at,
     id: entry.id,
     properties: entry.properties,
+    symbol: entry.symbol,  // Given only when JOIN with table symbols
     type: entry.type,
   }
 }
@@ -223,7 +224,6 @@ function entryToValue(entry) {
   // }
   return entry === null ? null : Object.assign({}, entryToObject(entry), {
     schemaId: entry.schema_id,
-    symbol: entry.symbol,  // Given only when JOIN with table values_symbols
     value: entry.value,
     widgetId: entry.widget_id,
   })
@@ -342,8 +342,10 @@ export async function getObjectFromId(id) {
   if (entry.type === "Card") {
     let cardEntry = await db.oneOrNone(
       `
-        SELECT * FROM statements
+        SELECT statements.*, cards.*, symbol
+        FROM statements
         INNER JOIN cards ON statements.id = cards.id
+        LEFT JOIN symbols ON cards.id = symbols.id
         WHERE statements.id = $<id>
       `,
       entry,
@@ -356,8 +358,10 @@ export async function getObjectFromId(id) {
   } else if (entry.type === "Concept") {
     let conceptEntry = await db.oneOrNone(
       `
-        SELECT * FROM statements
+        SELECT statements.*, concepts.*, symbol
+        FROM statements
         INNER JOIN concepts ON statements.id = concepts.id
+        LEFT JOIN symbols ON concepts.id = symbols.id
         WHERE statements.id = $<id>
       `,
       entry,
@@ -370,8 +374,10 @@ export async function getObjectFromId(id) {
   } else if (entry.type === "Property") {
     let propertyEntry = await db.oneOrNone(
       `
-        SELECT * FROM statements
+        SELECT statements.*, properties.*, symbol
+        FROM statements
         INNER JOIN properties ON statements.id = properties.id
+        LEFT JOIN symbols ON properties.id = symbols.id
         WHERE statements.id = $<id>
       `,
       entry,
@@ -384,7 +390,9 @@ export async function getObjectFromId(id) {
   } else if (entry.type === "User") {
     let userEntry = await db.oneOrNone(
       `
-        SELECT * FROM users
+        SELECT users.*, symbol
+        FROM users
+        LEFT JOIN symbols ON users.id = symbols.id
         WHERE users.id = $<id>
       `,
       entry,
@@ -399,7 +407,7 @@ export async function getObjectFromId(id) {
       `
         SELECT values.*, symbol
         FROM values
-        LEFT JOIN values_symbols ON values.id = values_symbols.id
+        LEFT JOIN symbols ON values.id = symbols.id
         WHERE values.id = $<id>
       `,
       entry,
@@ -438,9 +446,10 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
   let property = entryToProperty(await db.oneOrNone(
     `
-      SELECT * FROM objects
+      SELECT objects.*, statements.*, properties.*, symbol FROM objects
       INNER JOIN statements ON objects.id = statements.id
       INNER JOIN properties ON statements.id = properties.id
+      LEFT JOIN symbols ON objects.id = symbols.id
       WHERE object_id = $<objectId>
       AND key_id = $<keyId>
       AND value_id = $<valueId>

@@ -23,7 +23,7 @@ import assert from "assert"
 import pgPromiseFactory from "pg-promise"
 
 import config from "./config"
-import {symbols, valueIdBySymbol} from "./symbols"
+import {symbols, idBySymbol, symbolById} from "./symbols"
 
 
 const pgPromise = pgPromiseFactory()
@@ -36,7 +36,7 @@ export const db = pgPromise({
 })
 export let dbSharedConnectionObject = null
 
-export const versionNumber = 9
+export const versionNumber = 10
 export const versionTextSearchNumber = 1
 
 
@@ -63,10 +63,10 @@ async function checkDatabase({ignoreTextSearchVersion = false} = {}) {
 export async function checkSymbols() {
   let results = await db.any(
     `
-      SELECT values_symbols.id, symbol
+      SELECT symbols.id, symbol
       FROM objects
       INNER JOIN values ON objects.id = values.id
-      INNER JOIN values_symbols ON values.id = values_symbols.id
+      INNER JOIN symbols ON objects.id = symbols.id
       WHERE symbol in ($<symbols:csv>)
     `,
     {
@@ -74,10 +74,11 @@ export async function checkSymbols() {
     },
   )
   for (let {id, symbol} of results) {
-    valueIdBySymbol[symbol] = id
+    idBySymbol[symbol] = id
+    symbolById[id] = symbol
   }
   for (let symbol of symbols) {
-    assert.notStrictEqual(valueIdBySymbol[symbol], undefined,
+    assert.notStrictEqual(idBySymbol[symbol], undefined,
       `Symbol "${symbol}" is missing. Run "node configure" to define it.`)
   }
 }

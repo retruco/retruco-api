@@ -26,10 +26,10 @@ import {randomBytes} from "mz/crypto"
 import config from "../config"
 import {db, hashStatement} from "../database"
 import {entryToBallot, entryToCard, entryToUser, generateObjectTextSearch, getObjectFromId, getOrNewLocalizedString,
-  getOrNewProperty, getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toBallotJson,
-  unrateStatement, wrapAsyncMiddleware} from "../model"
+  getOrNewProperty, getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement,
+  toBallotJson, unrateStatement, wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
-import {getIdFromSymbol} from "../symbols"
+import {getIdFromSymbol, getSymbolOrId} from "../symbols"
 
 
 const ajvStrict = new Ajv({
@@ -355,10 +355,11 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     // Try to retrieve a card rated by user and having key property rated by user.
     let card = entryToCard(await db.oneOrNone(
       `
-        SELECT *
+        SELECT objects.*, statements.*, cards.*, symbol
         FROM objects
         INNER JOIN statements ON objects.id = statements.id
         INNER JOIN cards ON statements.id = cards.id
+        LEFT JOIN symbols ON objects.id = symbols.id
         WHERE objects.id IN (
           SELECT object_id
           FROM objects
@@ -382,10 +383,11 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       // Try to retrieve a card having key property.
       card = entryToCard(await db.oneOrNone(
         `
-          SELECT *
+          SELECT objects.*, statements.*, cards.*, symbol
           FROM objects
           INNER JOIN statements ON objects.id = statements.id
           INNER JOIN cards ON statements.id = cards.id
+          LEFT JOIN symbols ON objects.id = symbols.id
           WHERE objects.id IN (
             SELECT object_id
             FROM objects
@@ -782,10 +784,11 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 
   let cards = (await db.any(
     `
-      SELECT *
+      SELECT objects.*, statements.*, cards.*, symbol
       FROM objects
       INNER JOIN statements on objects.id = statements.id
       INNER JOIN cards on statements.id = cards.id
+      LEFT JOIN symbols ON objects.id = symbols.id
       ${whereClause}
       ORDER BY created_at DESC LIMIT $<limit> OFFSET $<offset>
     `,
@@ -833,7 +836,7 @@ export async function toDataJson(objectOrObjects, user, {
   }
 
   if (Array.isArray(objectOrObjects)) {
-    data.ids = objectOrObjects.map(object => object.id)
+    data.ids = objectOrObjects.map(object => object.symbol || object.id)
     for (let object of objectOrObjects) {
       await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
     }
@@ -867,13 +870,13 @@ async function toDataJson1(object, data, objectsCache, user, {
     Value: data.values,
   }[object.type]
   assert.notStrictEqual(objectJsonById, undefined)
-  if (objectJsonById[object.id]) return
+  if (objectJsonById[object.symbol || object.id]) return
 
   const cachedObject = objectsCache[object.id]
   if (cachedObject) object = cachedObject
 
   const objectJson = toObjectJson(object)
-  objectJsonById[object.id] = objectJson
+  objectJsonById[object.symbol || object.id] = objectJson
 
   if (showBallots && user) {
     let ballotJsonById = data.ballots
@@ -904,14 +907,35 @@ async function toDataJson1(object, data, objectsCache, user, {
 
 
 export function toObjectJson(object, {showApiKey = false, showEmail = false} = {}) {
-  // let objectJson = {...object}
   let objectJson = Object.assign({}, object)
   objectJson.createdAt = objectJson.createdAt.toISOString()
-  if (object.type === "User") {
+  if (objectJson.properties) {
+    let properties = objectJson.properties = Object.assign({}, objectJson.properties)
+    for (let [keyId, valueId] of Object.entries(properties)) {
+      let keySymbol = getSymbolOrId(keyId)
+      properties[keySymbol] = getSymbolOrId(valueId)
+      if (keySymbol !== keyId) delete properties[keyId]
+    }
+  }
+
+  if (object.type === "Concept") {
+    objectJson.valueId = getSymbolOrId(objectJson.valueId)
+  } else if (object.type === "Property") {
+    objectJson.objectId = getSymbolOrId(objectJson.objectId)
+    objectJson.keyId = getSymbolOrId(objectJson.keyId)
+    objectJson.valueId = getSymbolOrId(objectJson.valueId)
+  } else if (object.type === "User") {
     if (!showApiKey) delete objectJson.apiKey
     if (!showEmail) delete objectJson.email
     delete objectJson.passwordDigest
     delete objectJson.salt
+  } else if (object.type === "Value") {
+    objectJson.schemaId = getSymbolOrId(objectJson.schemaId)
+    objectJson.widgetId = getSymbolOrId(objectJson.widgetId)
+  }
+
+  for (let [key, value] of Object.entries(objectJson)) {
+    if (value === null || value === undefined) delete objectJson[key]
   }
   return objectJson
 }

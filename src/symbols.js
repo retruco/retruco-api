@@ -22,6 +22,8 @@
 import {schemaByPath} from "./schemas"
 
 
+export const idBySymbol = {}
+
 export const symbolizedTypedValues = [
   // /types/object is created manually because it references itself.
   // {
@@ -161,7 +163,7 @@ export const symbols = [
   ...symbolizedTypedValues.map(infos => infos.symbol),
 ]
 
-export const valueIdBySymbol = {}
+export const symbolById = {}
 
 const valueValueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
   d[typedValue.symbol] = typedValue.value
@@ -180,11 +182,16 @@ function clean(object) {
 
 export function getIdFromSymbol(symbol) {
   if (symbol === null) return null
-  let valueId = valueIdBySymbol[symbol]
+  let valueId = idBySymbol[symbol]
   if (valueId === undefined) throw `Unknown symbol: ${symbol}`
   return valueId
 }
 
+
+export function getSymbolOrId(id) {
+  if (id === null) return null
+  return symbolById[id] || id
+}
 
 export function getValueValueFromSymbol(symbol) {
   if (symbol === null) return null

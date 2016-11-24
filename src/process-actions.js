@@ -25,7 +25,7 @@ import deepEqual from "deep-equal"
 import {checkDatabase, db, dbSharedConnectionObject} from "./database"
 import {addAction, describe, generateObjectTextSearch, getObjectFromId, getOrNewValue, entryToAction,
   entryToBallot} from "./model"
-import {getIdFromSymbol, getValueValueFromSymbol, valueIdBySymbol} from "./symbols"
+import {getIdFromSymbol, getValueValueFromSymbol, idBySymbol} from "./symbols"
 
 
 let languageCodeByKeyId = null
@@ -487,7 +487,7 @@ async function processAction(action) {
 
 
 async function processActions () {
-  languageCodeByKeyId = Object.entries(valueIdBySymbol).reduce((d, [symbol, id]) => {
+  languageCodeByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
     if (symbol.startsWith("localization.")) d[id] = symbol.slice("localization.".length)
     return d
   }, {})
