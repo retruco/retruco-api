@@ -20,7 +20,7 @@
 
 
 {
-  "only": ["./config", "./src"],
+  "only": ["./config", "./src", "./tests"],
   "presets": [
     "es2015",
     "stage-0",
