@@ -101,8 +101,7 @@ export async function describe(object) {
 }
 
 
-export {entryToAction}
-function entryToAction(entry) {
+export function entryToAction(entry) {
   return entry === null ? null : {
     createdAt: entry.created_at,
     id: entry.id,  // Use string for id.
@@ -112,8 +111,7 @@ function entryToAction(entry) {
 }
 
 
-export {entryToBallot}
-function entryToBallot(entry) {
+export function entryToBallot(entry) {
   return entry === null ? null : {
     id: `${entry.statement_id}/${entry.voter_id}`,
     rating: parseInt(entry.rating),
@@ -124,35 +122,19 @@ function entryToBallot(entry) {
 }
 
 
-export {entryToCard}
-function entryToCard(entry) {
-  // return entry === null ? null : {
-  //   ...entryToStatement(entry),
-  // }
+export function entryToCard(entry) {
   return entry === null ? null : Object.assign({}, entryToStatement(entry))
 }
 
 
-export {entryToConcept}
-function entryToConcept(entry) {
-  // return entry === null ? null : {
-  //   ...entryToStatement(entry),
-  //   valueId: entry.value_id,
-  // }
+export function entryToConcept(entry) {
   return entry === null ? null : Object.assign({}, entryToStatement(entry), {
     valueId: entry.value_id,
   })
 }
 
 
-export {entryToProperty}
-function entryToProperty(entry) {
-  // return entry === null ? null : {
-  //   ...entryToStatement(entry),
-  //   keyId: entry.key_id,
-  //   objectId: entry.object_id,
-  //   valueId: entry.value_id,
-  // }
+export function entryToProperty(entry) {
   return entry === null ? null : Object.assign({}, entryToStatement(entry), {
     keyId: entry.key_id,
     objectId: entry.object_id,
@@ -161,8 +143,7 @@ function entryToProperty(entry) {
 }
 
 
-export {entryToObject}
-function entryToObject(entry) {
+export function entryToObject(entry) {
   return entry === null ? null : {
     createdAt: entry.created_at,
     id: entry.id,
@@ -173,14 +154,7 @@ function entryToObject(entry) {
 }
 
 
-export {entryToStatement}
-function entryToStatement(entry) {
-  // return entry === null ? null : {
-  //   ...entryToObject(entry),
-  //   rating: entry.rating,
-  //   ratingCount: entry.rating_count,
-  //   ratingSum: entry.rating_sum,
-  // }
+export function entryToStatement(entry) {
   return entry === null ? null : Object.assign({}, entryToObject(entry), {
     rating: entry.rating,
     ratingCount: entry.rating_count,
@@ -189,18 +163,7 @@ function entryToStatement(entry) {
 }
 
 
-export {entryToUser}
-function entryToUser(entry) {
-  // return entry === null ? null : {
-  //   ...entryToObject(entry),
-  //   apiKey: entry.api_key,
-  //   email: entry.email,
-  //   isAdmin: entry.is_admin,
-  //   name: entry.name,
-  //   passwordDigest: entry.password_digest,
-  //   salt: entry.salt,
-  //   urlName: entry.url_name,
-  // }
+export function entryToUser(entry) {
   return entry === null ? null : Object.assign({}, entryToObject(entry), {
     apiKey: entry.api_key,
     email: entry.email,
@@ -213,15 +176,7 @@ function entryToUser(entry) {
 }
 
 
-export {entryToValue}
-function entryToValue(entry) {
-  // return entry === null ? null : {
-  //   ...entryToObject(entry),
-  //   schemaId: entry.schema_id,
-  //   symbol: entry.symbol,  // Given only when JOIN with table values_symbols
-  //   value: entry.value,
-  //   widgetId: entry.widget_id,
-  // }
+export function entryToValue(entry) {
   return entry === null ? null : Object.assign({}, entryToObject(entry), {
     schemaId: entry.schema_id,
     value: entry.value,
