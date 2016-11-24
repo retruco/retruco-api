@@ -263,10 +263,10 @@ export async function generateObjectTextSearch(object) {
       let searchableTexts = []
       for (let keySymbol of ["name", "title", "twitter-name"]) {
         let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-        if (valueId === undefined) return null
+        if (valueId === undefined) continue
         let value = await getObjectFromId(valueId)
         assert.ok(value, `Missing value at ID ${valueId}`)
-        searchableTexts.push(value)
+        searchableTexts.push(value.value)
       }
       searchableText = searchableTexts
         .filter(value => value !== null && value !== undefined && value !== "")
