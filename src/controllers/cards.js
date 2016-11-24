@@ -469,6 +469,9 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             // TODO: Change widget.
           } else {
             item.targetId = referencedCardId
+            let reverseName = item.reverseKeyId
+            let reverseNameId = await getOrNewIdFromString(typedLanguage, reverseName, {inactiveStatementIds, userId})
+            item.reverseKeyId = reverseNameId
           }
           items.push(item)
         }
