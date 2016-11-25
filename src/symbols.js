@@ -66,6 +66,16 @@ export const symbolizedTypedValues = [
   // Widgets
 
   {
+    symbol: "/widgets/input-text",
+    schemaSymbol: "/types/object",
+    value: {
+      tag: "input",
+      type: "text",
+    },
+    widgetSymbol: null,
+  },
+
+  {
     symbol: "/widgets/rated-item-or-set",
     schemaSymbol: "/types/object",
     value: {
