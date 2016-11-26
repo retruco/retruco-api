@@ -259,7 +259,7 @@ async function handlePropertyChange(objectId, keyId) {
   if (removeAttribute) {
     if (object.properties && object.properties[keyId]) {
       delete object.properties[keyId]
-      if (object.properties.length === 0) delete object.properties
+      if (Object.keys(object.properties).length === 0) object.properties = null
       objectPropertiesChanged = true
     }
   }
