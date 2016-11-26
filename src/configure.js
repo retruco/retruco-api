@@ -22,7 +22,7 @@
 import assert from "assert"
 
 import {db, entryToStatement, versionNumber} from "./database"
-import {entryToValue, generateObjectTextSearch, getOrNewValue, types} from "./model"
+import {entryToValue, generateObjectTextSearch, getOrNewProperty, getValue, types} from "./model"
 import {getIdFromSymbol, symbolizedTypedValues, idBySymbol, symbolById} from "./symbols"
 
 
@@ -483,20 +483,119 @@ async function configureSymbols() {
       },
     ))
     if (typedValue === null) {
-      typedValue = await getOrNewValue(schemaId, widgetId, value)
-      typedValue.symbol = symbol
+      typedValue = await getOrNewValueWithSymbol(schemaId, widgetId, value, {symbol})
+    } else {
+      idBySymbol[symbol] = typedValue.id
+      symbolById[typedValue.id] = symbol
+    }
+
+    if (schemaSymbol === "/schemas/localized-string") {
+      // Creating a localized string, requires to create each of its strings.
+      let properties = {}
+      for (let [language, string] of Object.entries(value)) {
+        let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("/types/string"), null, string)
+        properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
+      }
+      // Do an optimistic optimization.
+      if (typedValue.properties === null) typedValue.properties = {}
+      for (let [languageId, stringId] of Object.entries(properties)) {
+        if (typedValue.properties[languageId] === undefined) typedValue.properties[languageId] = stringId
+      }
       await db.none(
-        `INSERT INTO symbols(id, symbol)
-          VALUES ($<id>, $<symbol>)
-          ON CONFLICT (symbol)
-          DO UPDATE SET id = $<id>
-          `,
+        `
+          UPDATE objects
+          SET properties = $<properties>
+          WHERE id = $<id>
+        `,
         typedValue,
       )
     }
+  }
+}
+
+
+export async function getOrNewValueWithSymbol(schemaId, widgetId, value, {inactiveStatementIds, properties = null,
+  userId = null, symbol = null} = {}) {
+  // Custom (and slower) version of getOrNewValue to avoid missing symbols during configuration of symbols.
+  if (properties) assert(userId, "Properties can only be set when userId is not null.")
+
+  let typedValue = await getValue(schemaId, widgetId, value)
+  if (typedValue === null) {
+    let result = await db.one(
+      `
+        INSERT INTO objects(created_at, type)
+        VALUES (current_timestamp, 'Value')
+        RETURNING created_at, id, type
+      `,
+    )
+    typedValue = {
+      createdAt: result.created_at,
+      id: result.id,
+      properties,
+      schemaId,
+      symbol,
+      type: result.type,
+      value,
+      widgetId,
+    }
+    await db.none(
+      `
+        INSERT INTO values(id, schema_id, value, widget_id)
+        VALUES ($<id>, $<schemaId>, $<value:json>, $<widgetId>)
+      `,
+      typedValue,
+    )
+    await generateObjectTextSearch(typedValue)
+  }
+  if (symbol) {
+    typedValue.symbol = symbol
+    await db.none(
+      `INSERT INTO symbols(id, symbol)
+        VALUES ($<id>, $<symbol>)
+        ON CONFLICT (symbol)
+        DO UPDATE SET id = $<id>
+        `,
+      typedValue,
+    )
     idBySymbol[symbol] = typedValue.id
     symbolById[typedValue.id] = symbol
   }
+
+  // Note: getOrNewValueWithSymbol may be called before the ID of the symbol "/schemas/localized-string" is known.
+  // So it is not possible to use function getIdFromSymbol("/schemas/localized-string").
+  let localizedStringSchemaId = idBySymbol["/schemas/localized-string"]
+  if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
+    // Getting and rating a localized string, requires to get and rate each of its strings.
+    if (!properties) properties = {}
+    for (let [language, string] of Object.entries(value)) {
+      let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("/types/string"), null, string,
+        {inactiveStatementIds, userId})
+      properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
+    }
+  }
+
+  if (properties) {
+    await db.none(
+      `
+        UPDATE objects
+        SET properties = $<properties:json>
+        WHERE id = $<id>
+      `,
+      {
+        properties,  // Note: Properties are typically set for optimistic optimization.
+        id: typedValue.id,
+      },
+    )
+
+    typedValue.propertyByKeyId = {}
+    for (let [keyId, valueId] of Object.entries(properties)) {
+      assert.strictEqual(typeof keyId, "string")
+      assert.strictEqual(typeof valueId, "string")
+      typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, {inactiveStatementIds,
+        userId})
+    }
+  }
+  return typedValue
 }
 
 

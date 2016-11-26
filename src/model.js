@@ -383,12 +383,6 @@ export async function getOrNewLocalizedString(typedLanguage, string, {inactiveSt
   let localizedString = {
     [typedLanguage.symbol.split(".")[1]]: string,
   }
-  let typedLocalizedString = await getValue(getIdFromSymbol("/schemas/localized-string"), null, localizedString)
-  if (typedLocalizedString) return typedLocalizedString
-
-  let typedString = await getOrNewValue(getIdFromSymbol("/types/string"), null, string, {inactiveStatementIds, userId})
-  if (!properties) properties = {}
-  properties[typedLanguage.id] = typedString.id
   return await getOrNewValue(getIdFromSymbol("/schemas/localized-string"), null, localizedString, {
     inactiveStatementIds,
     properties,
@@ -481,6 +475,20 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
 export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, properties = null,
   userId = null} = {}) {
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
+
+  // Note: getOrNewValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not
+  // possible to use function getIdFromSymbol("/schemas/localized-string").
+  let localizedStringSchemaId = idBySymbol["/schemas/localized-string"]
+  if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
+    // Getting and rating a localized string, requires to get and rate each of its strings.
+    if (!properties) properties = {}
+    for (let [language, string] of Object.entries(value)) {
+      let typedString = await getOrNewValue(getIdFromSymbol("/types/string"), null, string,
+        {inactiveStatementIds, userId})
+      properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
+    }
+  }
+
   let typedValue = await getValue(schemaId, widgetId, value)
   if (typedValue === null) {
     let result = await db.one(
@@ -525,7 +533,7 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
 
 
 export async function getValue(schemaId, widgetId, value) {
-  // Note: getOrNewValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not
+  // Note: getValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not
   // possible to use function getIdFromSymbol("/schemas/localized-string").
   let localizedStringSchemaId = idBySymbol["/schemas/localized-string"]
   let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId ?

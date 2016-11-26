@@ -207,23 +207,19 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       fieldByName[name] = {maxLength, schema, widget}
     }
   }
-  for (let field of Object.values(fieldByName)) {
-    if (field.maxLength > 1) {
-      field.schema = {
-        items: field.schema,
-        type: "array",
-      }
-      // field.widget = {
-      //   items: field.widget,
-      //   tag: "array",
-      // }
-    }
-  }
 
   let schemaValidator = ajvWithCoercionForBundle.compile({
     type: "object",
     properties: Object.entries(fieldByName).reduce((schemaByName, [name, {schema}]) => {
-      schemaByName[name] = schema
+      schemaByName[name] = {
+        anyOf: [
+          schema,
+          {
+            items: schema,
+            type: "array",
+          },
+        ],
+      }
       return schemaByName
     }, {}),
   })
@@ -338,9 +334,21 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         schema = {type: null}
         value = null
       }
-      value = value.length > 0 ? value[0] : null
     }
     return [schema, widget, value]
+  }
+
+  for (let field of Object.values(fieldByName)) {
+    if (field.maxLength > 1) {
+      field.schema = {
+        items: field.schema,
+        type: "array",
+      }
+      // field.widget = {
+      //   items: field.widget,
+      //   tag: "array",
+      // }
+    }
   }
 
   // Upsert and rate all cards using only keyName to retrieve them.

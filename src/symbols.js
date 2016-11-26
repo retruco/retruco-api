@@ -25,6 +25,8 @@ import {schemaByPath} from "./schemas"
 export const idBySymbol = {}
 
 export const symbolizedTypedValues = [
+  // Basic schemas
+
   // /types/object is created manually because it references itself.
   // {
   //   symbol: "/types/object",
@@ -32,9 +34,6 @@ export const symbolizedTypedValues = [
   //   value: {type: "object"},
   //   widgetSymbol: null,
   // },
-
-  // Basic types
-
   {
     symbol: "/types/string",
     schemaSymbol: "/types/object",
@@ -86,6 +85,14 @@ export const symbolizedTypedValues = [
 
   // Keys of properties
 
+  { // localization.en must be first value of type "/schemas/localized-string".
+    symbol: "localization.en",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "English Localization",
+    },
+    widgetSymbol: null,
+  },
   {
     symbol: "cons",  // pros & cons
     schemaSymbol: "/schemas/localized-string",
@@ -95,10 +102,10 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
-    symbol: "localization.en",
+    symbol: "description",
     schemaSymbol: "/schemas/localized-string",
     value: {
-      en: "English Localization",
+      en: "Description",
     },
     widgetSymbol: null,
   },
@@ -193,7 +200,7 @@ function clean(object) {
 export function getIdFromSymbol(symbol) {
   if (symbol === null) return null
   let valueId = idBySymbol[symbol]
-  if (valueId === undefined) throw `Unknown symbol: ${symbol}`
+  if (valueId === undefined) throw `Unknown symbol for getIdFromSymbol: ${symbol}`
   return valueId
 }
 
@@ -206,6 +213,6 @@ export function getSymbolOrId(id) {
 export function getValueValueFromSymbol(symbol) {
   if (symbol === null) return null
   let value = valueValueBySymbol[symbol]
-  if (value === undefined) throw `Unknown symbol: ${symbol}`
+  if (value === undefined) throw `Unknown symbol for getValueValueFromSymbol: ${symbol}`
   return value
 }
