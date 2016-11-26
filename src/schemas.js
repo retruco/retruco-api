@@ -74,4 +74,20 @@ export const bundleSchemaByPath = Object.assign({}, schemaByPath, {
       "targetId",
     ],
   },
+  "/schemas/localized-string": {
+    description: "JSON Schema for a string localized in several languages (version for bundles)",
+    anyOf: [
+      {
+        type: "string",
+      },
+      {
+        type: "object",
+        patternProperties: {
+          "^[a-z]{2}$": {
+            type: "string",
+          },
+        },
+      },
+    ],
+  },
 })

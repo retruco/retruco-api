@@ -19,7 +19,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {schemaByPath} from "./schemas"
+// import {schemaByPath} from "./schemas"
 
 
 export const idBySymbol = {}
@@ -43,22 +43,46 @@ export const symbolizedTypedValues = [
 
   // Schemas
 
+  // {
+  //   symbol: "/schemas/bijective-uri-reference",
+  //   schemaSymbol: "/types/object",
+  //   value: clean(schemaByPath["/schemas/bijective-uri-reference"]),
+  //   widgetSymbol: null,
+  // },
   {
     symbol: "/schemas/bijective-uri-reference",
     schemaSymbol: "/types/object",
-    value: clean(schemaByPath["/schemas/bijective-uri-reference"]),
+    value: {
+      $ref: "/schemas/bijective-uri-reference",
+    },
     widgetSymbol: null,
   },
+  // {
+  //   symbol: "/schemas/localized-string",
+  //   schemaSymbol: "/types/object",
+  //   value: clean(schemaByPath["/schemas/localized-string"]),
+  //   widgetSymbol: null,
+  // },
   {
     symbol: "/schemas/localized-string",
     schemaSymbol: "/types/object",
-    value: clean(schemaByPath["/schemas/localized-string"]),
+    value: {
+      $ref: "/schemas/localized-string",
+    },
     widgetSymbol: null,
   },
+  // {
+  //   symbol: "/schemas/uri-reference",
+  //   schemaSymbol: "/types/object",
+  //   value: clean(schemaByPath["/schemas/uri-reference"]),
+  //   widgetSymbol: null,
+  // },
   {
     symbol: "/schemas/uri-reference",
     schemaSymbol: "/types/object",
-    value: clean(schemaByPath["/schemas/uri-reference"]),
+    value: {
+      $ref: "/schemas/uri-reference",
+    },
     widgetSymbol: null,
   },
 
@@ -91,7 +115,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "English Localization",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "cons",  // pros & cons
@@ -99,7 +123,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Cons",  // Against
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "description",
@@ -107,7 +131,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Description",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "localization.es",
@@ -115,7 +139,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Spanish Localization",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "localization.fr",
@@ -123,7 +147,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "French Localization",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "name",
@@ -131,7 +155,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Name",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "pros",  // pros & cons
@@ -139,7 +163,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Pros",  // For
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "tags",
@@ -147,7 +171,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Tags",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "title",
@@ -155,7 +179,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Title",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "twitter-name",
@@ -163,7 +187,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Twitter Name",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
   {
     symbol: "types",
@@ -171,7 +195,7 @@ export const symbolizedTypedValues = [
     value: {
       en: "Types",
     },
-    widgetSymbol: null,
+    widgetSymbol: "/widgets/input-text",
   },
 ]
 
@@ -188,13 +212,13 @@ const valueValueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
 }, {})
 
 
-function clean(object) {
-  // Clean up a schema or widget
-  let clone = Object.assign({}, object)
-  delete clone.description
-  delete clone.title
-  return clone
-}
+// function clean(object) {
+//   // Clean up a schema or widget
+//   let clone = Object.assign({}, object)
+//   delete clone.description
+//   delete clone.title
+//   return clone
+// }
 
 
 export function getIdFromSymbol(symbol) {

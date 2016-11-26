@@ -383,11 +383,15 @@ export async function getOrNewLocalizedString(typedLanguage, string, {inactiveSt
   let localizedString = {
     [typedLanguage.symbol.split(".")[1]]: string,
   }
-  return await getOrNewValue(getIdFromSymbol("/schemas/localized-string"), null, localizedString, {
-    inactiveStatementIds,
-    properties,
-    userId,
-  })
+  return await getOrNewValue(
+    getIdFromSymbol("/schemas/localized-string"),
+    getIdFromSymbol("/widgets/input-text"),
+    localizedString, {
+      inactiveStatementIds,
+      properties,
+      userId,
+    },
+  )
 }
 
 
