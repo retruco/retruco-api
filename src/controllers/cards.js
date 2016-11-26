@@ -468,10 +468,8 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             attributeWarnings[String(index)] = `Unknown key "${item.targetId}" for referenced card`
             item = item.targetId
 
-            // schema = {...schema}
             schema = Object.assign({}, schema)
             if (Array.isArray(schema.items)) schema.items = [...schema.items]
-            // else schema.items = value.map(() => ({...schema.items}))
             else schema.items = value.map(() => Object.assign({}, schema.items))
             schema.items[index] = {type: "string"}
             // TODO: Change widget.
@@ -507,10 +505,8 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
             attributeWarnings[String(index)] = `Unknown key "${item}" for referenced card`
 
-            // schema = {...schema}
             schema = Object.assign({}, schema)
             if (Array.isArray(schema.items)) schema.items = [...schema.items]
-            // else schema.items = value.map(() => ({...schema.items}))
             else schema.items = value.map(() => Object.assign({}, schema.items))
             schema.items[index] = {type: "string"}
             // TODO: Change widget.
@@ -530,6 +526,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   // Remove obsolete user ratings.
   console.log("inactiveStatementIds:", inactiveStatementIds.size)
   for (let statementId of inactiveStatementIds) {
+    // console.log("Removing inactive statement:", await getObjectFromId(statementId))
     await unrateStatement(statementId, userId)
   }
 
@@ -803,11 +800,6 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       ${whereClause}
       ORDER BY created_at DESC LIMIT $<limit> OFFSET $<offset>
     `,
-    // {
-    //   ...coreArguments,
-    //   limit,
-    //   offset,
-    // },
     Object.assign({}, coreArguments, {
       limit,
       offset,
