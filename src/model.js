@@ -478,6 +478,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
 
 export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, properties = null,
   userId = null} = {}) {
+  assert(typeof schemaId === "string")
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
 
   // Note: getOrNewValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not

@@ -25,6 +25,7 @@
     "babel-eslint": "^6.1.2",
     "eslint": "^3.8.0",
     "eslint-plugin-babel": "^3.3.0",
+    "json2csv": "^3.7.2",
     "nodemon": "^1.11.0"
   },
   "scripts": {
@@ -49,7 +50,7 @@
     "statement",
     "vote"
   ],
-  "engineStrict" : true,
+  "engineStrict": true,
   "engines": {
     "node": ">= 5.10.0"
   }
