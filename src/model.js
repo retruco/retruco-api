@@ -148,6 +148,7 @@ export function entryToObject(entry) {
     createdAt: entry.created_at,
     id: entry.id,
     properties: entry.properties,
+    subTypes: entry.sub_types,
     symbol: entry.symbol,  // Given only when JOIN with table symbols
     type: entry.type,
   }
@@ -422,7 +423,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
       `
         INSERT INTO objects(created_at, properties, type)
         VALUES (current_timestamp, $<properties:json>, 'Property')
-        RETURNING created_at, id, properties, type
+        RETURNING created_at, id, properties, sub_types, type
       `,
       {
         properties,  // Note: Properties are typically set for optimistic optimization.
@@ -434,6 +435,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
       keyId,
       objectId,
       properties,
+      subTypes: result.sub_types,
       type: result.type,
       valueId,
     }
@@ -500,7 +502,7 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
       `
         INSERT INTO objects(created_at, properties, type)
         VALUES (current_timestamp, $<properties:json>, 'Value')
-        RETURNING created_at, id, properties, type
+        RETURNING created_at, id, properties, sub_types, type
       `,
       {
         properties,  // Note: Properties are typically set for optimistic optimization.
@@ -511,6 +513,7 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
       id: result.id,
       properties,
       schemaId,
+      subTypes: result.sub_types,
       type: result.type,
       value,
       widgetId,
@@ -570,7 +573,7 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
     `
       INSERT INTO objects(created_at, properties, type)
       VALUES (current_timestamp, $<properties:json>, 'Card')
-      RETURNING created_at, id, properties, type
+      RETURNING created_at, id, properties, sub_types, type
     `,
     {
       properties,  // Note: Properties are typically set for optimistic optimization.
@@ -580,6 +583,7 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
     createdAt: result.created_at,
     id: result.id,
     properties,
+    subTypes: result.sub_types,
     type: result.type,
   }
   result = await db.one(

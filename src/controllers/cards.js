@@ -685,8 +685,8 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let languageCode = req.query.languageCode
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
-  let queryTypes = req.query.type || []
   let show = req.query.show || []
+  let subTypes = req.query.type || []
   let tagsName = req.query.tag || []
   let term = req.query.term
   let userName = req.query.user  // email or urlName
@@ -778,9 +778,8 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     }
   }
 
-  if (queryTypes.length > 0) {
-    whereClauses.push("properties->$<typesId> @> $<queryTypes>")
-    // whereClauses.push("properties->$<typesId> ?| array[$<queryTypes:csv>]")
+  if (subTypes.length > 0) {
+    whereClauses.push("sub_types && $<subTypes>")
   }
 
   if (user !== null) {
@@ -791,7 +790,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 
   let coreArguments = {
       // languageCode,
-      queryTypes,
+      subTypes,
       tagsId: getIdFromSymbol("tags"),
       tagsName,
       term,

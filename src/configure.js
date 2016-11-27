@@ -80,6 +80,9 @@ async function configureDatabase() {
   if (version.number < 10) {
     await db.none("DROP TABLE values_symbols")
   }
+  if (version.number < 11) {
+    await db.none("ALTER TABLE objects ADD COLUMN IF NOT EXISTS sub_types text[]")
+  }
 
   // Objects
 
@@ -103,10 +106,16 @@ async function configureDatabase() {
       created_at timestamp without time zone NOT NULL,
       id bigserial NOT NULL PRIMARY KEY,
       properties jsonb,
+      sub_types text[],
       type object_type NOT NULL
     )
   `)
   await db.none("CREATE INDEX IF NOT EXISTS objects_created_at_idx ON objects(created_at)")
+  await db.none(`
+    CREATE INDEX IF NOT EXISTS objects_sub_types_idx
+    ON objects
+    USING GIN (sub_types)
+  `)
 
   // Table: users
   await db.none(`

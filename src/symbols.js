@@ -71,6 +71,17 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
+  {
+    symbol: "/schemas/localized-strings-array",
+    schemaSymbol: "/types/object",
+    value: {
+      type: "array",
+      items: {
+        $ref: "/schemas/localized-string",
+      },
+    },
+    widgetSymbol: null,
+  },
   // {
   //   symbol: "/schemas/uri-reference",
   //   schemaSymbol: "/types/object",

@@ -286,6 +286,28 @@ async function processAction(action) {
   let description = await describe(object)
   console.log(`Processing ${action.type} of ${action.createdAt.toISOString()} for ${description}...`)
   if (action.type === "properties") {
+    let properties = object.properties
+    if (properties) {
+      let subTypesId = properties[getIdFromSymbol("types")]
+      let subTypes = null
+      if (subTypesId !== undefined) {
+        let subTypesValue = await getObjectFromId(subTypesId)
+        if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+          let englishString = subTypesValue.value.en
+          if (englishString) subTypes = [subTypesValue.value.en]
+        } else if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
+          subTypes = subTypesValue.value.map(item => item.en).filter(item => item != undefined)
+        }
+      }
+      if (!deepEqual(subTypes, object.subTypes)) {
+        await db.none("UPDATE objects SET sub_types = $<subTypes> WHERE id = $<id>", {
+          id: object.id,
+          subTypes,
+        })
+        // await addAction(object.id, "value")  TODO?
+      }
+    }
+
     if (object.type === "Value") {
       if (object.schemaId === getIdFromSymbol("/schemas/localized-string")) {
         let localizations = {}
