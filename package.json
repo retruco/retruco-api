@@ -23,6 +23,7 @@
   "devDependencies": {
     "babel-cli": "^6.16.0",
     "babel-eslint": "^6.1.2",
+    "command-line-args": "^3.0.3",
     "eslint": "^3.8.0",
     "eslint-plugin-babel": "^3.3.0",
     "json2csv": "^3.7.2",
