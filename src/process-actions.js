@@ -314,7 +314,7 @@ async function processAction(action) {
         if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
           tags = [tagsValue.value]
         } else if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
-          tags = tags.value
+          tags = tagsValue.value
         }
       }
       if (!deepEqual(tags, object.tags)) {
