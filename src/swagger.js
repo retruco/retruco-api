@@ -272,6 +272,86 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/cards/tags-popularity": {
+      get: {
+        tags: ["cards", "tags"],
+        summary: "List popularity of tags given to cards",
+        // description: "",
+        // externalDocs: {},
+        operationId: "cards.tagsPopularity",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/languageParam",
+          },
+          {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/offsetQueryParam",
+          },
+          {
+            $ref: "#/parameters/tagsNameQueryParam",
+          },
+          {
+            $ref: "#/parameters/typesQueryParam",
+          },
+          {
+            $ref: "#/parameters/userNameQueryParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing cards",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      count: {
+                        minimum: 1,
+                        type: "integer",
+                      },
+                      tag: {
+                        type: "string",
+                      },
+                    },
+                    required: [
+                      "count",
+                      "tag",
+                    ],
+                  },
+                  $ref: "#/definitions/DataIdsList",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/objects/{idOrSymbol}": {
       get: {
         tags: ["object"],

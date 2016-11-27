@@ -788,13 +788,12 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
   let coreArguments = {
-      // language,
-      subTypes,
-      tags: tags.map(tag => ({[language || "en"]: tag})),
-      term,
-      typesId: getIdFromSymbol("types"),
-      userId: user === null ? null : user.id,
-    }
+    // language,
+    subTypes,
+    tags: tags.map(tag => ({[language || "en"]: tag})),
+    term,
+    userId: user === null ? null : user.id,
+  }
   let count = (await db.one(
     `
       SELECT count(*) as count
@@ -814,7 +813,9 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       INNER JOIN cards on statements.id = cards.id
       LEFT JOIN symbols ON objects.id = symbols.id
       ${whereClause}
-      ORDER BY created_at DESC LIMIT $<limit> OFFSET $<offset>
+      ORDER BY created_at DESC
+      LIMIT $<limit>
+      OFFSET $<offset>
     `,
     Object.assign({}, coreArguments, {
       limit,
@@ -831,6 +832,74 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       showProperties: show.includes("properties"),
       showValues: show.includes("values"),
     }),
+    limit: limit,
+    offset: offset,
+  })
+})
+
+
+export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPopularity(req, res) {
+  let language = req.query.language
+  let limit = req.query.limit || 20
+  let offset = req.query.offset || 0
+  let subTypes = req.query.type || []
+  let tags = req.query.tag || []
+
+  let whereClauses = [
+    "type = 'Card'",
+  ]
+
+  // if (language) {
+  //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
+  // }
+
+  if (subTypes.length > 0) {
+    whereClauses.push("sub_types && $<subTypes>")
+  }
+
+  if (tags.length > 0) {
+    whereClauses.push("tags @> $<tags:json>")
+  }
+
+  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
+
+  let coreArguments = {
+    // language,
+    subTypes,
+    tags: tags.map(tag => ({[language || "en"]: tag})),
+  }
+  let count = (await db.one(
+    `
+      SELECT count(*)
+      FROM (
+        SELECT DISTINCT jsonb_array_elements(tags) as count
+        FROM objects
+        ${whereClause}
+      ) AS distinct_tags
+    `,
+    coreArguments,
+  )).count
+
+  let popularity = await db.any(
+    `
+      SELECT jsonb_array_elements(tags)->>'en' AS tag, count(id) as count
+      FROM objects
+      ${whereClause}
+      GROUP BY tag
+      ORDER BY count DESC
+      LIMIT $<limit>
+      OFFSET $<offset>
+    `,
+    Object.assign({}, coreArguments, {
+      limit,
+      offset,
+    }),
+  )
+
+  res.json({
+    apiVersion: "1",
+    count: count,
+    data: popularity,
     limit: limit,
     offset: offset,
   })
