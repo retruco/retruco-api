@@ -465,7 +465,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
   await generateObjectTextSearch(property)
   if (userId) {
     await rateStatement(property.id, userId, 1)
-    inactiveStatementIds.delete(property.id)
+    if (inactiveStatementIds) inactiveStatementIds.delete(property.id)
   }
   if (properties) {
     property.propertyByKeyId = {}

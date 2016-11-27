@@ -2494,6 +2494,10 @@ const SPEC = {
       schema: {
         type: "object",
         properties: {
+          language: {
+            description: "Language used by default by the card (for example, for the keys of its attributes)",
+            $ref: "#/definitions/language",
+          },
           schemas: {
             type: "object",
             additionalProperties: {
@@ -2514,6 +2518,7 @@ const SPEC = {
           },
         },
         required: [
+          "language",
           "schemas",
           "values",
           "widgets",

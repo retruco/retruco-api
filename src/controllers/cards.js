@@ -21,13 +21,12 @@
 
 import Ajv from "ajv"
 import assert from "assert"
-import {randomBytes} from "mz/crypto"
 
 import config from "../config"
-import {db, hashStatement} from "../database"
-import {entryToCard, entryToUser, generateObjectTextSearch, getObjectFromId, getOrNewLocalizedString,
-  getOrNewProperty, getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson,
-  unrateStatement, wrapAsyncMiddleware} from "../model"
+import {db} from "../database"
+import {entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString, getOrNewProperty, getOrNewValue,
+  languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, unrateStatement,
+  wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
 import {getIdFromSymbol} from "../symbols"
 
@@ -94,9 +93,6 @@ const ajvWithCoercionForBundle = new Ajv({
 for (let [path, schema] of Object.entries(bundleSchemaByPath)) {
   ajvWithCoercionForBundle.addSchema(schema, path)
 }
-
-const cardType = "Card"
-const propertyType = "Property"
 
 
 export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, res) {
@@ -297,8 +293,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       })
       widgetId = idByStringCache[widgetString]
       if (widgetId === undefined) {
-        widgetId = (await getOrNewValue(getIdFromSymbol("/types/object"), null, widget, {inactiveStatementIds,
-          userId})).id
+        widgetId = (await getOrNewValue(objectSchemaId, null, widget, {inactiveStatementIds, userId})).id
         idByStringCache[widgetString] = widgetId
       }
     }
@@ -563,7 +558,9 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   // Create a new card, giving its initial attributes, schemas & widgets.
   let authenticatedUser = req.authenticatedUser
   let cardInfos = req.body
+  let language = cardInfos.language
   let show = req.query.show || []
+  let userId = authenticatedUser.id
 
   // Validate given schemas.
   let schemaErrorsByName = {}
@@ -613,58 +610,29 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
     return
   }
 
-  // Create new card.
-  let card = {
-    // Ensure that each card has a unique hash.
-    randomId: (await randomBytes(16)).toString("base64").replace(/=/g, ""),  // 128 bits
-  }
-  let hash = hashStatement(cardType, card)
-  let result = await db.one(
-    `INSERT INTO statements(created_at, hash, type, data)
-      VALUES (current_timestamp, $1, $2, $3)
-      RETURNING created_at, id, rating, rating_count, rating_sum`,
-    [hash, cardType, card],
-  )
-  Object.assign(card, {
-    createdAt: result.created_at,
-    id: result.id,
-    rating: result.rating,
-    ratingCount: result.rating_count,
-    ratingSum: result.rating_sum,
-    type: cardType,
-  })
-  await generateObjectTextSearch(card)
-  await rateStatement(card.id, authenticatedUser.id, 1)
-
-  // Insert and rate properties of card.
-  for (let [name, value] of Object.entries(cardInfos.values)) {
-    let property = {
-      name,
-      schema: cardInfos.schemas[name],
-      statementId: card.id,
-      value,
-      widget: cardInfos.widgets[name],
+  // Create new card with its properties.
+  let inactiveStatementIds = null  // No existings objects to remove when creating a new card.
+  let properties = {}
+  let typedLanguage = await getObjectFromId(getIdFromSymbol(`localization.${language}`))
+  for (let [name, value] of Object.entries(cardInfos.value)) {
+    // Convert attribute name to a typed value.
+    let nameId = await getOrNewLocalizedString(typedLanguage, name, {inactiveStatementIds, userId})
+    let schemaId = (await getOrNewValue(getIdFromSymbol("/types/object"), null, cardInfos.schemas[name],
+      {inactiveStatementIds, userId})).id
+    let widget = cardInfos.widgets[name]
+    let widgetId = null
+    if (widget) {
+      widgetId = (await getOrNewValue(getIdFromSymbol("/types/object"), null, widget,
+        {inactiveStatementIds, userId})).id
     }
-    let hash = hashStatement(propertyType, property)
-    let result = await db.one(
-      `INSERT INTO statements(created_at, hash, type, data)
-        VALUES (current_timestamp, $1, $2, $3)
-        RETURNING created_at, id, rating, rating_count, rating_sum`,
-      [hash, propertyType, property],
-    )
-    Object.assign(property, {
-      createdAt: result.created_at,
-      id: result.id,
-      rating: result.rating,
-      ratingCount: result.rating_count,
-      ratingSum: result.rating_sum,
-      type: propertyType,
-    })
-    await generateObjectTextSearch(property)
-    await rateStatement(property.id, authenticatedUser.id, 1)
+    let valueId = (await getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, userId})).id
+    properties[nameId] = valueId
   }
-
-  // No optimistic optimization for card.
+  let card = await newCard({
+    inactiveStatementIds,
+    properties,
+    userId,
+  })
 
   res.status(201)  // Created
   res.json({
