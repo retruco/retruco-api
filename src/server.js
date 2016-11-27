@@ -33,6 +33,7 @@ import * as abusesController from "./controllers/abuses"
 import * as argumentsController from "./controllers/arguments"
 import * as ballotsController from "./controllers/ballots"
 import * as cardsController from "./controllers/cards"
+import * as objectsController from "./controllers/objects"
 import * as statementsController from "./controllers/statements"
 import * as tagsController from "./controllers/tags"
 import * as uploadsController from "./controllers/uploads"
@@ -104,6 +105,9 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   for (let [path, schema] of Object.entries(schemaByPath)) {
     app.get(path, (req, res) => res.json(schema))
   }
+
+  app.get("/objects/:idOrSymbol", usersController.authenticate(false), objectsController.requireObject,
+    objectsController.getObject)
 
   app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
   app.post("/statements", usersController.authenticate(true), statementsController.createStatement)

@@ -272,6 +272,60 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/objects/{idOrSymbol}": {
+      get: {
+        tags: ["object"],
+        summary: "Get an existing object",
+        // description: "",
+        // externalDocs: {},
+        operationId: "objects.get",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/idOrSymbolPathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested object",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/statements": {
       get: {
         tags: ["statement"],
@@ -2453,6 +2507,13 @@ const SPEC = {
       // },
       type: "string",
       pattern: "^[0-9]+$",
+    },
+    idOrSymbolPathParam: {
+      description: "Either an object ID or an object symbol",
+      in: "path",
+      name: "idOrSymbol",
+      required: true,
+      type: "string",
     },
     idParam: {
       // description: "",

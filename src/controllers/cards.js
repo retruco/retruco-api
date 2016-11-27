@@ -25,11 +25,11 @@ import {randomBytes} from "mz/crypto"
 
 import config from "../config"
 import {db, hashStatement} from "../database"
-import {entryToBallot, entryToCard, entryToUser, generateObjectTextSearch, getObjectFromId, getOrNewLocalizedString,
-  getOrNewProperty, getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement,
-  toBallotJson, unrateStatement, wrapAsyncMiddleware} from "../model"
+import {entryToCard, entryToUser, generateObjectTextSearch, getObjectFromId, getOrNewLocalizedString,
+  getOrNewProperty, getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson,
+  unrateStatement, wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
-import {getIdFromSymbol, getSymbolOrId} from "../symbols"
+import {getIdFromSymbol} from "../symbols"
 
 
 const ajvStrict = new Ajv({
@@ -835,126 +835,3 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     offset: offset,
   })
 })
-
-
-export async function toDataJson(objectOrObjects, user, {
-  depth = 0,
-  objectsCache = null,
-  showBallots = false,
-  showProperties = false,
-  showValues = false,
-} = {}) {
-  objectsCache = objectsCache ? Object.assign({}, objectsCache) : {}
-  let data = {
-    ballots: {},
-    cards: {},
-    concepts: {},
-    properties: {},
-    users: {},
-    values: {},
-  }
-
-  if (Array.isArray(objectOrObjects)) {
-    data.ids = objectOrObjects.map(object => object.symbol || object.id)
-    for (let object of objectOrObjects) {
-      await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
-    }
-  } else {
-    assert.ok(objectOrObjects)
-    data.id = objectOrObjects.id
-    await toDataJson1(objectOrObjects, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
-  }
-
-  if (Object.keys(data.ballots).length === 0) delete data.ballots
-  if (Object.keys(data.cards).length === 0) delete data.cards
-  if (Object.keys(data.concepts).length === 0) delete data.concepts
-  if (Object.keys(data.properties).length === 0) delete data.properties
-  if (Object.keys(data.users).length === 0) delete data.users
-  if (Object.keys(data.values).length === 0) delete data.values
-  return data
-}
-
-
-async function toDataJson1(object, data, objectsCache, user, {
-  depth = 0,
-  showBallots = false,
-  showProperties = false,
-  showValues = false,
-} = {}) {
-  let objectJsonById = {
-    Card: data.cards,
-    Concept: data.concepts,
-    Property: data.properties,
-    User: data.users,
-    Value: data.values,
-  }[object.type]
-  assert.notStrictEqual(objectJsonById, undefined)
-  if (objectJsonById[object.symbol || object.id]) return
-
-  const cachedObject = objectsCache[object.id]
-  if (cachedObject) object = cachedObject
-
-  const objectJson = toObjectJson(object)
-  objectJsonById[object.symbol || object.id] = objectJson
-
-  if (showBallots && user) {
-    let ballotJsonById = data.ballots
-    let ballotId = [object.id, user.id].join("/")
-    objectJson.ballotId = ballotId
-    if (!ballotJsonById[ballotId]) {
-      let ballot = entryToBallot(await db.oneOrNone(
-        "SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2",
-        [object.id, user.id],
-      ))
-      if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
-    }
-  }
-
-  if (showValues) {
-    for (let [keyId, valueId] of Object.entries(object.properties || {})) {
-      let typedKey = await getObjectFromId(keyId)
-      if (typedKey) {
-        await toDataJson1(typedKey, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
-      }
-      let typedValue = await getObjectFromId(valueId)
-      if (typedValue) {
-        await toDataJson1(typedValue, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
-      }
-    }
-  }
-}
-
-
-export function toObjectJson(object, {showApiKey = false, showEmail = false} = {}) {
-  let objectJson = Object.assign({}, object)
-  objectJson.createdAt = objectJson.createdAt.toISOString()
-  if (objectJson.properties) {
-    let properties = objectJson.properties = Object.assign({}, objectJson.properties)
-    for (let [keyId, valueId] of Object.entries(properties)) {
-      let keySymbol = getSymbolOrId(keyId)
-      properties[keySymbol] = getSymbolOrId(valueId)
-      if (keySymbol !== keyId) delete properties[keyId]
-    }
-  }
-
-  if (object.type === "Concept") {
-    objectJson.valueId = getSymbolOrId(objectJson.valueId)
-  } else if (object.type === "Property") {
-    objectJson.objectId = getSymbolOrId(objectJson.objectId)
-    objectJson.keyId = getSymbolOrId(objectJson.keyId)
-    objectJson.valueId = getSymbolOrId(objectJson.valueId)
-  } else if (object.type === "User") {
-    if (!showApiKey) delete objectJson.apiKey
-    if (!showEmail) delete objectJson.email
-    delete objectJson.passwordDigest
-    delete objectJson.salt
-  } else if (object.type === "Value") {
-    objectJson.schemaId = getSymbolOrId(objectJson.schemaId)
-    objectJson.widgetId = getSymbolOrId(objectJson.widgetId)
-  }
-
-  for (let [key, value] of Object.entries(objectJson)) {
-    if (value === null || value === undefined) delete objectJson[key]
-  }
-  return objectJson
-}
