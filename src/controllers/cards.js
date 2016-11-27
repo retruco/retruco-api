@@ -880,7 +880,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
     coreArguments,
   )).count
 
-  let popularity = await db.any(
+  let popularity = (await db.any(
     `
       SELECT jsonb_array_elements(tags)->>'en' AS tag, count(id) as count
       FROM objects
@@ -894,7 +894,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       limit,
       offset,
     }),
-  )
+  )).filter(entry => !tags.includes(entry.tag))
 
   res.json({
     apiVersion: "1",
