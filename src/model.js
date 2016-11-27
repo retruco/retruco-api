@@ -776,7 +776,7 @@ export async function toDataJson(objectOrObjects, user, {
     }
   } else {
     assert.ok(objectOrObjects)
-    data.id = objectOrObjects.id
+    data.id = objectOrObjects.symbol || objectOrObjects.id
     await toDataJson1(objectOrObjects, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
   }
 
