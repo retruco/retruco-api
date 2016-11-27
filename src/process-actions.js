@@ -288,8 +288,8 @@ async function processAction(action) {
   if (action.type === "properties") {
     let properties = object.properties
     if (properties) {
-      let subTypesId = properties[getIdFromSymbol("types")]
       let subTypes = null
+      let subTypesId = properties[getIdFromSymbol("types")]
       if (subTypesId !== undefined) {
         let subTypesValue = await getObjectFromId(subTypesId)
         if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
@@ -303,6 +303,24 @@ async function processAction(action) {
         await db.none("UPDATE objects SET sub_types = $<subTypes> WHERE id = $<id>", {
           id: object.id,
           subTypes,
+        })
+        // await addAction(object.id, "value")  TODO?
+      }
+
+      let tags = null
+      let tagsId = properties[getIdFromSymbol("tags")]
+      if (tagsId !== undefined) {
+        let tagsValue = await getObjectFromId(tagsId)
+        if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+          tags = [tagsValue.value]
+        } else if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
+          tags = tags.value
+        }
+      }
+      if (!deepEqual(tags, object.tags)) {
+        await db.none("UPDATE objects SET tags = $<tags:json> WHERE id = $<id>", {
+          id: object.id,
+          tags,
         })
         // await addAction(object.id, "value")  TODO?
       }

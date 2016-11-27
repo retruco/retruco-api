@@ -687,7 +687,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let offset = req.query.offset || 0
   let show = req.query.show || []
   let subTypes = req.query.type || []
-  let tagsName = req.query.tag || []
+  let tags = req.query.tag || []
   let term = req.query.term
   let userName = req.query.user  // email or urlName
 
@@ -752,9 +752,12 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
   // }
 
-  if (tagsName.length > 0) {
-    whereClauses.push("properties->$<tagsId> @> $<tagsName>")
-    // whereClauses.push("properties->$<tagsId> ?| array[$<tagsName:csv>]")
+  if (subTypes.length > 0) {
+    whereClauses.push("sub_types && $<subTypes>")
+  }
+
+  if (tags.length > 0) {
+    whereClauses.push("tags @> $<tags:json>")
   }
 
   if (term) {
@@ -778,10 +781,6 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     }
   }
 
-  if (subTypes.length > 0) {
-    whereClauses.push("sub_types && $<subTypes>")
-  }
-
   if (user !== null) {
     whereClauses.push("statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)")
   }
@@ -791,8 +790,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let coreArguments = {
       // language,
       subTypes,
-      tagsId: getIdFromSymbol("tags"),
-      tagsName,
+      tags: tags.map(tag => ({[language || "en"]: tag})),
       term,
       typesId: getIdFromSymbol("types"),
       userId: user === null ? null : user.id,
