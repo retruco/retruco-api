@@ -28,7 +28,7 @@ import {addAction, describe, generateObjectTextSearch, getObjectFromId, getOrNew
 import {getIdFromSymbol, getValueValueFromSymbol, idBySymbol} from "./symbols"
 
 
-let languageCodeByKeyId = null
+let languageByKeyId = null
 let localizationKeysId = null
 
 
@@ -315,7 +315,7 @@ async function processAction(action) {
           if (localizationKeysId.includes(keyId)) {
             let localizationValue = await getObjectFromId(valueId)
             if (localizationValue.schemaId === getIdFromSymbol("/types/string")) {
-              localizations[languageCodeByKeyId[keyId]] = localizationValue.value
+              localizations[languageByKeyId[keyId]] = localizationValue.value
             }
           }
         }
@@ -509,11 +509,11 @@ async function processAction(action) {
 
 
 async function processActions () {
-  languageCodeByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
+  languageByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
     if (symbol.startsWith("localization.")) d[id] = symbol.slice("localization.".length)
     return d
   }, {})
-  localizationKeysId = Array.from(Object.keys(languageCodeByKeyId))
+  localizationKeysId = Array.from(Object.keys(languageByKeyId))
 
   let processingActions = false
 

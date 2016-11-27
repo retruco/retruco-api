@@ -682,7 +682,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
 export const listCards = wrapAsyncMiddleware(async function listCards(req, res) {
   // Respond a list of statements.
   let authenticatedUser = req.authenticatedUser
-  let languageCode = req.query.languageCode
+  let language = req.query.language
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
   let show = req.query.show || []
@@ -748,8 +748,8 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 
   let whereClauses = []
 
-  // if (languageCode) {
-  //   whereClauses.push("data->>'languageCode' = $<languageCode> OR data->'languageCode' IS NULL")
+  // if (language) {
+  //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
   // }
 
   if (tagsName.length > 0) {
@@ -760,13 +760,13 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   if (term) {
     term = term.trim()
     if (term) {
-      let languageCodes = languageCode ? [languageCode] : config.languageCodes
-      let termClauses = languageCodes.map( languageCode =>
+      let languages = language ? [language] : config.languages
+      let termClauses = languages.map( language =>
         `objects.id IN (
           SELECT id
           FROM cards_text_search
-          WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[languageCode]}', $<term>)
-          AND configuration_name = '${languageConfigurationNameByCode[languageCode]}'
+          WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
+          AND configuration_name = '${languageConfigurationNameByCode[language]}'
         )`
       )
       if (termClauses.length === 1) {
@@ -789,7 +789,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
   let coreArguments = {
-      // languageCode,
+      // language,
       subTypes,
       tagsId: getIdFromSymbol("tags"),
       tagsName,

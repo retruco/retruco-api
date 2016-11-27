@@ -27,15 +27,15 @@ import {generateObjectTextSearch, languageConfigurationNameByCode, ownsUser, pro
 
 export const autocompleteStatements = wrapAsyncMiddleware(async function autocompleteStatements(req, res) {
   // Respond a list of statements.
-  let languageCode = req.query.languageCode
+  let language = req.query.language
   let limit = req.query.limit || 10
   let queryTypes = req.query.type || []
   let term = req.query.term
 
   let whereClauses = []
 
-  if (languageCode) {
-    whereClauses.push("data->>'languageCode' = $<languageCode> OR data->'languageCode' IS NULL")
+  if (language) {
+    whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
   }
 
   let cardTypes = []
@@ -63,7 +63,7 @@ export const autocompleteStatements = wrapAsyncMiddleware(async function autocom
       LIMIT $<limit>`,
     {
       cardTypes,
-      languageCode,
+      language,
       limit,
       statementTypes,
       term: term || "",
@@ -222,7 +222,7 @@ export const getStatement = wrapAsyncMiddleware(async function getStatement(req,
 export const listStatements = wrapAsyncMiddleware(async function listStatements(req, res) {
   // Respond a list of statements.
   let authenticatedUser = req.authenticatedUser
-  let languageCode = req.query.languageCode
+  let language = req.query.language
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
   let queryTypes = req.query.type || []
@@ -288,8 +288,8 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
 
   let whereClauses = []
 
-  if (languageCode) {
-    whereClauses.push("data->>'languageCode' = $<languageCode> OR data->'languageCode' IS NULL")
+  if (language) {
+    whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
   }
 
   if (tagsName.length > 0) {
@@ -299,13 +299,13 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
   if (term) {
     term = term.trim()
     if (term) {
-      let languageCodes = languageCode ? [languageCode] : config.languageCodes
-      let termClauses = languageCodes.map( languageCode =>
+      let languages = language ? [language] : config.languages
+      let termClauses = languages.map( language =>
         `id IN (
           SELECT statement_id
             FROM statements_text_search
-            WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[languageCode]}', $<term>)
-            AND configuration_name = '${languageConfigurationNameByCode[languageCode]}'
+            WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
+            AND configuration_name = '${languageConfigurationNameByCode[language]}'
         )`
       )
       if (termClauses.length === 1) {
@@ -338,7 +338,7 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
 
   let coreArguments = {
       cardTypes,
-      languageCode,
+      language,
       statementTypes,
       tagsName,
       term,

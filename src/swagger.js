@@ -119,7 +119,7 @@ const SPEC = {
             $ref: "#/parameters/depthParam",
           },
           {
-            $ref: "#/parameters/languageCodeParam",
+            $ref: "#/parameters/languageParam",
           },
           {
             $ref: "#/parameters/limitQueryParam",
@@ -286,7 +286,7 @@ const SPEC = {
             $ref: "#/parameters/depthParam",
           },
           {
-            $ref: "#/parameters/languageCodeParam",
+            $ref: "#/parameters/languageParam",
           },
           {
             $ref: "#/parameters/limitQueryParam",
@@ -407,7 +407,7 @@ const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/languageCodeParam",
+            $ref: "#/parameters/languageParam",
           },
           {
             $ref: "#/parameters/limitQueryParam",
@@ -2147,9 +2147,9 @@ const SPEC = {
       type: "string",
       pattern: "^[0-9]+(/[0-9]+)?$",
     },
-    LanguageCode: {
+    language: {
       type: "string",
-      enum: config.languageCodes,
+      enum: config.languages,
       pattern: "^[a-z]{2}$",
     },
     PlainStatement: {
@@ -2170,15 +2170,15 @@ const SPEC = {
               type: "boolean",
               default: false,
             },
-            languageCode: {
-              $ref: "#/definitions/LanguageCode",
+            language: {
+              $ref: "#/definitions/language",
             },
             name: {
               type: "string",
             },
           },
           required: [
-            "languageCode",
+            "language",
             "name",
           ],
         },
@@ -2199,8 +2199,8 @@ const SPEC = {
               type: "boolean",
               default: false,
             },
-            // languageCode: {
-            //   $ref: "#/definitions/LanguageCode",
+            // language: {
+            //   $ref: "#/definitions/language",
             // },
             name: {
               type: "string",
@@ -2405,7 +2405,7 @@ const SPEC = {
           },
           language: {
             description: "Language used by default by the cards (for example, for the keys of their attributes)",
-            $ref: "#/definitions/LanguageCode",
+            $ref: "#/definitions/language",
           },
           schemas: {
             type: "object",
@@ -2466,12 +2466,12 @@ const SPEC = {
       type: "string",
       pattern: "^[0-9]+$",
     },
-    languageCodeParam: {
+    languageParam: {
       // description: "",
       in: "query",
-      name: "languageCode",
+      name: "language",
       type: "string",
-      enum: config.languageCodes,
+      enum: config.languages,
       pattern: "^[a-z]{2}$",
     },
     limitQueryParam: {

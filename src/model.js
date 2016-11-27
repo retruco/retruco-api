@@ -194,7 +194,7 @@ export async function generateObjectTextSearch(object) {
   if (object.type === "Card") {
     table = "cards"
     // TODO: Handle card languages.
-    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    languageConfigurationNames = config.languages.map(language => languageConfigurationNameByCode[language])
     let valueIdByKeyId = object.properties
     if (valueIdByKeyId) {
       for (let keySymbol of ["name", "title"]) {
@@ -232,20 +232,20 @@ export async function generateObjectTextSearch(object) {
   } else if (object.type === "Concept") {
     table = "concepts"
     autocomplete = String(object.value)
-    // languageConfigurationNames = [languageConfigurationNameByCode[object.languageCode]]
-    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
+    languageConfigurationNames = config.languages.map(language => languageConfigurationNameByCode[language])
     searchableText = String(object.value)
   } else if (object.type === "Value") {
     table = "values"
     autocomplete = String(object.value)
-    // languageConfigurationNames = [languageConfigurationNameByCode[object.languageCode]]
-    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
+    languageConfigurationNames = config.languages.map(language => languageConfigurationNameByCode[language])
     searchableText = String(object.value)
   } else if (object.type === "User") {
     table = "users"
     autocomplete = `${object.name} <${object.email}>`
-    // languageConfigurationNames = [languageConfigurationNameByCode[object.languageCode]]
-    languageConfigurationNames = config.languageCodes.map(languageCode => languageConfigurationNameByCode[languageCode])
+    // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
+    languageConfigurationNames = config.languages.map(language => languageConfigurationNameByCode[language])
     searchableText = [
       object.name,
       object.email,

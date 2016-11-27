@@ -107,7 +107,7 @@ Retrieve the API key in field `data.apiKey` of the response.
 cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements"
 {
   "type": "PlainStatement",
-  "languageCode": "fr",
+  "language": "fr",
   "name": "Il faut ouvrir le code source des logiciels du secteur public"
 }
 EOF
@@ -117,7 +117,7 @@ EOF
 cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Retruco-API-Key: HoIw4IqGwymIeP+xRK2MUg" --data-binary @- "http://localhost:3000/statements"
 {
   "type": "PlainStatement",
-  "languageCode": "fr",
+  "language": "fr",
   "name": "Ouvrir le code source est préférable à ouvrir les algorithmes"
 }
 EOF
@@ -138,7 +138,7 @@ Returns:
     {
       "createdAt": "2016-05-05T17:32:23.143Z",
       "id": "1630eafd-e387-44bf-abbb-70c5bf9fdfc8",
-      "languageCode": "fr",
+      "language": "fr",
       "name": "Il est plus pratique de diffuser le code source que de le communiquer au cas par cas aux citoyens qui en font la demande",
       "type": "PlainStatement"
     },
@@ -146,14 +146,14 @@ Returns:
     {
       "createdAt": "2016-05-03T21:42:48.226Z",
       "id": "c671c17e-a272-4a6a-9bc1-2b82db7c7499",
-      "languageCode": "fr",
+      "language": "fr",
       "name": "Ouvrir le code source est préférable à ouvrir les algorithmes",
       "type": "PlainStatement"
     },
     {
       "createdAt": "2016-05-03T21:31:18.124Z",
       "id": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
-      "languageCode": "fr",
+      "language": "fr",
       "name": "Il faut ouvrir le code source des logiciels du secteur public",
       "type": "PlainStatement"
     }
@@ -175,7 +175,7 @@ Returns:
   "data": {
     "createdAt": "2016-05-03T21:31:18.124Z",
     "id": "82d4e0ac-c234-45eb-8ba2-02d4d6a41979",
-    "languageCode": "fr",
+    "language": "fr",
     "name": "Il faut ouvrir le code source des logiciels du secteur public",
     "authorName": "alice"
   }
