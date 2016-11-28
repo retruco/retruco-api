@@ -263,6 +263,22 @@ export const symbolizedTypedValues = [
     widgetSymbol: "/widgets/input-text",
   },
   {
+    symbol: "used-by",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Used by",
+    },
+    widgetSymbol: "/widgets/input-text",
+  },
+  {
+    symbol: "used-for",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Used for",
+    },
+    widgetSymbol: "/widgets/input-text",
+  },
+  {
     symbol: "website",
     schemaSymbol: "/schemas/localized-string",
     value: {
