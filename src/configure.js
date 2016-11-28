@@ -86,6 +86,10 @@ async function configureDatabase() {
   if (version.number < 12) {
     await db.none("ALTER TABLE objects ADD COLUMN IF NOT EXISTS tags jsonb")
   }
+  if (version.number < 13) {
+    await db.none("ALTER TABLE objects DROP COLUMN IF EXISTS tags")
+    await db.none("ALTER TABLE objects ADD COLUMN IF NOT EXISTS tags text[]")
+  }
 
   // Objects
 
@@ -110,7 +114,7 @@ async function configureDatabase() {
       id bigserial NOT NULL PRIMARY KEY,
       properties jsonb,
       sub_types text[],
-      tags jsonb,
+      tags text[],
       type object_type NOT NULL
     )
   `)
@@ -123,7 +127,7 @@ async function configureDatabase() {
   await db.none(`
     CREATE INDEX IF NOT EXISTS objects_tags_idx
     ON objects
-    USING GIN (tags jsonb_path_ops)
+    USING GIN (sub_types)
   `)
 
   // Table: users

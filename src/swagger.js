@@ -131,7 +131,7 @@ const SPEC = {
             $ref: "#/parameters/showParam",
           },
           {
-            $ref: "#/parameters/tagsNameQueryParam",
+            $ref: "#/parameters/tagIdsQueryParam",
           },
           {
             $ref: "#/parameters/termQueryParam",
@@ -292,7 +292,7 @@ const SPEC = {
             $ref: "#/parameters/offsetQueryParam",
           },
           {
-            $ref: "#/parameters/tagsNameQueryParam",
+            $ref: "#/parameters/tagIdsQueryParam",
           },
           {
             $ref: "#/parameters/typesQueryParam",
@@ -314,24 +314,38 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      count: {
-                        minimum: 1,
-                        type: "integer",
-                      },
-                      tag: {
-                        type: "string",
+                  type: "object",
+                  properties: {
+                    popularity: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          count: {
+                            minimum: 1,
+                            type: "integer",
+                          },
+                          tag: {
+                            type: "string",
+                          },
+                        },
+                        required: [
+                          "count",
+                          "tag",
+                        ],
                       },
                     },
-                    required: [
-                      "count",
-                      "tag",
-                    ],
+                    values: {
+                      type: "object",
+                      additionalProperties: {
+                        $ref: "#/definitions/Value",
+                      },
+                    },
                   },
-                  $ref: "#/definitions/DataIdsList",
+                  required: [
+                    "popularity",
+                    "values",
+                  ],
                 },
               },
               required: [
@@ -2454,6 +2468,10 @@ const SPEC = {
         "urlName",
       ],
     },
+    Value: {
+      type: "object",
+      // TODO.
+    },
     Widget: {
       type: "object",
       // properties: {
@@ -2684,6 +2702,16 @@ const SPEC = {
       schema: {
         $ref: "#/definitions/AbstractStatement",
       },
+    },
+    tagIdsQueryParam: {
+      description: "ID or symbol of tags",
+      in: "query",
+      name: "tagId",
+      type: "array",
+      items: {
+        type: "string",
+      },
+      collectionFormat: "multi",
     },
     tagNamePathParam: {
       // description: "",

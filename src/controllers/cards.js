@@ -24,11 +24,11 @@ import assert from "assert"
 
 import config from "../config"
 import {db} from "../database"
-import {entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString, getOrNewProperty, getOrNewValue,
-  languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, unrateStatement,
-  wrapAsyncMiddleware} from "../model"
+import {entryToCard, entryToUser, entryToValue, getObjectFromId, getOrNewLocalizedString, getOrNewProperty,
+  getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, toObjectJson,
+  unrateStatement, wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
-import {getIdFromSymbol} from "../symbols"
+import {getIdFromSymbol, idBySymbol} from "../symbols"
 
 
 const ajvStrict = new Ajv({
@@ -655,7 +655,8 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let offset = req.query.offset || 0
   let show = req.query.show || []
   let subTypes = req.query.type || []
-  let tags = req.query.tag || []
+  let tagsIdOrSymbol = req.query.tagId || []
+  let tagIds = tagsIdOrSymbol.map(id => isNaN(parseInt(id)) ? idBySymbol[id] : id).filter(id => id !== undefined)
   let term = req.query.term
   let userName = req.query.user  // email or urlName
 
@@ -724,8 +725,8 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     whereClauses.push("sub_types && $<subTypes>")
   }
 
-  if (tags.length > 0) {
-    whereClauses.push("tags @> $<tags:json>")
+  if (tagIds.length > 0) {
+    whereClauses.push("tag_ids && $<tagIds>")
   }
 
   if (term) {
@@ -758,7 +759,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let coreArguments = {
     // language,
     subTypes,
-    tags: tags.map(tag => ({[language || "en"]: tag})),
+    tagIds,
     term,
     userId: user === null ? null : user.id,
   }
@@ -807,11 +808,12 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 
 
 export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPopularity(req, res) {
-  let language = req.query.language
+  // let language = req.query.language
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
   let subTypes = req.query.type || []
-  let tags = req.query.tag || []
+  let tagsIdOrSymbol = req.query.tagId || []
+  let tagIds = tagsIdOrSymbol.map(id => isNaN(parseInt(id)) ? idBySymbol[id] : id).filter(id => id !== undefined)
 
   let whereClauses = [
     "type = 'Card'",
@@ -825,8 +827,8 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
     whereClauses.push("sub_types && $<subTypes>")
   }
 
-  if (tags.length > 0) {
-    whereClauses.push("tags @> $<tags:json>")
+  if (tagIds.length > 0) {
+    whereClauses.push("tag_ids && $<tagIds>")
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
@@ -834,13 +836,13 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   let coreArguments = {
     // language,
     subTypes,
-    tags: tags.map(tag => ({[language || "en"]: tag})),
+    tagIds,
   }
   let count = (await db.one(
     `
       SELECT count(*)
       FROM (
-        SELECT DISTINCT jsonb_array_elements(tags) as count
+        SELECT DISTINCT unnest(tag_ids) as count
         FROM objects
         ${whereClause}
       ) AS distinct_tags
@@ -850,7 +852,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
 
   let popularity = (await db.any(
     `
-      SELECT jsonb_array_elements(tags)->>'en' AS tag, count(id) as count
+      SELECT unnest(tag_ids) AS tag_id, count(id) as count
       FROM objects
       ${whereClause}
       GROUP BY tag
@@ -862,12 +864,42 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       limit,
       offset,
     }),
-  )).filter(entry => !tags.includes(entry.tag))
+  )).filter(entry => !tagIds.includes(entry.tag_id)).map(entry => ({
+    tagId: entry.tag_id,
+    count: entry.count,
+  }))
+  let tags = (await db.any(
+    `
+      SELECT objects.*, values.*, symbol
+      FROM objects
+      INNER JOIN values ON objects.id = values.id
+      LEFT JOIN symbols ON values.id = symbols.id
+      WHERE objects.id IN ($<ids:csv>)
+    `,
+    {
+      ids: popularity.map(entry => entry.tagId),
+    },
+  )).map(entryToValue)
+  let tagJsonById = tags.reduce((d, tag) => {
+    d[tag.symbol || tag.id] = toObjectJson(tag)
+    return d
+  }, {})
+  let tagIdOrSymbolById = tags.reduce((d, tag) => {
+    d[tag.id] = tag.symbol || tag.id
+    return d
+  }, {})
+  popularity = popularity.map(entry => ({
+    tagId : tagIdOrSymbolById[entry.tagId],
+    count: entry.count,
+  }))
 
   res.json({
     apiVersion: "1",
     count: count,
-    data: popularity,
+    data: {
+      popularity,
+      values: tagJsonById,
+    },
     limit: limit,
     offset: offset,
   })

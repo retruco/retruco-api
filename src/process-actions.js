@@ -312,8 +312,9 @@ async function processAction(action) {
       if (tagsId !== undefined) {
         let tagsValue = await getObjectFromId(tagsId)
         if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
-          tags = [tagsValue.value]
+          tags = [tagsValue.id]
         } else if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
+          TODO:  tagsValue.value must be an array of id, not an array of localized strings
           tags = tagsValue.value
         }
       }
