@@ -196,5 +196,5 @@ function startExpress() {
   let server = app.listen(port, host, () => {
     console.log(`Listening on ${host || "*"}:${port}...`)
   })
-  server.timeout = 10 * 60 * 1000  // 5 minutes (in milliseconds)
+  server.timeout = 30 * 60 * 1000  // 30 minutes (in milliseconds)
 }
