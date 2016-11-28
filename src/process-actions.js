@@ -287,6 +287,7 @@ async function processAction(action) {
   console.log(`Processing ${action.type} of ${action.createdAt.toISOString()} for ${description}...`)
   if (action.type === "properties") {
     let properties = object.properties
+    let propertiesChanged = false
     if (properties) {
       let subTypes = null
       let subTypesId = properties[getIdFromSymbol("types")]
@@ -304,6 +305,7 @@ async function processAction(action) {
           id: object.id,
           subTypes,
         })
+        propertiesChanged = true
         // await addAction(object.id, "value")  TODO?
       }
 
@@ -322,6 +324,7 @@ async function processAction(action) {
           id: object.id,
           tags,
         })
+        propertiesChanged = true
         // await addAction(object.id, "value")  TODO?
       }
     }
@@ -342,9 +345,14 @@ async function processAction(action) {
             id: object.id,
             localizations,
           })
+          propertiesChanged = true
           // await addAction(object.id, "value")  TODO?
         }
       }
+    }
+
+    if (propertiesChanged) {
+      await generateObjectTextSearch(object)
     }
   } else if (action.type === "rating") {
     // object is a statement (aka a rated object)

@@ -20,9 +20,16 @@
 
 
 import assert from "assert"
+import commandLineArgs from "command-line-args"
 
 import {checkDatabase, db, versionTextSearchNumber} from "./database"
 import {generateObjectTextSearch, getObjectFromId} from "./model"
+
+
+const optionsDefinition = [
+  {alias:  "t", name: "type", type: String, multiple: true, defaultValue: []},
+]
+const options = commandLineArgs(optionsDefinition)
 
 
 async function generateTextSearch () {
@@ -33,7 +40,15 @@ async function generateTextSearch () {
     console.log(`Upgrading text search indexes from version ${version.text} to ${versionTextSearchNumber}...`)
   }
 
-  let ids = (await db.any("SELECT id FROM objects")).map(entry => entry.id)
+  let whereClause = options.type.length > 0 ?
+    "WHERE type IN ($<types:csv>)" :
+    ""
+  let ids = (await db.any(
+    `SELECT id FROM objects ${whereClause}`,
+    {
+      types: options.type,
+    },
+  )).map(entry => entry.id)
   for (let id of ids) {
     let object = await getObjectFromId(id)
     await generateObjectTextSearch(object)

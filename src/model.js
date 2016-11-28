@@ -189,13 +189,12 @@ export function entryToValue(entry) {
 
 export async function generateObjectTextSearch(object) {
   let autocomplete = null
-  let languageConfigurationNames = []
-  let searchableText = null
+  let languages = []
+  let searchableTextsByLanguage = {}
   let table = null
   if (object.type === "Card") {
     table = "cards"
-    // TODO: Handle card languages.
-    languageConfigurationNames = config.languages.map(language => languageConfigurationNameByCode[language])
+    languages = config.languages
     let valueIdByKeyId = object.properties
     if (valueIdByKeyId) {
       for (let keySymbol of ["name", "title"]) {
@@ -217,42 +216,50 @@ export async function generateObjectTextSearch(object) {
         }
       }
       autocomplete = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
-      let searchableTexts = []
       for (let keySymbol of ["name", "title", "twitter-name"]) {
         let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
         if (valueId === undefined) continue
         let value = await getObjectFromId(valueId)
         assert.ok(value, `Missing value at ID ${valueId}`)
-        searchableTexts.push(value.value)
+        if (value.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+          for (let [language, text] of Object.entries(value.value)) {
+            if (!text) continue
+            let searchableTexts = searchableTextsByLanguage[language]
+            if (searchableTexts === undefined) searchableTextsByLanguage[language] = searchableTexts = []
+            searchableTexts.push(text)
+          }
+        }
       }
-      searchableText = searchableTexts
-        .filter(value => value !== null && value !== undefined && value !== "")
-        .map(String)
-        .join(" ")
     }
   } else if (object.type === "Concept") {
     table = "concepts"
     autocomplete = String(object.value)
     // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
-    languageConfigurationNames = config.languages.map(language => languageConfigurationNameByCode[language])
-    searchableText = String(object.value)
+    languages = config.languages
+    // TODO: searchableTextsByLanguage
   } else if (object.type === "Value") {
     table = "values"
     autocomplete = String(object.value)
     // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
-    languageConfigurationNames = config.languages.map(language => languageConfigurationNameByCode[language])
-    searchableText = String(object.value)
+    languages = config.languages
+    // TODO: searchableTextsByLanguage
   } else if (object.type === "User") {
     table = "users"
     autocomplete = `${object.name} <${object.email}>`
     // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
-    languageConfigurationNames = config.languages.map(language => languageConfigurationNameByCode[language])
-    searchableText = [
-      object.name,
-      object.email,
-    ].filter(value => value !== null && value !== undefined && value !== "")
-      .map(String)
-      .join(" ")
+    languages = config.languages
+    for (let language of languages) {
+      for (let text of [
+        object.name,
+        object.email,
+      ]) {
+        if (text) {
+          let searchableTexts = searchableTextsByLanguage[language]
+          if (searchableTexts === undefined) searchableTextsByLanguage[language] = searchableTexts = []
+          searchableTexts.push(text)
+        }
+      }
+    }
   }
 
   if (table) {
@@ -270,11 +277,13 @@ export async function generateObjectTextSearch(object) {
       )
     }
 
-    if (!searchableText || languageConfigurationNames.length === 0) {
+    if (Object.keys(searchableTextsByLanguage).length === 0) {
       await db.none(`DELETE FROM ${table}_text_search WHERE id = $1`, object.id)
     } else {
-      for (let languageConfigurationName of languageConfigurationNames) {
-        assert.ok(languageConfigurationName)
+      for (let [language, searchableTexts] of Object.entries(searchableTextsByLanguage)) {
+        let languageConfigurationName = languageConfigurationNameByCode[language]
+        assert.ok(languageConfigurationName, language)
+        let searchableText = searchableTexts.join(" ")
         await db.none(
           `INSERT INTO ${table}_text_search(id, configuration_name, text_search)
             VALUES ($1, $2, to_tsvector($2, $3))
@@ -284,6 +293,8 @@ export async function generateObjectTextSearch(object) {
           [object.id, languageConfigurationName, searchableText],
         )
       }
+      let languageConfigurationNames = Object.keys(searchableTextsByLanguage).map(
+        language => languageConfigurationNameByCode[language])
       await db.none(
         `DELETE FROM ${table}_text_search WHERE id = $1 AND configuration_name NOT IN ($2:csv)`,
         [object.id, languageConfigurationNames],
