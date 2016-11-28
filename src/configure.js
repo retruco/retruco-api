@@ -78,7 +78,7 @@ async function configureDatabase() {
     `)
   }
   if (version.number < 10) {
-    await db.none("DROP TABLE values_symbols")
+    await db.none("DROP TABLE IF EXISTS values_symbols")
   }
   if (version.number < 11) {
     await db.none("ALTER TABLE objects ADD COLUMN IF NOT EXISTS sub_types text[]")
