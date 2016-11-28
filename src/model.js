@@ -188,6 +188,7 @@ export function entryToValue(entry) {
 
 
 export async function generateObjectTextSearch(object) {
+  if (object === null) return
   let autocomplete = null
   let languages = []
   let searchableTextsByLanguage = {}
