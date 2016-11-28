@@ -35,6 +35,18 @@ export const symbolizedTypedValues = [
   //   widgetSymbol: null,
   // },
   {
+    symbol: "/types/boolean",
+    schemaSymbol: "/types/object",
+    value: {type: "boolean"},
+    widgetSymbol: null,
+  },
+  {
+    symbol: "/types/number",
+    schemaSymbol: "/types/object",
+    value: {type: "number"},
+    widgetSymbol: null,
+  },
+  {
     symbol: "/types/string",
     schemaSymbol: "/types/object",
     value: {type: "string"},
@@ -100,6 +112,24 @@ export const symbolizedTypedValues = [
   // Widgets
 
   {
+    symbol: "/widgets/input-checkbox",
+    schemaSymbol: "/types/object",
+    value: {
+      tag: "input",
+      type: "checkbox",
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "/widgets/input-number",
+    schemaSymbol: "/types/object",
+    value: {
+      tag: "input",
+      type: "number",
+    },
+    widgetSymbol: null,
+  },
+  {
     symbol: "/widgets/input-text",
     schemaSymbol: "/types/object",
     value: {
@@ -145,6 +175,14 @@ export const symbolizedTypedValues = [
     widgetSymbol: "/widgets/input-text",
   },
   {
+    symbol: "license",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "License",
+    },
+    widgetSymbol: "/widgets/input-text",
+  },
+  {
     symbol: "localization.es",
     schemaSymbol: "/schemas/localized-string",
     value: {
@@ -161,6 +199,14 @@ export const symbolizedTypedValues = [
     widgetSymbol: "/widgets/input-text",
   },
   {
+    symbol: "logo",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Logo",
+    },
+    widgetSymbol: "/widgets/input-text",
+  },
+  {
     symbol: "name",
     schemaSymbol: "/schemas/localized-string",
     value: {
@@ -173,6 +219,14 @@ export const symbolizedTypedValues = [
     schemaSymbol: "/schemas/localized-string",
     value: {
       en: "Pros",  // For
+    },
+    widgetSymbol: "/widgets/input-text",
+  },
+  {
+    symbol: "screenshot",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Screenshot",
     },
     widgetSymbol: "/widgets/input-text",
   },
@@ -205,6 +259,14 @@ export const symbolizedTypedValues = [
     schemaSymbol: "/schemas/localized-string",
     value: {
       en: "Types",
+    },
+    widgetSymbol: "/widgets/input-text",
+  },
+  {
+    symbol: "website",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Website",
     },
     widgetSymbol: "/widgets/input-text",
   },
