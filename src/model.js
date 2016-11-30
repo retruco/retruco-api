@@ -871,15 +871,17 @@ async function toDataJson1(object, data, objectsCache, user, {
     }
   }
 
-  if (showValues) {
+  if (showValues && depth > 0) {
     for (let [keyId, valueId] of Object.entries(object.properties || {})) {
       let typedKey = await getObjectFromId(keyId)
       if (typedKey) {
-        await toDataJson1(typedKey, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
+        await toDataJson1(typedKey, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+          showValues})
       }
       let typedValue = await getObjectFromId(valueId)
       if (typedValue) {
-        await toDataJson1(typedValue, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
+        await toDataJson1(typedValue, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+          showValues})
       }
     }
   }
