@@ -23,7 +23,7 @@ import assert from "assert"
 import deepEqual from "deep-equal"
 
 import {checkDatabase, db, dbSharedConnectionObject} from "./database"
-import {addAction, describe, generateObjectTextSearch, getObjectFromId, getOrNewValue, entryToAction,
+import {addAction, addReferences, describe, generateObjectTextSearch, getObjectFromId, getOrNewValue, entryToAction,
   entryToBallot} from "./model"
 import {getIdFromSymbol, getValueValueFromSymbol, idBySymbol} from "./symbols"
 
@@ -286,47 +286,86 @@ async function processAction(action) {
   let description = await describe(object)
   console.log(`Processing ${action.type} of ${action.createdAt.toISOString()} for ${description}...`)
   if (action.type === "properties") {
-    let properties = object.properties
+    let properties = object.properties || {}
     let propertiesChanged = false
-    if (properties) {
-      let subTypes = null
-      let subTypesId = properties[getIdFromSymbol("types")]
-      if (subTypesId !== undefined) {
-        let subTypesValue = await getObjectFromId(subTypesId)
-        if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
-          let englishString = subTypesValue.value.en
-          if (englishString) subTypes = [subTypesValue.value.en]
-        } else if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
-          subTypes = subTypesValue.value.map(item => item.en).filter(item => item != undefined)
-        }
-      }
-      if (!deepEqual(subTypes, object.subTypes)) {
-        await db.none("UPDATE objects SET sub_types = $<subTypes> WHERE id = $<id>", {
-          id: object.id,
-          subTypes,
-        })
-        propertiesChanged = true
-        // await addAction(object.id, "value")  TODO?
-      }
 
-      let tags = null
-      let tagsId = properties[getIdFromSymbol("tags")]
-      if (tagsId !== undefined) {
-        let tagsValue = await getObjectFromId(tagsId)
-        if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
-          tags = [tagsValue.value]
-        } else if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
-          tags = tagsValue.value
-        }
+    // Compute object references from properties.
+    let referencedIds = new Set()
+    for (let valueId of Object.values(properties)) {
+      let typedValue = await getObjectFromId(valueId)
+      let schema = (await getObjectFromId(typedValue.schemaId)).value
+      if (schema === undefined) {
+        console.log("Skipping property value without schema:", typedValue)
+        continue
       }
-      if (!deepEqual(tags, object.tags)) {
-        await db.none("UPDATE objects SET tags = $<tags:json> WHERE id = $<id>", {
-          id: object.id,
-          tags,
+      addReferences(referencedIds, schema, typedValue.value)
+    }
+    let existingReferencedIds = new Set(
+      (await db.any("SELECT target_id FROM objects_references WHERE source_id = $1", object.id)).map(
+        entry => entry.target_id))
+    for (let referencedId of new Set(referencedIds)) {
+      if (existingReferencedIds.has(referencedId)) {
+        existingReferencedIds.delete(referencedId)
+        referencedIds.delete(referencedId)
+      }
+    }
+    if (existingReferencedIds.size > 0) {
+      await db.none(
+        "DELETE FROM objects_references WHERE source_id = $<sourceId> AND target_id in ($<targetIds:csv>)",
+        {
+          sourceId: object.id,
+          targetIds: [...existingReferencedIds],
+        },
+      )
+    }
+    if (referencedIds.size > 0) {
+      for (let referencedId of referencedIds) {
+        await db.none("INSERT INTO objects_references(source_id, target_id) VALUES ($<sourceId>, $<targetId>)", {
+          sourceId: object.id,
+          targetId: referencedId,
         })
-        propertiesChanged = true
-        // await addAction(object.id, "value")  TODO?
       }
+    }
+
+    // Compute object subTypes from properties.
+    let subTypes = null
+    let subTypesId = properties[getIdFromSymbol("types")]
+    if (subTypesId !== undefined) {
+      let subTypesValue = await getObjectFromId(subTypesId)
+      if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+        let englishString = subTypesValue.value.en
+        if (englishString) subTypes = [subTypesValue.value.en]
+      } else if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
+        subTypes = subTypesValue.value.map(item => item.en).filter(item => item != undefined)
+      }
+    }
+    if (!deepEqual(subTypes, object.subTypes)) {
+      await db.none("UPDATE objects SET sub_types = $<subTypes> WHERE id = $<id>", {
+        id: object.id,
+        subTypes,
+      })
+      propertiesChanged = true
+      // await addAction(object.id, "value")  TODO?
+    }
+
+    // Compute object tags from properties.
+    let tags = null
+    let tagsId = properties[getIdFromSymbol("tags")]
+    if (tagsId !== undefined) {
+      let tagsValue = await getObjectFromId(tagsId)
+      if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+        tags = [tagsValue.value]
+      } else if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
+        tags = tagsValue.value
+      }
+    }
+    if (!deepEqual(tags, object.tags)) {
+      await db.none("UPDATE objects SET tags = $<tags:json> WHERE id = $<id>", {
+        id: object.id,
+        tags,
+      })
+      propertiesChanged = true
+      // await addAction(object.id, "value")  TODO?
     }
 
     if (object.type === "Value") {

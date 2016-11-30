@@ -134,6 +134,17 @@ async function configureDatabase() {
     USING GIN (tags jsonb_path_ops)
   `)
 
+  // Table: objects_references
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS objects_references(
+      source_id bigint NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+      target_id bigint NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+      PRIMARY KEY (source_id, target_id)
+    )
+  `)
+  await db.none("CREATE INDEX IF NOT EXISTS references_source_id_idx ON objects_references(source_id)")
+  await db.none("CREATE INDEX IF NOT EXISTS references_target_id_idx ON objects_references(target_id)")
+
   // Table: users
   await db.none(`
     CREATE TABLE IF NOT EXISTS users(

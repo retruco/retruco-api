@@ -641,7 +641,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),
-      showTargets: show.includes("targets"),
+      showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
   })
@@ -799,7 +799,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),
-      showTargets: show.includes("targets"),
+      showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
     limit: limit,
