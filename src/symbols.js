@@ -41,6 +41,12 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
+    symbol: "/types/email",
+    schemaSymbol: "/types/object",
+    value: {type: "string", format: "email"},
+    widgetSymbol: null,
+  },
+  {
     symbol: "/types/number",
     schemaSymbol: "/types/object",
     value: {type: "number"},
@@ -50,6 +56,12 @@ export const symbolizedTypedValues = [
     symbol: "/types/string",
     schemaSymbol: "/types/object",
     value: {type: "string"},
+    widgetSymbol: null,
+  },
+  {
+    symbol: "/types/uri",
+    schemaSymbol: "/types/object",
+    value: {type: "string", format: "uri"},
     widgetSymbol: null,
   },
 
@@ -134,11 +146,36 @@ export const symbolizedTypedValues = [
   // Widgets
 
   {
+    symbol: "/widgets/autocomplete",
+    schemaSymbol: "/types/object",
+    value: {
+      tag: "Autocomplete",
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "/widgets/image",
+    schemaSymbol: "/types/object",
+    value: {
+      tag: "Image",
+    },
+    widgetSymbol: null,
+  },
+  {
     symbol: "/widgets/input-checkbox",
     schemaSymbol: "/types/object",
     value: {
       tag: "input",
       type: "checkbox",
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "/widgets/input-email",
+    schemaSymbol: "/types/object",
+    value: {
+      tag: "input",
+      type: "email",
     },
     widgetSymbol: null,
   },
@@ -160,12 +197,28 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
-
+  {
+    symbol: "/widgets/input-url",
+    schemaSymbol: "/types/object",
+    value: {
+      tag: "input",
+      type: "url",
+    },
+    widgetSymbol: null,
+  },
   {
     symbol: "/widgets/rated-item-or-set",
     schemaSymbol: "/types/object",
     value: {
       tag: "RatedItemOrSet",
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "/widgets/textarea",
+    schemaSymbol: "/types/object",
+    value: {
+      tag: "textarea",
     },
     widgetSymbol: null,
   },
@@ -179,6 +232,9 @@ export const symbolizedTypedValues = [
       en: "English Localization",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/types/string", ["/widgets/input-text", "/widgets/textarea"]],
+    ],
   },
   {
     symbol: "cons",  // pros & cons
@@ -187,6 +243,9 @@ export const symbolizedTypedValues = [
       en: "Cons",  // Against
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/localized-strings-array", ["/widgets/rated-item-or-set"]],
+    ],
   },
   {
     symbol: "description",
@@ -195,6 +254,9 @@ export const symbolizedTypedValues = [
       en: "Description",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/localized-string", ["/widgets/textarea", "/widgets/input-text"]],
+    ],
   },
   {
     symbol: "license",
@@ -203,6 +265,9 @@ export const symbolizedTypedValues = [
       en: "License",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/localized-string", ["/widgets/input-text", "/widgets/textarea"]],
+    ],
   },
   {
     symbol: "localization.es",
@@ -211,6 +276,9 @@ export const symbolizedTypedValues = [
       en: "Spanish Localization",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/types/string", ["/widgets/input-text", "/widgets/textarea"]],
+    ],
   },
   {
     symbol: "localization.fr",
@@ -219,6 +287,9 @@ export const symbolizedTypedValues = [
       en: "French Localization",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/types/string", ["/widgets/input-text", "/widgets/textarea"]],
+    ],
   },
   {
     symbol: "logo",
@@ -227,6 +298,9 @@ export const symbolizedTypedValues = [
       en: "Logo",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/types/uri", ["/widgets/image", "/widgets/input-url"]],
+    ],
   },
   {
     symbol: "name",
@@ -235,6 +309,9 @@ export const symbolizedTypedValues = [
       en: "Name",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/localized-string", ["/widgets/input-text", "/widgets/textarea"]],
+    ],
   },
   {
     symbol: "pros",  // pros & cons
@@ -243,6 +320,9 @@ export const symbolizedTypedValues = [
       en: "Pros",  // For
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/localized-strings-array", ["/widgets/rated-item-or-set"]],
+    ],
   },
   {
     symbol: "screenshot",
@@ -251,6 +331,9 @@ export const symbolizedTypedValues = [
       en: "Screenshot",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/types/uri", ["/widgets/image", "/widgets/input-url"]],
+    ],
   },
   {
     symbol: "tags",
@@ -259,6 +342,9 @@ export const symbolizedTypedValues = [
       en: "Tags",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/localized-strings-array", ["/widgets/rated-item-or-set"]],
+    ],
   },
   {
     symbol: "title",
@@ -267,6 +353,9 @@ export const symbolizedTypedValues = [
       en: "Title",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/localized-string", ["/widgets/input-text", "/widgets/textarea"]],
+    ],
   },
   {
     symbol: "twitter-name",
@@ -275,6 +364,9 @@ export const symbolizedTypedValues = [
       en: "Twitter Name",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/types/string", ["/widgets/input-text"]],
+    ],
   },
   {
     symbol: "types",
@@ -283,6 +375,9 @@ export const symbolizedTypedValues = [
       en: "Types",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/localized-strings-array", ["/widgets/rated-item-or-set"]],
+    ],
   },
   {
     symbol: "used-by",
@@ -291,6 +386,9 @@ export const symbolizedTypedValues = [
       en: "Used by",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/bijective-uri-references-array", ["/widgets/autocomplete"]],
+    ],
   },
   {
     symbol: "used-for",
@@ -299,6 +397,9 @@ export const symbolizedTypedValues = [
       en: "Used for",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/schemas/bijective-uri-references-array", ["/widgets/autocomplete"]],
+    ],
   },
   {
     symbol: "website",
@@ -307,6 +408,77 @@ export const symbolizedTypedValues = [
       en: "Website",
     },
     widgetSymbol: "/widgets/input-text",
+    schemasWidgetsOrder: [
+      ["/types/uri", ["/widgets/input-url"]],
+    ],
+  },
+
+  // OGP Toolbox specific types
+
+  {
+    symbol: "Platform",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Platform",
+    },
+    widgetSymbol: "/widgets/input-text",
+    keysOrder: [
+      "types",
+      "name",
+      "description",
+      "logo",
+      "screenshot",
+      "tags",
+    ],
+  },
+  {
+    symbol: "Software",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Software",
+    },
+    widgetSymbol: "/widgets/input-text",
+    keysOrder: [
+      "types",
+      "name",
+      "description",
+      "license",
+      "logo",
+      "screenshot",
+      "tags",
+    ],
+  },
+  {
+    symbol: "Organization",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Organization",
+    },
+    widgetSymbol: "/widgets/input-text",
+    keysOrder: [
+      "types",
+      "name",
+      "description",
+      "logo",
+      "screenshot",
+      "tags",
+    ],
+  },
+  {
+    symbol: "UseCase",
+    schemaSymbol: "/schemas/localized-string",
+    value: {
+      en: "Use Case",
+    },
+    widgetSymbol: "/widgets/input-text",
+    keysOrder: [
+      "types",
+      "name",
+      "description",
+      "logo",
+      "screenshot",
+      "tags",
+    ],
   },
 ]
 

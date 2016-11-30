@@ -393,6 +393,24 @@ async function configureDatabase() {
   // await db.none("CREATE INDEX IF NOT EXISTS ballots_updated_at_idx ON ballots(updated_at)")
   await db.none("CREATE INDEX IF NOT EXISTS ballots_voter_id_idx ON ballots(voter_id)")
 
+  // Table: keys
+  // Contains the prefered schemas and widgets for each key of properties
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS keys(
+      id bigint NOT NULL PRIMARY KEY REFERENCES values(id) ON DELETE CASCADE,
+      schemas_widgets_order jsonb NOT NULL
+    )
+  `)
+
+  // Table: types
+  // Contains the prefered keys for each type (of card).
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS types(
+      id bigint NOT NULL PRIMARY KEY REFERENCES values(id) ON DELETE CASCADE,
+      keys_order jsonb NOT NULL
+    )
+  `)
+
   const previousVersionNumber = version.number
 
   if (version.number < 2) {
@@ -508,8 +526,7 @@ async function configureSymbols() {
   idBySymbol[symbol] = typedValue.id
   symbolById[typedValue.id] = symbol
 
-
-  for (let {schemaSymbol, symbol, value, widgetSymbol} of symbolizedTypedValues) {
+  for (let {keysOrder, schemaSymbol, schemasWidgetsOrder, symbol, value, widgetSymbol} of symbolizedTypedValues) {
     let schemaId = getIdFromSymbol(schemaSymbol)
     let widgetId = getIdFromSymbol(widgetSymbol)
     let widgetClause = widgetId === null ? "widget_id IS NULL" : "widget_id = $<widgetId>"
@@ -552,6 +569,55 @@ async function configureSymbols() {
         `
           UPDATE objects
           SET properties = $<properties>
+          WHERE id = $<id>
+        `,
+        typedValue,
+      )
+    }
+
+    if (keysOrder) {
+      await db.none(
+        `
+          INSERT INTO types(id, keys_order)
+          VALUES ($<id>, $<keysOrder:json>)
+          ON CONFLICT (id)
+          DO UPDATE SET keys_order = $<keysOrder:json>
+        `,
+        {
+          id: typedValue.id,
+          keysOrder: keysOrder.map(getIdFromSymbol),
+        }
+      )
+    } else {
+      await db.none(
+        `
+          DELETE FROM types
+          WHERE id = $<id>
+        `,
+        typedValue,
+      )
+    }
+
+    if (schemasWidgetsOrder) {
+      await db.none(
+        `
+          INSERT INTO keys(id, schemas_widgets_order)
+          VALUES ($<id>, $<schemasWidgetsOrder:json>)
+          ON CONFLICT (id)
+          DO UPDATE SET schemas_widgets_order = $<schemasWidgetsOrder:json>
+        `,
+        {
+          id: typedValue.id,
+          schemasWidgetsOrder: schemasWidgetsOrder.map(([schemaSymbol, widgetSymbols]) => [
+            getIdFromSymbol(schemaSymbol),
+            widgetSymbols.map(getIdFromSymbol),
+          ]),
+        }
+      )
+    } else {
+      await db.none(
+        `
+          DELETE FROM keys
           WHERE id = $<id>
         `,
         typedValue,
