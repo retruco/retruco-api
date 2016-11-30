@@ -167,6 +167,7 @@ export function entryToStatement(entry) {
 
 export function entryToUser(entry) {
   return entry === null ? null : Object.assign({}, entryToObject(entry), {
+    activated: entry.activated,
     apiKey: entry.api_key,
     email: entry.email,
     isAdmin: entry.is_admin,

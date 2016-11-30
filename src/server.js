@@ -19,10 +19,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import activator from "activator"
 import bodyParser from "body-parser"
 import express from "express"
 import expressWs from "express-ws"
 import http from "http"
+import nodemailer from "nodemailer"
 import path from "path"
 import quickthumb from "quickthumb"
 import swagger from "swagger-express-middleware"
@@ -41,6 +43,16 @@ import * as usersController from "./controllers/users"
 import {schemaByPath} from "./schemas"
 import swaggerSpecification from "./swagger"
 
+
+let smtpTransport = nodemailer.createTransport(config.smtp)
+activator.init({
+  emailProperty: "email",
+  from: config.email,
+  signkey: config.emailSignKey,
+  templates: activator.templates.file(config.emailTemplates),
+  transport: smtpTransport,
+  user: usersController.activatorUser,
+})
 
 const app = express()
 expressWs(app)
@@ -160,13 +172,20 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   app.post("/uploads/images", usersController.authenticate(true), uploadsController.uploadImage)
 
   app.get("/users", usersController.listUsersUrlName)
-  app.post("/users", usersController.createUser)
+  app.post("/users", usersController.createUser, activator.createActivateNext, usersController.createUserAfterActivator)
   // app.put("/users", usersController.updateUser)
+  app.post("/users/reset-password", usersController.resetPassword, activator.createPasswordResetNext,
+    usersController.resetPasswordAfterActivator)
   app.delete("/users/:userName", usersController.requireUser, usersController.authenticate(true),
     usersController.deleteUser)
   app.get("/users/:userName", usersController.requireUser, usersController.authenticate(false),
     usersController.getUser)
   // app.patch("/users/:userName", usersController.requireUser, usersController.patchUser)
+  app.get("/users/:user/activate", activator.completeActivateNext, usersController.completeActivateAfterActivator)
+  app.post("/users/:user/reset-password", activator.completePasswordResetNext,
+    usersController.completeResetPasswordAfterActivator)
+  app.get("/users/:userName/send-activation", usersController.requireUser, usersController.authenticate(true),
+    usersController.sendActivation, activator.createActivateNext, usersController.sendActivationAfterActivator)
 
   app.use(function (err, req, res) {
       // Error handling middleware (must be last use of app)

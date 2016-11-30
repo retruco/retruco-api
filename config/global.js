@@ -36,6 +36,9 @@ export default {
     user: "username",
   },
   description: "Bring out shared positions from argumented statements",
+  email: "retruco@localhost",
+  emailSignKey: "Retruco sign key",
+  emailTemplates: path.normalize(path.join(__dirname, "..", "email-templates")),
   host: "localhost",
   keys: [
     // Keys for Keygrip <https://github.com/crypto-utils/keygrip>, used by signed cookie keys, etc
@@ -57,6 +60,18 @@ export default {
   },
   port: 3000,
   proxy: false,  // Is this application used behind a trusted proxy?
+  smtp: {
+    host: "localhost",
+    port: 25,
+    secure: false,  // Use startTLS
+    // auth: {
+    //   user: "username",
+    //   pass: "password",
+    // },
+    tls: {
+        rejectUnauthorized: false,  // Accept self-signed certificates.
+    },
+  },
   title: "Retruco-API",
   uploads: path.normalize(path.join(__dirname, "..", "uploads")),
 }

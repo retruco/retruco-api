@@ -20,13 +20,60 @@
 
 
 import basicAuth from "basic-auth"
-import {pbkdf2, randomBytes} from "mz/crypto"
+import {pbkdf2Sync, randomBytes} from "crypto"
 import slugify from "slug"
 
 import config from "../config"
 import {db} from "../database"
-import {entryToUser, ownsUser, toUserJson, wrapAsyncMiddleware} from "../model"
+import {entryToUser, getObjectFromId, ownsUser, toUserJson, wrapAsyncMiddleware} from "../model"
 
+
+export const activatorUser =  {
+  find: function (id, callback) {
+    db.oneOrNone(
+      `
+        SELECT * FROM objects
+        INNER JOIN users ON objects.id = users.id
+        WHERE objects.id = $1
+      `,
+      id,
+    )
+    .then(function (user) {
+      callback(null, entryToUser(user))
+    })
+    .catch(function (error) {
+      console.log(`Exception in activatorUser.find(${id}): `, error.stack || error)
+      callback(String(error))
+    })
+  },
+  activate: function (id, callback) {
+    db.none("UPDATE users SET activated = TRUE WHERE id = $1", id)
+    .then(function () {
+      callback(null)
+    })
+    .catch(function (error) {
+      console.log(`Exception in activatorUser.activate(${id}): `, error.stack || error)
+      callback(String(error))
+    })
+  },
+  setPassword: function (id, password, callback) {
+    // See http://security.stackexchange.com/a/27971 for explaination of digest and salt size.
+    let salt = randomBytes(16).toString("base64").replace(/=/g, "")
+    let passwordDigest = pbkdf2Sync(password, salt, 4096, 16, "sha512").toString("base64").replace(/=/g, "")
+    db.none("UPDATE users SET activated = TRUE, password_digest = $<passwordDigest>, salt = $<salt> WHERE id = $<id>", {
+      id,
+      passwordDigest,
+      salt,
+    })
+    .then(function () {
+      callback(null, null)
+    })
+    .catch(function (error) {
+      console.log(`Exception in activatorUser.setPassword(${id}): `, error.stack || error)
+      callback(String(error))
+    })
+  },
+}
 
 export function authenticate(require) {
   return wrapAsyncMiddleware(async function authenticate(req, res, next) {
@@ -66,7 +113,7 @@ export function authenticate(require) {
           return
         }
       }
-      let passwordDigest = (await pbkdf2(credentials.pass, user.salt, 4096, 16, "sha512")).toString("base64")
+      let passwordDigest = pbkdf2Sync(credentials.pass, user.salt, 4096, 16, "sha512").toString("base64")
         .replace(/=/g, "")
       if (passwordDigest != user.passwordDigest) {
         res.status(401)  // Unauthorized
@@ -123,7 +170,62 @@ export function authenticate(require) {
   })
 }
 
-export const createUser = wrapAsyncMiddleware(async function createUser(req, res) {
+
+export function completeActivateAfterActivator(req, res) {
+  res.status(req.activator.code)
+  if (req.activator.code === 200) {
+    res.json({
+      apiVersion: "1",
+      data: req.activator.message,
+    })
+  } else {
+    console.log("An error occurred while completing user activation:", req.activator.message)
+    if (typeof req.activator.message === "string") {
+      res.json({
+        apiVersion: "1",
+        message: `An error occurred while completing user activation: ${req.activator.message}`,
+      })
+    } else {
+      res.json({
+        apiVersion: "1",
+        errors: req.activator.message,
+        message: "An error occurred while completing user activation.",
+      })
+    }
+  }
+}
+
+
+export const completeResetPasswordAfterActivator = wrapAsyncMiddleware(
+  async function completeResetPasswordAfterActivator(req, res)
+{
+  let userId = req.params.user
+  // let userInfos = req.body  // Contains only password.
+  res.status(req.activator.code)
+  if (req.activator.code === 200) {
+    res.json({
+      apiVersion: "1",
+      data: toUserJson(await getObjectFromId(userId), {showApiKey: true, showEmail: true}),
+    })
+  } else {
+    console.log("An error occurred while completing user activation:", req.activator.message)
+    if (typeof req.activator.message === "string") {
+      res.json({
+        apiVersion: "1",
+        message: `An error occurred while completing user activation: ${req.activator.message}`,
+      })
+    } else {
+      res.json({
+        apiVersion: "1",
+        errors: req.activator.message,
+        message: "An error occurred while completing user activation.",
+      })
+    }
+  }
+})
+
+
+export const createUser = wrapAsyncMiddleware(async function createUser(req, res, next) {
   // Create a new user.
   let user = req.body
   delete user.createdAt
@@ -131,12 +233,33 @@ export const createUser = wrapAsyncMiddleware(async function createUser(req, res
   delete user.isAdmin
   if (!user.name) user.name = user.urlName
   user.urlName = slugify(user.urlName, {mode: "rfc3986"})
+
+  if ((await db.one("SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)", user.email)).exists) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      errors: {email: "Email already exists"},
+      message: "An user with the same email address already exists.",
+    })
+    return
+  }
+  if ((await db.one("SELECT EXISTS (SELECT 1 FROM users WHERE url_name = $1)", user.urlName)).exists) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      errors: {email: "Username already exists"},
+      message: "An user with the same name already exists.",
+    })
+    return
+  }
+
   if (user.password) {
-    user.apiKey = (await randomBytes(16)).toString("base64").replace(/=/g, "")  // 128 bits API key
+    user.apiKey = randomBytes(16).toString("base64").replace(/=/g, "")  // 128 bits API key
     // See http://security.stackexchange.com/a/27971 for explaination of digest and salt size.
-    user.salt = (await randomBytes(16)).toString("base64").replace(/=/g, "")
-    user.passwordDigest = (await pbkdf2(user.password, user.salt, 4096, 16, "sha512")).toString("base64")
-      .replace(/=/g, "")
+    user.salt = randomBytes(16).toString("base64").replace(/=/g, "")
+    user.passwordDigest = pbkdf2Sync(user.password, user.salt, 4096, 16, "sha512").toString("base64").replace(/=/g, "")
     delete user.password
   }
 
@@ -151,17 +274,49 @@ export const createUser = wrapAsyncMiddleware(async function createUser(req, res
   result = await db.one(
     `INSERT INTO users(api_key, email, id, name, password_digest, salt, url_name)
       VALUES ($<apiKey>, $<email>, $<id>, $<name>, $<passwordDigest>, $<salt>, $<urlName>)
-      RETURNING is_admin`,
+      RETURNING activated, is_admin`,
     user,
   )
+  user.activated = result.activated
   user.isAdmin = result.is_admin
 
-  res.status(201)  // Created
-  res.json({
-    apiVersion: "1",
-    data: toUserJson(user, {showApiKey: true, showEmail: true}),
-  })
+  // res.status(201)  // Created
+  // res.json({
+  //   apiVersion: "1",
+  //   data: toUserJson(user, {showApiKey: true, showEmail: true}),
+  // })
+
+  req.activator = {
+    body: {
+      apiVersion: "1",
+      data: toUserJson(user, {showApiKey: true, showEmail: true}),
+    },
+    id: user.id,
+  }
+  next()
 })
+
+
+export function createUserAfterActivator(req, res) {
+  res.status(req.activator.code)
+  if (req.activator.code === 201) {
+    res.json(req.activator.message)
+  } else {
+    console.log("An error occurred while sending an activation email to user:", req.activator.message)
+    if (typeof req.activator.message === "string") {
+      res.json({
+        apiVersion: "1",
+        message: `An error occurred while sending an activation email to user: ${req.activator.message}`,
+      })
+    } else {
+      res.json({
+        apiVersion: "1",
+        errors: req.activator.message,
+        message: "An error occurred while sending an activation email to user.",
+      })
+    }
+  }
+}
 
 
 export const deleteUser = wrapAsyncMiddleware(async function deleteUser(req, res) {
@@ -257,7 +412,7 @@ export const login = wrapAsyncMiddleware(async function login(req, res) {
       return
     }
   }
-  let passwordDigest = (await pbkdf2(password, user.salt, 4096, 16, "sha512")).toString("base64").replace(/=/g, "")
+  let passwordDigest = pbkdf2Sync(password, user.salt, 4096, 16, "sha512").toString("base64").replace(/=/g, "")
   if (passwordDigest != user.passwordDigest) {
     res.status(401)  // Unauthorized
     res.json({
@@ -314,3 +469,101 @@ export const requireUser = wrapAsyncMiddleware(async function requireUser(req, r
 
   return next()
 })
+
+
+export const resetPassword = wrapAsyncMiddleware(async function resetPassword(req, res, next) {
+  let userInfos = req.body  // contains only email attribute.
+
+  let user = entryToUser(await db.oneOrNone(
+    `SELECT * FROM objects
+      INNER JOIN users ON objects.id = users.id
+      WHERE email = $<email>
+    `, userInfos))
+  if (user === null) {
+    res.status(404)
+    res.json({
+      apiVersion: "1",
+      code: 404,
+      message: `No user with email "${userName}".`,
+    })
+    return
+  }
+
+  // Call Activator.
+  req.params.user = user.id
+  return next()
+})
+
+
+export function resetPasswordAfterActivator(req, res) {
+  if (req.activator.code === 201) {
+    // User was already existing. So replace status code with a 200.
+    res.status(200)
+    res.json({
+      apiVersion: "1",
+      data: "A message containing the instructions to reset password has been sent to user.",
+    })
+  } else {
+    res.status(req.activator.code)
+    console.log("An error occurred while sending reset password instructions to user:", req.activator.message)
+    if (typeof req.activator.message === "string") {
+      res.json({
+        apiVersion: "1",
+        message: `An error occurred while sending reset password instructions to user: ${req.activator.message}`,
+      })
+    } else {
+      res.json({
+        apiVersion: "1",
+        errors: req.activator.message,
+        message: "An error occurred while sending reset password instructions to user.",
+      })
+    }
+  }
+}
+
+
+export const sendActivation = wrapAsyncMiddleware(async function sendActivation(req, res, next) {
+  // Create a new user.
+  let user = req.user
+  if (user.activated) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      message: "User is already activated.",
+    })
+    return
+  }
+  req.activator = {
+    body: {
+      apiVersion: "1",
+      data: toUserJson(user, {showApiKey: true, showEmail: true}),
+    },
+    id: user.id,
+  }
+  next()
+})
+
+
+export function sendActivationAfterActivator(req, res) {
+  if (req.activator.code === 201) {
+    // User was already existing. So replace status code with a 200.
+    res.status(200)
+    res.json(req.activator.message)
+  } else {
+    res.status(req.activator.code)
+    console.log("An error occurred while sending an activation email to user:", req.activator.message)
+    if (typeof req.activator.message === "string") {
+      res.json({
+        apiVersion: "1",
+        message: `An error occurred while sending an activation email to user: ${req.activator.message}`,
+      })
+    } else {
+      res.json({
+        apiVersion: "1",
+        errors: req.activator.message,
+        message: "An error occurred while sending an activation email to user.",
+      })
+    }
+  }
+}

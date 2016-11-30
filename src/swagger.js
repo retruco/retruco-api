@@ -1894,6 +1894,67 @@ const SPEC = {
       //   security: [{apiKey: []}, {basic: []}],
       // },
     },
+    "/users/reset-password": {
+      post: {
+        tags: ["password", "user"],
+        summary: "Reset password of an existing user",
+        // description: "",
+        // externalDocs: {},
+        operationId: "users.create",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            // description: "",
+            in: "body",
+            name: "user",
+            required: true,
+            schema: {
+              type: "object",
+              properties : {
+                email: {
+                  formet: "email",
+                  type: "string",
+                },
+              },
+              required: [
+                "email",
+              ],
+              $ref: "#/definitions/User",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the created user",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/User",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/users/{userName}": {
       delete: {
         tags: ["user"],
@@ -1986,6 +2047,187 @@ const SPEC = {
         // deprecated: true,
         // schemes: ["http", "https", "ws", "wss"],
         // security: {},
+      },
+    },
+    "/users/{user}/activate": {
+      get: {
+        tags: ["activation", "user"],
+        summary: "Activate a user account",
+        // description: "",
+        // externalDocs: {},
+        operationId: "users.activate",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            description: "The user ID (needeb by Activator)",
+            in: "path",
+            name: "user",
+            required: true,
+            type: "string",
+            format: "^\[0-9]+$"
+          },
+          {
+            description: "The activation JSON Web Token",
+            in: "query",
+            name: "authorization",
+            required: true,
+            type: "string",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested user",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/User",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
+    "/users/{user}/reset-password": {
+      post: {
+        tags: ["password", "user"],
+        summary: "Change password of an existing user, using a JSON Web Token",
+        // description: "",
+        // externalDocs: {},
+        operationId: "users.create",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            description: "The user ID (needeb by Activator)",
+            in: "path",
+            name: "user",
+            required: true,
+            type: "string",
+            format: "^\[0-9]+$"
+          },
+          {
+            description: "The activation JSON Web Token",
+            in: "query",
+            name: "authorization",
+            required: true,
+            type: "string",
+          },
+          {
+            // description: "",
+            in: "body",
+            name: "user",
+            required: true,
+            schema: {
+              type: "object",
+              properties : {
+                email: {
+                  formet: "password",
+                  type: "password",
+                },
+              },
+              required: [
+                "password",
+              ],
+              $ref: "#/definitions/User",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the created user",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/User",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
+    "/users/{userName}/send-activation": {
+      get: {
+        tags: ["activation", "user"],
+        summary: "Send (again) an activation email to an already authenticated user.",
+        // description: "",
+        // externalDocs: {},
+        operationId: "users.delete",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/userNamePathParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the deleted user",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/User",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
       },
     },
     // parameters: {},

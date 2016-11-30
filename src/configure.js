@@ -86,6 +86,14 @@ async function configureDatabase() {
   if (version.number < 12) {
     await db.none("ALTER TABLE objects ADD COLUMN IF NOT EXISTS tags jsonb")
   }
+  if (version.number < 13) {
+    await db.none("ALTER TABLE users ADD COLUMN IF NOT EXISTS activated boolean DEFAULT FALSE")
+  }
+  if (version.number < 14) {
+    await db.none("DROP INDEX IF EXISTS users_api_key_idx")
+    await db.none("DROP INDEX IF EXISTS users_email_idx")
+    await db.none("DROP INDEX IF EXISTS users_url_name_idx")
+  }
 
   // Objects
 
@@ -129,19 +137,20 @@ async function configureDatabase() {
   // Table: users
   await db.none(`
     CREATE TABLE IF NOT EXISTS users(
-      api_key text NOT NULL,
-      email text NOT NULL,
+      activated boolean NOT NULL DEFAULT FALSE,
+      api_key text UNIQUE NOT NULL,
+      email text UNIQUE NOT NULL,
       id bigint NOT NULL PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
       is_admin boolean NOT NULL DEFAULT FALSE,
       name text NOT NULL,
       password_digest text NOT NULL,
       salt text NOT NULL,
-      url_name text NOT NULL
+      url_name text UNIQUE NOT NULL
     )
   `)
-  await db.none("CREATE INDEX IF NOT EXISTS users_api_key_idx ON users(api_key)")
-  await db.none("CREATE INDEX IF NOT EXISTS users_email_idx ON users(email)")
-  await db.none("CREATE INDEX IF NOT EXISTS users_url_name_idx ON users(url_name)")
+  await db.none("CREATE UNIQUE INDEX IF NOT EXISTS users_api_key_idx ON users(api_key)")
+  await db.none("CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)")
+  await db.none("CREATE UNIQUE INDEX IF NOT EXISTS users_url_name_idx ON users(url_name)")
 
   // Table: users_autocomplete
   await db.none(`
@@ -405,6 +414,15 @@ async function configureDatabase() {
         DROP TABLE actions, ballots, statements, statements_autocomplete, statements_text_search;
         DROP TYPE statement_type;
     `)
+  }
+  if (version.number < 13) {
+    await db.none("UPDATE users SET activated = FALSE WHERE activated IS NULL")
+    await db.none("ALTER TABLE users ALTER COLUMN activated SET NOT NULL")
+  }
+  if (version.number < 14) {
+    await db.none("ALTER TABLE users ADD UNIQUE USING INDEX users_api_key_idx")
+    await db.none("ALTER TABLE users ADD UNIQUE USING INDEX users_email_idx")
+    await db.none("ALTER TABLE users ADD UNIQUE USING INDEX users_url_name_idx")
   }
 
   await configureSymbols()

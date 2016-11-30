@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Bring out shared positions from argumented statements",
   "dependencies": {
+    "activator": "^3.0.0",
     "ajv": "^4.8.2",
     "babel-core": "^6.17.0",
     "babel-polyfill": "^6.16.0",
@@ -14,7 +15,7 @@
     "express-ws": "^2.0.0-rc.1",
     "gm": "^1.23.0",
     "md5-file": "^3.1.1",
-    "mz": "^2.4.0",
+    "nodemailer": "^2.6.4",
     "pg-promise": "^5.3.4",
     "quickthumb": "0.0.12",
     "slug": "^0.9.1",
