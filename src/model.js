@@ -770,6 +770,7 @@ export async function toDataJson(objectOrObjects, user, {
   objectsCache = null,
   showBallots = false,
   showProperties = false,
+  showTargets = false,
   showValues = false,
 } = {}) {
   objectsCache = objectsCache ? Object.assign({}, objectsCache) : {}
@@ -785,12 +786,13 @@ export async function toDataJson(objectOrObjects, user, {
   if (Array.isArray(objectOrObjects)) {
     data.ids = objectOrObjects.map(object => object.symbol || object.id)
     for (let object of objectOrObjects) {
-      await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
+      await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showTargets, showValues})
     }
   } else {
     assert.ok(objectOrObjects)
     data.id = objectOrObjects.symbol || objectOrObjects.id
-    await toDataJson1(objectOrObjects, data, objectsCache, user, {depth, showBallots, showProperties, showValues})
+    await toDataJson1(objectOrObjects, data, objectsCache, user, {depth, showBallots, showProperties, showTargets,
+      showValues})
   }
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
@@ -807,6 +809,7 @@ async function toDataJson1(object, data, objectsCache, user, {
   depth = 0,
   showBallots = false,
   showProperties = false,
+  showTargets = false,
   showValues = false,
 } = {}) {
   let objectJsonById = {
@@ -835,6 +838,36 @@ async function toDataJson1(object, data, objectsCache, user, {
         [object.id, user.id],
       ))
       if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
+    }
+  }
+
+  if (showTargets && depth > 0) {
+    for (let valueId of Object.values(object.properties || {})) {
+      let typedValue = await getObjectFromId(valueId)
+      if (typedValue.schemaId === getIdFromSymbol("/schemas/bijective-uri-reference")) {
+        let target = await getObjectFromId(typedValue.value.targetId)
+        await toDataJson1(target, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties, showTargets,
+          showValues})
+      }
+      else if (typedValue.schemaId === getIdFromSymbol("/schemas/bijective-uri-references-array")) {
+        for (let item of typedValue.value) {
+          let target = await getObjectFromId(item.targetId)
+          await toDataJson1(target, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+            showTargets, showValues})
+        }
+      }
+      else if (typedValue.schemaId === getIdFromSymbol("/schemas/uri-reference")) {
+        let target = await getObjectFromId(typedValue.value)
+        await toDataJson1(target, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties, showTargets,
+          showValues})
+      }
+      else if (typedValue.schemaId === getIdFromSymbol("/schemas/uri-references-array")) {
+        for (let item of typedValue.value) {
+          let target = await getObjectFromId(item)
+          await toDataJson1(target, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+            showTargets, showValues})
+        }
+      }
     }
   }
 

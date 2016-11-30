@@ -33,6 +33,7 @@ export const getObject = wrapAsyncMiddleware(async function getObject(req, res) 
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),
+      showTargets: show.includes("targets"),
       showValues: show.includes("values"),
     }),
   })

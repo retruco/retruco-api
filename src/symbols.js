@@ -69,6 +69,17 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
+  {
+    symbol: "/schemas/bijective-uri-references-array",
+    schemaSymbol: "/types/object",
+    value: {
+      type: "array",
+      items: {
+        $ref: "/schemas/bijective-uri-reference",
+      },
+    },
+    widgetSymbol: null,
+  },
   // {
   //   symbol: "/schemas/localized-string",
   //   schemaSymbol: "/types/object",
@@ -105,6 +116,17 @@ export const symbolizedTypedValues = [
     schemaSymbol: "/types/object",
     value: {
       $ref: "/schemas/uri-reference",
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "/schemas/uri-references-array",
+    schemaSymbol: "/types/object",
+    value: {
+      type: "array",
+      items: {
+        $ref: "/schemas/uri-reference",
+      },
     },
     widgetSymbol: null,
   },
