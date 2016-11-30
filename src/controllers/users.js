@@ -484,7 +484,7 @@ export const resetPassword = wrapAsyncMiddleware(async function resetPassword(re
     res.json({
       apiVersion: "1",
       code: 404,
-      message: `No user with email "${userName}".`,
+      message: `No user with email "${userInfos.email}".`,
     })
     return
   }

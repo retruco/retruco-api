@@ -19,17 +19,76 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {getObjectFromId, toDataJson, wrapAsyncMiddleware} from "../model"
+import {db} from "../database"
+import {entryToProperty, getObjectFromId, toDataJson, wrapAsyncMiddleware} from "../model"
 import {idBySymbol} from "../symbols"
 
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
-  // Respond an existing statement.
-
   let show = req.query.show || []
   res.json({
     apiVersion: "1",
     data: await toDataJson(req.object, req.authenticatedUser, {
+      depth: req.query.depth || 0,
+      showBallots: show.includes("ballots"),
+      showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
+      showValues: show.includes("values"),
+    }),
+  })
+})
+
+
+export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function listObjectSameKeyProperties(req, res) {
+  let objectId = req.object.id
+  let show = req.query.show || []
+
+  let keyId = req.params.keyIdOrSymbol
+  if (isNaN(parseInt(keyId))) {
+    // ID is a symbol.
+    let symbol = keyId
+    keyId = idBySymbol[symbol]
+    if (keyId === undefined) {
+      res.status(404)
+      res.json({
+        apiVersion: "1",
+        code: 404,
+        message: `No object with symbol "${symbol}".`,
+      })
+      return
+    }
+  }
+  let typedKey = await getObjectFromId(keyId)
+  if (typedKey === null) {
+    res.status(404)
+    res.json({
+      apiVersion: "1",
+      code: 404,
+      message: `No object with ID "${keyId}".`,
+    })
+    return
+  }
+
+  let sameKeyProperties = (await db.any(
+    `
+      SELECT objects.*, statements.*, properties.*, symbol
+      FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN properties ON statements.id = properties.id
+      LEFT JOIN symbols ON properties.id = symbols.id
+      WHERE properties.object_id = $<objectId>
+      AND properties.key_id = $<keyId>
+      ORDER BY rating DESC, created_at DESC
+    `,
+    {
+      keyId,
+      objectId,
+    },
+  )).map(entryToProperty)
+
+  res.json({
+    apiVersion: "1",
+    data: await toDataJson(sameKeyProperties, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),

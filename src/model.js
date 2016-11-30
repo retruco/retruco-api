@@ -781,6 +781,7 @@ export async function toDataJson(objectOrObjects, user, {
     properties: {},
     users: {},
     values: {},
+    visitedIds: new Set(),
   }
 
   if (Array.isArray(objectOrObjects)) {
@@ -801,32 +802,49 @@ export async function toDataJson(objectOrObjects, user, {
   if (Object.keys(data.properties).length === 0) delete data.properties
   if (Object.keys(data.users).length === 0) delete data.users
   if (Object.keys(data.values).length === 0) delete data.values
+  delete data.visitedIds
   return data
 }
 
 
-async function toDataJson1(object, data, objectsCache, user, {
+async function toDataJson1(idOrObject, data, objectsCache, user, {
   depth = 0,
   showBallots = false,
   showProperties = false,
   showReferences = false,
   showValues = false,
 } = {}) {
-  let objectJsonById = {
+  let object
+  if (typeof idOrObject === "string") {
+    if (data.visitedIds.has(idOrObject)) return
+    object = await getObjectFromId(idOrObject)
+    if (object === null) {
+      console.log("Missing object for ID:", idOrObject)
+      return
+    }
+  } else {
+    object = idOrObject
+    if (object === null) {
+      console.log("Missing object")
+      return
+    }
+    if (data.visitedIds.has(object.id)) return
+  }
+  data.visitedIds.add(object.id)
+
+  const cachedObject = objectsCache[object.id]
+  if (cachedObject) object = cachedObject
+
+  const objectJsonBySymbolOrId = {
     Card: data.cards,
     Concept: data.concepts,
     Property: data.properties,
     User: data.users,
     Value: data.values,
   }[object.type]
-  assert.notStrictEqual(objectJsonById, undefined)
-  if (objectJsonById[object.symbol || object.id]) return
-
-  const cachedObject = objectsCache[object.id]
-  if (cachedObject) object = cachedObject
-
+  assert.notStrictEqual(objectJsonBySymbolOrId, undefined)
   const objectJson = toObjectJson(object)
-  objectJsonById[object.symbol || object.id] = objectJson
+  objectJsonBySymbolOrId[object.symbol || object.id] = objectJson
 
   if (showBallots && user) {
     let ballotJsonById = data.ballots
@@ -850,24 +868,24 @@ async function toDataJson1(object, data, objectsCache, user, {
         entry => entry.target_id))
     let referencedIds = new Set([...sourceIds, ...targetIds])
     for (let referencedId of referencedIds) {
-      let referenced = await getObjectFromId(referencedId)
-      await toDataJson1(referenced, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+      await toDataJson1(referencedId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
         showReferences, showValues})
     }
   }
 
   if (showValues && depth > 0) {
+    if (object.type == "Property") {
+      await toDataJson1(object.keyId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
+      await toDataJson1(object.valueId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
+    }
+
     for (let [keyId, valueId] of Object.entries(object.properties || {})) {
-      let typedKey = await getObjectFromId(keyId)
-      if (typedKey) {
-        await toDataJson1(typedKey, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-          showValues})
-      }
-      let typedValue = await getObjectFromId(valueId)
-      if (typedValue) {
-        await toDataJson1(typedValue, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-          showValues})
-      }
+      await toDataJson1(keyId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
+      await toDataJson1(valueId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
     }
   }
 }
@@ -908,258 +926,258 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
 }
 
 
-export {toStatementData}
-async function toStatementData(statement, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
-  showGrounds = false, showProperties = false, showReferences = false, showTags = false, statements = []} = {}) {
-  let data = {
-    ballots: {},
-    id: statement.id,
-    statements: {},
-    users: {},
-  }
-  let statementsCache = {}
-  for (let statement of statements) {
-    statementsCache[statement.id] = statement
-  }
+// export {toStatementData}
+// async function toStatementData(statement, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
+//   showGrounds = false, showProperties = false, showReferences = false, showTags = false, statements = []} = {}) {
+//   let data = {
+//     ballots: {},
+//     id: statement.id,
+//     statements: {},
+//     users: {},
+//   }
+//   let statementsCache = {}
+//   for (let statement of statements) {
+//     statementsCache[statement.id] = statement
+//   }
 
-  await toStatementData1(data, statement, statementsCache, user,
-    {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//   await toStatementData1(data, statement, statementsCache, user,
+//     {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
 
-  if (Object.keys(data.ballots).length === 0) delete data.ballots
-  if (Object.keys(data.statements).length === 0) delete data.statements
-  if (Object.keys(data.users).length === 0) delete data.users
-  return data
-}
-
-
-async function toStatementData1(data, statement, statementsCache, user, {depth = 0, showAbuse = false,
-  showAuthor = false, showBallot = false, showGrounds = false, showProperties = false, showReferences = false,
-  showTags = false} = {}) {
-  let statementJsonById = data.statements
-  if (statementJsonById[statement.id]) return
-
-  const cachedStatement = statementsCache[statement.id]
-  if (cachedStatement) statement = cachedStatement
-
-  const statementJson = toStatementJson(statement)
-  statementJsonById[statement.id] = statementJson
-
-  if (statement.type === "Abuse") {
-    if (statement.statementId) {
-      const flaggedStatement = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<statementId>`,
-        statement,
-      ))
-      await toStatementData1(data, flaggedStatement, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-    }
-  } else if (statement.type === "Argument") {
-    if (statement.claimId) {
-      const claim = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<claimId>`,
-        statement,
-      ))
-      await toStatementData1(data, claim, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-    }
-    if (statement.groundId) {
-      const ground = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<groundId>`,
-        statement,
-      ))
-      await toStatementData1(data, ground, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-    }
-  } else if (statement.type === "Property") {
-    if (statement.statementId) {
-      const statementWithProperties = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<statementId>`,
-        statement,
-      ))
-      await toStatementData1(data, statementWithProperties, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-    }
-  } else if (statement.type === "Tag") {
-    if (statement.statementId) {
-      const taggedStatement = entryToStatement(await db.oneOrNone(
-        `SELECT * FROM statements
-          WHERE id = $<statementId>`,
-        statement,
-      ))
-      await toStatementData1(data, taggedStatement, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-    }
-  }
-
-  if (showAbuse) {
-    const abuse = entryToStatement(await db.oneOrNone(
-      `SELECT * FROM statements
-        WHERE (data->>'statementId')::bigint = $<id> and type = 'Abuse'`,
-      statement,
-    ))
-    statementJson.abuseId = abuse !== null ? abuse.id : null
-    if (depth > 0 && abuse !== null) {
-      await toStatementData1(data, abuse, statementsCache, user,
-        {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-    }
-  }
-  if (showGrounds) {
-    const groundArguments = (await db.any(
-      `SELECT * FROM statements
-        WHERE (data->>'claimId')::bigint = $<id>`,
-      statement,
-    )).map(entryToStatement)
-    statementJson.groundIds = groundArguments.map(groundArgument => groundArgument.id)
-    if (groundArguments.length > 0 && depth > 0) {
-      for (let groundArgument of groundArguments) {
-        await toStatementData1(data, groundArgument, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-      }
-      const groundStatements = (await db.any(
-        `SELECT * FROM statements
-          WHERE id IN ($1:csv)`,
-        [groundArguments.map(groundArgument => groundArgument.groundId)],
-      )).map(entryToStatement)
-      for (let groundStatement of groundStatements) {
-        await toStatementData1(data, groundStatement, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-      }
-    }
-  }
-  if (showProperties) {
-    const properties = (await db.any(
-      `SELECT * FROM statements
-        WHERE (data->>'statementId')::bigint = $<id> and type = 'Property'`,
-      statement,
-    )).map(entryToStatement)
-    let activePropertiesIds = properties.reduce(
-      function (ids, property) {
-        if (property.isActive) ids.push(property.id)
-        return ids
-      },
-      [],
-    )
-    if (activePropertiesIds.length > 0) statement.activePropertiesIds = activePropertiesIds
-    let ballotJsonById = data.ballots
-    let userPropertiesIds = []
-    for (let property of properties) {
-      if (user) {
-        let ballotId = [property.id, user.id].join("/")
-        let ballot = ballotJsonById[ballotId]
-        if (!ballot) {
-          ballot = entryToBallot(await db.oneOrNone(
-            "SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2",
-            [property.id, user.id],
-          ))
-          if (ballot !== null && showBallot) ballotJsonById[ballotId] = toBallotJson(ballot)
-        }
-        if (ballot !== null) userPropertiesIds.push(property.id)
-      }
-      if (depth > 0 && (activePropertiesIds.includes(property.id) || userPropertiesIds.includes(property.id))) {
-        await toStatementData1(data, property, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-      }
-    }
-    if (userPropertiesIds.length > 0) statement.userPropertiesIds = userPropertiesIds
-  }
-  if (showReferences && depth > 0 && statement.type === "Card") {
-    let referencedIds = new Set()
-    for (let [name, schema] of Object.entries(statement.schemas)) {
-      addReferences(referencedIds, schema, statement.values[name])
-    }
-    if (referencedIds.size > 0) {
-      const references = (await db.any(
-        `SELECT * FROM statements
-          WHERE id IN ($<referencedIds:csv>)`,
-        {
-          referencedIds: [...referencedIds].sort(),
-        },
-      )).map(entryToStatement)
-      for (let reference of references) {
-        await toStatementData1(data, reference, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-      }
-    }
-  }
-  if (showTags) {
-    const tags = (await db.any(
-      `SELECT * FROM statements
-        WHERE (data->>'statementId')::bigint = $<id> and type = 'Tag'`,
-      statement,
-    )).map(entryToStatement)
-    statementJson.tagIds = tags.map(tag => tag.id)
-    if (depth > 0) {
-      for (let tag of tags) {
-        await toStatementData1(data, tag, statementsCache, user,
-          {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-      }
-    }
-  }
-
-  if (showAuthor && statement.authorId){
-    let userJsonById = data.users
-    if (!userJsonById[statement.authorId]) {
-      let user = entryToUser(await db.oneOrNone(
-        `SELECT * FROM objects
-          INNER JOIN users ON objects.id = users.id
-          WHERE id = $1
-        `, statement.authorId))
-      if (user !== null) userJsonById[statement.authorId] = toUserJson(user)
-    }
-  }
-
-  if (showBallot && user) {
-    let ballotJsonById = data.ballots
-    let ballotId = [statement.id, user.id].join("/")
-    statementJson.ballotId = ballotId
-    if (!ballotJsonById[ballotId]) {
-      let ballot = entryToBallot(await db.oneOrNone(
-        "SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2",
-        [statement.id, user.id],
-      ))
-      if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
-    }
-  }
-}
+//   if (Object.keys(data.ballots).length === 0) delete data.ballots
+//   if (Object.keys(data.statements).length === 0) delete data.statements
+//   if (Object.keys(data.users).length === 0) delete data.users
+//   return data
+// }
 
 
-export function toStatementJson(statement) {
-  // let statementJson = {...statement}
-  let statementJson = Object.assign({}, statement)
-  statementJson.createdAt = statementJson.createdAt.toISOString()
-  delete statementJson.hash
-  return statementJson
-}
+// async function toStatementData1(data, statement, statementsCache, user, {depth = 0, showAbuse = false,
+//   showAuthor = false, showBallot = false, showGrounds = false, showProperties = false, showReferences = false,
+//   showTags = false} = {}) {
+//   let statementJsonById = data.statements
+//   if (statementJsonById[statement.id]) return
+
+//   const cachedStatement = statementsCache[statement.id]
+//   if (cachedStatement) statement = cachedStatement
+
+//   const statementJson = toStatementJson(statement)
+//   statementJsonById[statement.id] = statementJson
+
+//   if (statement.type === "Abuse") {
+//     if (statement.statementId) {
+//       const flaggedStatement = entryToStatement(await db.oneOrNone(
+//         `SELECT * FROM statements
+//           WHERE id = $<statementId>`,
+//         statement,
+//       ))
+//       await toStatementData1(data, flaggedStatement, statementsCache, user,
+//         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//     }
+//   } else if (statement.type === "Argument") {
+//     if (statement.claimId) {
+//       const claim = entryToStatement(await db.oneOrNone(
+//         `SELECT * FROM statements
+//           WHERE id = $<claimId>`,
+//         statement,
+//       ))
+//       await toStatementData1(data, claim, statementsCache, user,
+//         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//     }
+//     if (statement.groundId) {
+//       const ground = entryToStatement(await db.oneOrNone(
+//         `SELECT * FROM statements
+//           WHERE id = $<groundId>`,
+//         statement,
+//       ))
+//       await toStatementData1(data, ground, statementsCache, user,
+//         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//     }
+//   } else if (statement.type === "Property") {
+//     if (statement.statementId) {
+//       const statementWithProperties = entryToStatement(await db.oneOrNone(
+//         `SELECT * FROM statements
+//           WHERE id = $<statementId>`,
+//         statement,
+//       ))
+//       await toStatementData1(data, statementWithProperties, statementsCache, user,
+//         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//     }
+//   } else if (statement.type === "Tag") {
+//     if (statement.statementId) {
+//       const taggedStatement = entryToStatement(await db.oneOrNone(
+//         `SELECT * FROM statements
+//           WHERE id = $<statementId>`,
+//         statement,
+//       ))
+//       await toStatementData1(data, taggedStatement, statementsCache, user,
+//         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//     }
+//   }
+
+//   if (showAbuse) {
+//     const abuse = entryToStatement(await db.oneOrNone(
+//       `SELECT * FROM statements
+//         WHERE (data->>'statementId')::bigint = $<id> and type = 'Abuse'`,
+//       statement,
+//     ))
+//     statementJson.abuseId = abuse !== null ? abuse.id : null
+//     if (depth > 0 && abuse !== null) {
+//       await toStatementData1(data, abuse, statementsCache, user,
+//         {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//     }
+//   }
+//   if (showGrounds) {
+//     const groundArguments = (await db.any(
+//       `SELECT * FROM statements
+//         WHERE (data->>'claimId')::bigint = $<id>`,
+//       statement,
+//     )).map(entryToStatement)
+//     statementJson.groundIds = groundArguments.map(groundArgument => groundArgument.id)
+//     if (groundArguments.length > 0 && depth > 0) {
+//       for (let groundArgument of groundArguments) {
+//         await toStatementData1(data, groundArgument, statementsCache, user,
+//           {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//       }
+//       const groundStatements = (await db.any(
+//         `SELECT * FROM statements
+//           WHERE id IN ($1:csv)`,
+//         [groundArguments.map(groundArgument => groundArgument.groundId)],
+//       )).map(entryToStatement)
+//       for (let groundStatement of groundStatements) {
+//         await toStatementData1(data, groundStatement, statementsCache, user,
+//           {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//       }
+//     }
+//   }
+//   if (showProperties) {
+//     const properties = (await db.any(
+//       `SELECT * FROM statements
+//         WHERE (data->>'statementId')::bigint = $<id> and type = 'Property'`,
+//       statement,
+//     )).map(entryToStatement)
+//     let activePropertiesIds = properties.reduce(
+//       function (ids, property) {
+//         if (property.isActive) ids.push(property.id)
+//         return ids
+//       },
+//       [],
+//     )
+//     if (activePropertiesIds.length > 0) statement.activePropertiesIds = activePropertiesIds
+//     let ballotJsonById = data.ballots
+//     let userPropertiesIds = []
+//     for (let property of properties) {
+//       if (user) {
+//         let ballotId = [property.id, user.id].join("/")
+//         let ballot = ballotJsonById[ballotId]
+//         if (!ballot) {
+//           ballot = entryToBallot(await db.oneOrNone(
+//             "SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2",
+//             [property.id, user.id],
+//           ))
+//           if (ballot !== null && showBallot) ballotJsonById[ballotId] = toBallotJson(ballot)
+//         }
+//         if (ballot !== null) userPropertiesIds.push(property.id)
+//       }
+//       if (depth > 0 && (activePropertiesIds.includes(property.id) || userPropertiesIds.includes(property.id))) {
+//         await toStatementData1(data, property, statementsCache, user,
+//           {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//       }
+//     }
+//     if (userPropertiesIds.length > 0) statement.userPropertiesIds = userPropertiesIds
+//   }
+//   if (showReferences && depth > 0 && statement.type === "Card") {
+//     let referencedIds = new Set()
+//     for (let [name, schema] of Object.entries(statement.schemas)) {
+//       addReferences(referencedIds, schema, statement.values[name])
+//     }
+//     if (referencedIds.size > 0) {
+//       const references = (await db.any(
+//         `SELECT * FROM statements
+//           WHERE id IN ($<referencedIds:csv>)`,
+//         {
+//           referencedIds: [...referencedIds].sort(),
+//         },
+//       )).map(entryToStatement)
+//       for (let reference of references) {
+//         await toStatementData1(data, reference, statementsCache, user,
+//           {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//       }
+//     }
+//   }
+//   if (showTags) {
+//     const tags = (await db.any(
+//       `SELECT * FROM statements
+//         WHERE (data->>'statementId')::bigint = $<id> and type = 'Tag'`,
+//       statement,
+//     )).map(entryToStatement)
+//     statementJson.tagIds = tags.map(tag => tag.id)
+//     if (depth > 0) {
+//       for (let tag of tags) {
+//         await toStatementData1(data, tag, statementsCache, user,
+//           {depth: depth - 1, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//       }
+//     }
+//   }
+
+//   if (showAuthor && statement.authorId){
+//     let userJsonById = data.users
+//     if (!userJsonById[statement.authorId]) {
+//       let user = entryToUser(await db.oneOrNone(
+//         `SELECT * FROM objects
+//           INNER JOIN users ON objects.id = users.id
+//           WHERE id = $1
+//         `, statement.authorId))
+//       if (user !== null) userJsonById[statement.authorId] = toUserJson(user)
+//     }
+//   }
+
+//   if (showBallot && user) {
+//     let ballotJsonById = data.ballots
+//     let ballotId = [statement.id, user.id].join("/")
+//     statementJson.ballotId = ballotId
+//     if (!ballotJsonById[ballotId]) {
+//       let ballot = entryToBallot(await db.oneOrNone(
+//         "SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2",
+//         [statement.id, user.id],
+//       ))
+//       if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
+//     }
+//   }
+// }
 
 
-export {toStatementsData}
-async function toStatementsData(statements, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
-  showGrounds = false, showProperties = false, showReferences = false, showTags = false} = {}) {
-  let data = {
-    ballots: {},
-    ids: statements.map(statement => statement.id),
-    statements: {},
-    users: {},
-  }
-  let statementsCache = {}
-  for (let statement of statements) {
-    statementsCache[statement.id] = statement
-  }
+// export function toStatementJson(statement) {
+//   // let statementJson = {...statement}
+//   let statementJson = Object.assign({}, statement)
+//   statementJson.createdAt = statementJson.createdAt.toISOString()
+//   delete statementJson.hash
+//   return statementJson
+// }
 
-  for (let statement of statements) {
-    await toStatementData1(data, statement, statementsCache, user,
-      {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-  }
 
-  if (Object.keys(data.ballots).length === 0) delete data.ballots
-  if (Object.keys(data.statements).length === 0) delete data.statements
-  if (Object.keys(data.users).length === 0) delete data.users
-  return data
-}
+// export {toStatementsData}
+// async function toStatementsData(statements, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
+//   showGrounds = false, showProperties = false, showReferences = false, showTags = false} = {}) {
+//   let data = {
+//     ballots: {},
+//     ids: statements.map(statement => statement.id),
+//     statements: {},
+//     users: {},
+//   }
+//   let statementsCache = {}
+//   for (let statement of statements) {
+//     statementsCache[statement.id] = statement
+//   }
+
+//   for (let statement of statements) {
+//     await toStatementData1(data, statement, statementsCache, user,
+//       {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//   }
+
+//   if (Object.keys(data.ballots).length === 0) delete data.ballots
+//   if (Object.keys(data.statements).length === 0) delete data.statements
+//   if (Object.keys(data.users).length === 0) delete data.users
+//   return data
+// }
 
 
 export {toUserJson}

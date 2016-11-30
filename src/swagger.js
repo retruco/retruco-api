@@ -352,6 +352,69 @@ const SPEC = {
         // security: {},
       },
     },
+    "/login": {
+      post: {
+        tags: ["user"],
+        summary: "Login (to retrieve API key)",
+        // description: "",
+        // externalDocs: {},
+        operationId: "users.login",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            name: "user",
+            in: "body",
+            // description: "",
+            required: true,
+            schema: {
+              type: "object",
+              properties: {
+                password: {
+                  type: "string",
+                },
+                userName: {
+                  type: "string",
+                },
+              },
+              required: [
+                "password",
+                "userName",
+              ],
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the logged-in user (with its API key)",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/User",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/objects/{idOrSymbol}": {
       get: {
         tags: ["object"],
@@ -386,6 +449,63 @@ const SPEC = {
                 },
                 data: {
                   $ref: "#/definitions/DataId",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
+    "/objects/{idOrSymbol}/properties/{keyIdOrSymbol}": {
+      get: {
+        tags: ["object", "property"],
+        summary: "List all the properties of an existing object having the same key",
+        // description: "",
+        // externalDocs: {},
+        operationId: "objects.listObjectSameKeyProperties",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/idOrSymbolPathParam",
+          },
+          {
+            $ref: "#/parameters/keyIdOrSymbolPathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested object",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataIdsList",
                 },
               },
               required: [
@@ -1634,69 +1754,6 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
-    "/login": {
-      post: {
-        tags: ["user"],
-        summary: "Login (to retrieve API key)",
-        // description: "",
-        // externalDocs: {},
-        operationId: "users.login",
-        // consumes: ["application/json"],
-        // produces: ["application/json"],
-        parameters: [
-          {
-            name: "user",
-            in: "body",
-            // description: "",
-            required: true,
-            schema: {
-              type: "object",
-              properties: {
-                password: {
-                  type: "string",
-                },
-                userName: {
-                  type: "string",
-                },
-              },
-              required: [
-                "password",
-                "userName",
-              ],
-            },
-          },
-        ],
-        responses: {
-          "200": {
-            description: "A wrapper containing the logged-in user (with its API key)",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  $ref: "#/definitions/User",
-                },
-              },
-              required: [
-                "apiVersion",
-                "data",
-              ],
-            },
-          },
-          default: {
-            description: "Error payload",
-            schema: {
-              $ref: "#/definitions/Error",
-            },
-          },
-        },
-        // deprecated: true,
-        // schemes: ["http", "https", "ws", "wss"],
-        // security: {},
-      },
-    },
     "/swagger.json": {
       get: {
         tags: ["home"],
@@ -2065,7 +2122,7 @@ const SPEC = {
             name: "user",
             required: true,
             type: "string",
-            format: "^\[0-9]+$"
+            format: "^\[0-9]+$",
           },
           {
             description: "The activation JSON Web Token",
@@ -2122,7 +2179,7 @@ const SPEC = {
             name: "user",
             required: true,
             type: "string",
-            format: "^\[0-9]+$"
+            format: "^\[0-9]+$",
           },
           {
             description: "The activation JSON Web Token",
@@ -2853,6 +2910,13 @@ const SPEC = {
       // },
       type: "string",
       pattern: "^[0-9]+$",
+    },
+    keyIdOrSymbolPathParam: {
+      description: "Either an object ID or an object symbol",
+      in: "path",
+      name: "keyIdOrSymbol",
+      required: true,
+      type: "string",
     },
     languageParam: {
       // description: "",
