@@ -23,7 +23,7 @@ import assert from "assert"
 
 import config from "./config"
 import {db} from "./database"
-import {getIdFromSymbolOrFail, getSymbolOrId, idBySymbol} from "./symbols"
+import {getIdFromIdOrSymbol, getIdFromSymbolOrFail, getSymbolOrId, idBySymbol} from "./symbols"
 
 
 export const languageConfigurationNameByCode = {
@@ -75,6 +75,42 @@ export function addReferences(referencedIds, schema, value) {
   } else if (["/schemas/card-reference", "/schemas/type-reference"].includes(schema.$ref)) {
     referencedIds.add(value)
   }
+}
+
+
+export async function convertJsonToFieldValue(schema, widget, value) {
+  // Convert symbols to IDs, etc.
+  let warning = null
+  if (schema.$ref === "/schemas/type-reference") {
+    let subTypeId = getIdFromIdOrSymbol(value)
+    if (!subTypeId || !(await db.one("SELECT EXISTS (SELECT 1 FROM types WHERE id = $1)", subTypeId)).exists) {
+      warning = `Unknown referenced type: "${value}".`
+      schema = {type: "string"}
+      // TODO: Change widget.
+    } else {
+      value = subTypeId
+    }
+  } else if (schema.type === "array" && schema.items.$ref === "/schemas/type-reference") {
+    let items = []
+    for (let [index, item] of value.entries()) {
+      let subTypeId = getIdFromIdOrSymbol(item)
+      if (!subTypeId || !(await db.one("SELECT EXISTS (SELECT 1 FROM types WHERE id = $1)", subTypeId)).exists) {
+        if (warning === null) warning = {}
+        warning[String(index)] = `Unknown referenced type: "${item}".`
+
+        schema = Object.assign({}, schema)
+        if (Array.isArray(schema.items)) schema.items = [...schema.items]
+        else schema.items = value.map(() => Object.assign({}, schema.items))
+        schema.items[index] = {type: "string"}
+        // TODO: Change widget.
+      } else {
+        item = subTypeId
+      }
+      items.push(item)
+    }
+    value = items
+  }
+  return [schema, widget, value, warning]
 }
 
 

@@ -243,7 +243,7 @@ const SPEC = {
         ],
         responses: {
           "201": {
-            description: "A wrapper containing the created card",
+            description: "A wrapper containing the created card and eventual warnings",
             schema: {
               type: "object",
               properties: {
@@ -252,6 +252,9 @@ const SPEC = {
                 },
                 data: {
                   $ref: "#/definitions/DataId",
+                },
+                warnings: {
+                  type: "object",
                 },
               },
               required: [

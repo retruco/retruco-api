@@ -24,7 +24,7 @@ import assert from "assert"
 
 import config from "../config"
 import {db} from "../database"
-import {entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString, getOrNewProperty,
+import {convertJsonToFieldValue, entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString, getOrNewProperty,
   getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, unrateStatement,
   wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
@@ -417,39 +417,6 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         items.push(item)
       }
       value = items
-    } else if (schema.$ref === "/schemas/type-reference") {
-      let subTypeId = getIdFromIdOrSymbol(value)
-      if (!subTypeId || !(await db.one("SELECT EXISTS (SELECT 1 FROM types WHERE id = $1)", subTypeId)).exists) {
-        let cardWarnings = cardWarningsByKeyValue[keyValue]
-        if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-        cardWarnings[name] = `Unknown referenced type: "${value}".`
-        schema = {type: "string"}
-        // TODO: Change widget.
-      } else {
-        value = subTypeId
-      }
-    } else if (schema.type === "array" && schema.items.$ref === "/schemas/type-reference") {
-      let items = []
-      for (let [index, item] of value.entries()) {
-        let subTypeId = getIdFromIdOrSymbol(item)
-        if (!subTypeId || !(await db.one("SELECT EXISTS (SELECT 1 FROM types WHERE id = $1)", subTypeId)).exists) {
-          let cardWarnings = cardWarningsByKeyValue[keyValue]
-          if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-          let attributeWarnings = cardWarnings[name]
-          if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
-          attributeWarnings[String(index)] = `Unknown referenced type: "${item}".`
-
-          schema = Object.assign({}, schema)
-          if (Array.isArray(schema.items)) schema.items = [...schema.items]
-          else schema.items = value.map(() => Object.assign({}, schema.items))
-          schema.items[index] = {type: "string"}
-          // TODO: Change widget.
-        } else {
-          item = subTypeId
-        }
-        items.push(item)
-      }
-      value = items
     } else if (schema.$ref === "/schemas/localized-string") {
       if (typeof value === "string") {
         value = {[language]: value}
@@ -462,6 +429,15 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         return item
       })
     }
+
+    let warning
+    [schema, widget, value, warning] = await convertJsonToFieldValue(schema, widget, value)
+    if (warning !== null) {
+      let cardWarnings = cardWarningsByKeyValue[keyValue]
+      if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+      if (cardWarnings[name] === undefined) cardWarnings[name] = warning
+    }
+
     return [schema, widget, value]
   }
 
@@ -674,16 +650,24 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   let inactiveStatementIds = null  // No existings objects to remove when creating a new card.
   let properties = {}
   let typedLanguage = await getObjectFromId(getIdFromSymbolOrFail(`localization.${language}`))
+  let warnings = {}
   for (let [name, value] of Object.entries(cardInfos.values)) {
     // Convert attribute name to a typed value.
     let nameId = (await getOrNewLocalizedString(typedLanguage, name, {inactiveStatementIds, userId})).id
-    let schemaId = schemaIdByName[name] || (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null,
-      cardInfos.schemas[name], {inactiveStatementIds, userId})).id
-    let widget = cardInfos.widgets[name]
+    let schema = cardInfos.schemas[name]
+    let schemaId = schemaIdByName[name] || (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, schema,
+      {inactiveStatementIds, userId})).id
+    let widget = cardInfos.widgets[name] || null
     let widgetId = null
-    if (widget) {
+    if (widget !== null) {
       widgetId = widgetIdByName[name] || (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, widget,
         {inactiveStatementIds, userId})).id
+    }
+
+    let warning
+    [schema, widget, value, warning] = await convertJsonToFieldValue(schema, widget, value)
+    if (warning !== null) {
+      warnings[name] = warning
     }
     let valueId = (await getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, userId})).id
     properties[nameId] = valueId
@@ -694,8 +678,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
     userId,
   })
 
-  res.status(201)  // Created
-  res.json({
+  let result = {
     apiVersion: "1",
     data: await toDataJson(card, authenticatedUser, {
       depth: req.query.depth || 0,
@@ -704,7 +687,10 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
-  })
+  }
+  if (Object.keys(warnings).length > 0) result.warnings = warnings
+  res.status(201)  // Created
+  res.json(result)
 })
 
 

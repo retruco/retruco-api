@@ -21,7 +21,7 @@
 
 import {db} from "../database"
 import {entryToProperty, getObjectFromId, toDataJson, wrapAsyncMiddleware} from "../model"
-import {getIdFromIdOrSymbol, idBySymbol} from "../symbols"
+import {getIdFromIdOrSymbol} from "../symbols"
 
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
