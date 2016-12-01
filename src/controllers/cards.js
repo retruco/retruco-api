@@ -674,7 +674,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   let inactiveStatementIds = null  // No existings objects to remove when creating a new card.
   let properties = {}
   let typedLanguage = await getObjectFromId(getIdFromSymbolOrFail(`localization.${language}`))
-  for (let [name, value] of Object.entries(cardInfos.value)) {
+  for (let [name, value] of Object.entries(cardInfos.values)) {
     // Convert attribute name to a typed value.
     let nameId = await getOrNewLocalizedString(typedLanguage, name, {inactiveStatementIds, userId})
     let schemaId = schemaIdByName[name] || (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null,
