@@ -94,8 +94,8 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   for (let [name, schema] of Object.entries(bundle.schemas || {})) {
     if (typeof schema === "string") {
       let schemaId = getIdFromIdOrSymbol(schema)
-      schema = await getObjectFromId(schemaId)
-      if (schema === null) {
+      schema = (await getObjectFromId(schemaId)).value
+      if (schema === undefined) {
         schemaErrorsByName[name] = `Ùnknown schema: "${schemaId}".`
         continue
       }
@@ -118,8 +118,8 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   for (let [name, widget] of (Object.entries(bundle.widgets || {}))) {
     if (typeof widget === "string") {
       let widgetId = getIdFromIdOrSymbol(widget)
-      widget = await getObjectFromId(widgetId)
-      if (widget === null) {
+      widget = (await getObjectFromId(widgetId)).value
+      if (widget === undefined) {
         widgetErrorsByName[name] = `Ùnknown widget: "${widgetId}".`
         continue
       }
@@ -607,8 +607,8 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   for (let [name, schema] of Object.entries(cardInfos.schemas || {})) {
     if (typeof schema === "string") {
       let schemaId = getIdFromIdOrSymbol(schema)
-      schema = await getObjectFromId(schemaId)
-      if (schema === null) {
+      schema = (await getObjectFromId(schemaId)).value
+      if (schema === undefined) {
         schemaErrorsByName[name] = `Ùnknown schema: "${schemaId}".`
         continue
       }
@@ -629,8 +629,8 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   for (let [name, widget] of (Object.entries(cardInfos.widgets || {}))) {
     if (typeof widget === "string") {
       let widgetId = getIdFromIdOrSymbol(widget)
-      widget = await getObjectFromId(widgetId)
-      if (widget === null) {
+      widget = (await getObjectFromId(widgetId)).value
+      if (widget === undefined) {
         widgetErrorsByName[name] = `Ùnknown widget: "${widgetId}".`
         continue
       }
