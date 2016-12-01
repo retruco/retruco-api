@@ -41,9 +41,27 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
+    symbol: "schema:booleans-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: {type: "boolean"},
+    },
+    widgetSymbol: null,
+  },
+  {
     symbol: "schema:email",
     schemaSymbol: "schema:object",
     value: {type: "string", format: "email"},
+    widgetSymbol: null,
+  },
+  {
+    symbol: "schema:emails-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: {type: "string", format: "email"},
+    },
     widgetSymbol: null,
   },
   {
@@ -53,15 +71,42 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
+    symbol: "schema:numbers-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: {type: "number"},
+    },
+    widgetSymbol: null,
+  },
+  {
     symbol: "schema:string",
     schemaSymbol: "schema:object",
     value: {type: "string"},
     widgetSymbol: null,
   },
   {
+    symbol: "schema:strings-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: {type: "string"},
+    },
+    widgetSymbol: null,
+  },
+  {
     symbol: "schema:uri",
     schemaSymbol: "schema:object",
     value: {type: "string", format: "uri"},
+    widgetSymbol: null,
+  },
+  {
+    symbol: "schema:uris-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: {type: "string", format: "uri"},
+    },
     widgetSymbol: null,
   },
 

@@ -92,6 +92,15 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   // Validate given schemas (if any).
   let schemaErrorsByName = {}
   for (let [name, schema] of Object.entries(bundle.schemas || {})) {
+    if (typeof schema === "string") {
+      let schemaId = schema
+      schema = await getObjectFromId(schemaId)
+      if (schema === null) {
+        schemaErrorsByName[name] = `Ùnknown schema: "${schemaId}".`
+        continue
+      }
+      bundle.schemas[name] = schema
+    }
     try {
       ajvStrictForBundle.compile(schema)
     } catch (e) {
@@ -105,10 +114,18 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let schemasName = Object.keys(bundle.schemas || {})
 
   // Validate given widgets (if any).
-  // TODO
   let widgetErrorsByName = {}
-  // for (let [name, widget] of (Object.entries(bundle.widgets || {}))) {
-  for (let name of (Object.keys(bundle.widgets || {}))) {
+  for (let [name, widget] of (Object.entries(bundle.widgets || {}))) {
+    if (typeof widget === "string") {
+      let widgetId = widget
+      widget = await getObjectFromId(widgetId)
+      if (widget === null) {
+        widgetErrorsByName[name] = `Ùnknown widget: "${widgetId}".`
+        continue
+      }
+      bundle.widgets[name] = widget
+    }
+    // TODO
     if (!schemasName.includes(name)) widgetErrorsByName[name] = `Missing schema for widget "${name}"`
   }
 
@@ -260,8 +277,8 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     return id
   }
 
-  async function getOrNewIdFromSchemaWidgetValue(schema, widget, value, {inactiveStatementIds = null, properties = null,
-    userId = null} = {}) {
+  async function getOrNewIdFromSchemaWidgetValue(schema, widget, value, {inactiveStatementIds = null,
+    properties = null, userId = null} = {}) {
     let schemaString = JSON.stringify({
       schemaId: objectSchemaId,
       value: schema,
@@ -586,7 +603,18 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
 
   // Validate given schemas.
   let schemaErrorsByName = {}
+  let schemaIdByName = {}
   for (let [name, schema] of Object.entries(cardInfos.schemas || {})) {
+    if (typeof schema === "string") {
+      let schemaId = schema
+      schema = await getObjectFromId(schemaId)
+      if (schema === null) {
+        schemaErrorsByName[name] = `Ùnknown schema: "${schemaId}".`
+        continue
+      }
+      schemaIdByName[name] = schemaId
+      cardInfos.schemas[name] = schema
+    }
     try {
       ajvStrict.compile(schema)
     } catch (e) {
@@ -596,10 +624,20 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   let schemasName = Object.keys(cardInfos.schemas || {})
 
   // Validate given widgets.
-  // TODO
   let widgetErrorsByName = {}
-  // for (let [name, widget] of (Object.entries(cardInfos.widgets || {}))) {
-  for (let name of (Object.keys(cardInfos.widgets || {}))) {
+  let widgetIdByName = {}
+  for (let [name, widget] of (Object.entries(cardInfos.widgets || {}))) {
+    if (typeof widget === "string") {
+      let widgetId = widget
+      widget = await getObjectFromId(widgetId)
+      if (widget === null) {
+        widgetErrorsByName[name] = `Ùnknown widget: "${widgetId}".`
+        continue
+      }
+      widgetIdByName[name] = widgetId
+      cardInfos.widgets[name] = widget
+    }
+    // TODO
     if (!schemasName.includes(name)) widgetErrorsByName[name] = `Missing schema for widget "${name}"`
   }
 
@@ -639,12 +677,12 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   for (let [name, value] of Object.entries(cardInfos.value)) {
     // Convert attribute name to a typed value.
     let nameId = await getOrNewLocalizedString(typedLanguage, name, {inactiveStatementIds, userId})
-    let schemaId = (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, cardInfos.schemas[name],
-      {inactiveStatementIds, userId})).id
+    let schemaId = schemaIdByName[name] || (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null,
+      cardInfos.schemas[name], {inactiveStatementIds, userId})).id
     let widget = cardInfos.widgets[name]
     let widgetId = null
     if (widget) {
-      widgetId = (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, widget,
+      widgetId = widgetIdByName[name] || (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, widget,
         {inactiveStatementIds, userId})).id
     }
     let valueId = (await getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, userId})).id

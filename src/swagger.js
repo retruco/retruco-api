@@ -2466,9 +2466,6 @@ const SPEC = {
             },
             schemas: {
               type: "object",
-              additionalProperties: {
-                $ref: "#/definitions/Schema",
-              },
             },
             values: {
               type: "object",
@@ -2478,9 +2475,6 @@ const SPEC = {
             },
             widgets: {
               type: "object",
-              additionalProperties: {
-                $ref: "#/definitions/Widget",
-              },
             },
           },
           // required: [],
@@ -2799,9 +2793,6 @@ const SPEC = {
           },
           schemas: {
             type: "object",
-            additionalProperties: {
-              $ref: "#/definitions/Schema",
-            },
           },
           values: {
             type: "object",
@@ -2811,9 +2802,6 @@ const SPEC = {
           },
           widgets: {
             type: "object",
-            additionalProperties: {
-              $ref: "#/definitions/Widget",
-            },
           },
         },
         required: [
@@ -2847,15 +2835,9 @@ const SPEC = {
           },
           schemas: {
             type: "object",
-            additionalProperties: {
-              $ref: "#/definitions/Schema",
-            },
           },
           widgets: {
             type: "object",
-            additionalProperties: {
-              $ref: "#/definitions/Widget",
-            },
           },
         },
         required: [
