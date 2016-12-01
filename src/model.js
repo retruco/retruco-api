@@ -924,6 +924,7 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
       if (keySymbol !== keyId) delete properties[keyId]
     }
   }
+  delete objectJson.propertyByKeyId
   if (objectJson.subTypeIds) {
     objectJson.subTypeIds = object.subTypeIds.map(getSymbolOrId)
   }
@@ -947,6 +948,7 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
   for (let [key, value] of Object.entries(objectJson)) {
     if (value === null || value === undefined) delete objectJson[key]
   }
+
   return objectJson
 }
 
