@@ -68,26 +68,51 @@ export const symbolizedTypedValues = [
   // More complex Schemas
 
   // {
-  //   symbol: "schema:bijective-uri-reference",
+  //   symbol: "schema:bijective-card-reference",
   //   schemaSymbol: "schema:object",
-  //   value: clean(schemaByPath["/schemas/bijective-uri-reference"]),
+  //   value: clean(schemaByPath["/schemas/bijective-card-reference"]),
   //   widgetSymbol: null,
   // },
   {
-    symbol: "schema:bijective-uri-reference",
+    symbol: "schema:bijective-card-reference",
     schemaSymbol: "schema:object",
     value: {
-      $ref: "/schemas/bijective-uri-reference",
+      $ref: "/schemas/bijective-card-reference",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "schema:bijective-uri-references-array",
+    symbol: "schema:bijective-card-references-array",
     schemaSymbol: "schema:object",
     value: {
       type: "array",
       items: {
-        $ref: "/schemas/bijective-uri-reference",
+        $ref: "/schemas/bijective-card-reference",
+      },
+    },
+    widgetSymbol: null,
+  },
+  // {
+  //   symbol: "schema:card-reference",
+  //   schemaSymbol: "schema:object",
+  //   value: clean(schemaByPath["/schemas/card-reference"]),
+  //   widgetSymbol: null,
+  // },
+  {
+    symbol: "schema:card-reference",
+    schemaSymbol: "schema:object",
+    value: {
+      $ref: "/schemas/card-reference",
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "schema:card-references-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: {
+        $ref: "/schemas/card-reference",
       },
     },
     widgetSymbol: null,
@@ -117,27 +142,21 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
-  // {
-  //   symbol: "schema:uri-reference",
-  //   schemaSymbol: "schema:object",
-  //   value: clean(schemaByPath["/schemas/uri-reference"]),
-  //   widgetSymbol: null,
-  // },
   {
-    symbol: "schema:uri-reference",
+    symbol: "schema:type-reference",
     schemaSymbol: "schema:object",
     value: {
-      $ref: "/schemas/uri-reference",
+      $ref: "/schemas/type-reference",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "schema:uri-references-array",
+    symbol: "schema:type-references-array",
     schemaSymbol: "schema:object",
     value: {
       type: "array",
       items: {
-        $ref: "/schemas/uri-reference",
+        $ref: "/schemas/type-reference",
       },
     },
     widgetSymbol: null,
@@ -376,7 +395,7 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["schema:localized-strings-array", ["widget:rated-item-or-set"]],
+      ["schema:type-references-array", ["widget:rated-item-or-set"]],
     ],
   },
   {
@@ -387,7 +406,7 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["schema:bijective-uri-references-array", ["widget:autocomplete"]],
+      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
     ],
   },
   {
@@ -398,7 +417,7 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["schema:bijective-uri-references-array", ["widget:autocomplete"]],
+      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
     ],
   },
   {
@@ -504,10 +523,17 @@ const valueValueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
 // }
 
 
-export function getIdFromSymbol(symbol) {
+export function getIdFromIdOrSymbol(idOrSymbol) {
+  if (idOrSymbol === null) return null
+  if (isNaN(parseInt(idOrSymbol))) return idBySymbol[idOrSymbol]
+  return idOrSymbol
+}
+
+
+export function getIdFromSymbolOrFail(symbol) {
   if (symbol === null) return null
   let valueId = idBySymbol[symbol]
-  if (valueId === undefined) throw `Unknown symbol for getIdFromSymbol: ${symbol}`
+  if (valueId === undefined) throw `Unknown symbol for getIdFromSymbolOrFail: ${symbol}`
   return valueId
 }
 

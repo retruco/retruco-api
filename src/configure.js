@@ -23,7 +23,7 @@ import assert from "assert"
 
 import {db, entryToStatement, versionNumber} from "./database"
 import {entryToValue, generateObjectTextSearch, getOrNewProperty, getValue, types} from "./model"
-import {getIdFromSymbol, symbolizedTypedValues, idBySymbol, symbolById} from "./symbols"
+import {getIdFromSymbolOrFail, symbolizedTypedValues, idBySymbol, symbolById} from "./symbols"
 
 
 async function configureDatabase() {
@@ -527,8 +527,8 @@ async function configureSymbols() {
   symbolById[typedValue.id] = symbol
 
   for (let {keysOrder, schemaSymbol, schemasWidgetsOrder, symbol, value, widgetSymbol} of symbolizedTypedValues) {
-    let schemaId = getIdFromSymbol(schemaSymbol)
-    let widgetId = getIdFromSymbol(widgetSymbol)
+    let schemaId = getIdFromSymbolOrFail(schemaSymbol)
+    let widgetId = getIdFromSymbolOrFail(widgetSymbol)
     let widgetClause = widgetId === null ? "widget_id IS NULL" : "widget_id = $<widgetId>"
     let typedValue = entryToValue(await db.oneOrNone(
       `
@@ -557,8 +557,8 @@ async function configureSymbols() {
       // Creating a localized string, requires to create each of its strings.
       let properties = {}
       for (let [language, string] of Object.entries(value)) {
-        let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), null, string)
-        properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
+        let typedString = await getOrNewValueWithSymbol(getIdFromSymbolOrFail("schema:string"), null, string)
+        properties[getIdFromSymbolOrFail(`localization.${language}`)] = typedString.id
       }
       // Do an optimistic optimization.
       if (typedValue.properties === null) typedValue.properties = {}
@@ -585,7 +585,7 @@ async function configureSymbols() {
         `,
         {
           id: typedValue.id,
-          keysOrder: keysOrder.map(getIdFromSymbol),
+          keysOrder: keysOrder.map(getIdFromSymbolOrFail),
         }
       )
     } else {
@@ -609,8 +609,8 @@ async function configureSymbols() {
         {
           id: typedValue.id,
           schemasWidgetsOrder: schemasWidgetsOrder.map(([schemaSymbol, widgetSymbols]) => [
-            getIdFromSymbol(schemaSymbol),
-            widgetSymbols.map(getIdFromSymbol),
+            getIdFromSymbolOrFail(schemaSymbol),
+            widgetSymbols.map(getIdFromSymbolOrFail),
           ]),
         }
       )
@@ -622,6 +622,15 @@ async function configureSymbols() {
         `,
         typedValue,
       )
+    }
+  }
+
+  // Purge obsolete duplicate symbols.
+  let symbolInfos = await db.any("SELECT id, symbol FROM symbols")
+  for (let {id, symbol} of symbolInfos) {
+    if (symbolById[id] !== undefined && symbolById[id] !== symbol) {
+      console.log(`Deleting symbol "${symbol}, that is a duplicate of symbol ${symbolById[id]} for ID ${id}.`)
+      await db.none("DELETE FROM symbols WHERE symbol = $1", symbol)
     }
   }
 }
@@ -675,15 +684,15 @@ export async function getOrNewValueWithSymbol(schemaId, widgetId, value, {inacti
   }
 
   // Note: getOrNewValueWithSymbol may be called before the ID of the symbol "schema:localized-string" is known.
-  // So it is not possible to use function getIdFromSymbol("schema:localized-string").
+  // So it is not possible to use function getIdFromSymbolOrFail("schema:localized-string").
   let localizedStringSchemaId = idBySymbol["schema:localized-string"]
   if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
     // Getting and rating a localized string, requires to get and rate each of its strings.
     if (!properties) properties = {}
     for (let [language, string] of Object.entries(value)) {
-      let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), null, string,
+      let typedString = await getOrNewValueWithSymbol(getIdFromSymbolOrFail("schema:string"), null, string,
         {inactiveStatementIds, userId})
-      properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
+      properties[getIdFromSymbolOrFail(`localization.${language}`)] = typedString.id
     }
   }
 

@@ -24,20 +24,17 @@ import assert from "assert"
 
 import config from "../config"
 import {db} from "../database"
-import {entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString, getOrNewProperty, getOrNewValue,
-  languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, unrateStatement,
+import {entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString, getOrNewProperty,
+  getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, unrateStatement,
   wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
-import {getIdFromSymbol} from "../symbols"
+import {getIdFromIdOrSymbol, getIdFromSymbolOrFail} from "../symbols"
 
 
 const ajvStrict = new Ajv({
   // See: https://github.com/epoberezkin/ajv#options
   allErrors: true,
   format: "full",
-  formats: {
-    uriref: /^\d+$/,
-  },
   unknownFormats: true,
   verbose: true,
 })
@@ -49,9 +46,6 @@ const ajvStrictForBundle = new Ajv({
   // See: https://github.com/epoberezkin/ajv#options
   allErrors: true,
   format: "full",
-  formats: {
-    uriref: () => true,  // Accept every string.
-  },
   unknownFormats: true,
   verbose: true,
 })
@@ -64,14 +58,6 @@ const ajvWithCoercion = new Ajv({
   allErrors: true,
   coerceTypes: "array",
   format: "full",
-  formats: {
-    uriref: {
-      async: true,
-      validate: async function validateUriref(statementId) {
-        return (await db.one("SELECT EXISTS (SELECT 1 FROM statements WHERE id = $1)", statementId)).exists
-      },
-    },
-  },
   unknownFormats: true,
   verbose: true,
 })
@@ -84,9 +70,6 @@ const ajvWithCoercionForBundle = new Ajv({
   allErrors: true,
   coerceTypes: "array",
   format: "full",
-  formats: {
-    uriref: () => true,  // Accept every string.
-  },
   unknownFormats: true,
   verbose: true,
 })
@@ -190,13 +173,19 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             if (widget.tag !== "input" || widget.type !== "number") widget = {tag: "input", type: "number"}
           }
         } else if (valueType === "string") {
-          if (schema.$ref !== "/schemas/localized-string" && schema.type !== "string") {
+          let strings$ref = [
+            "/schemas/card-reference",
+            "/schemas/localized-string",
+            "/schemas/type-reference",
+          ]
+          if (!strings$ref.includes(schema.$ref) && schema.type !== "string") {
             schema = {$ref: "/schemas/localized-string"}
           }
           if (value.includes("\n")) {
             if (widget.tag !== "textarea") widget = {tag: "textarea"}
           } else {
-            if (widget.tag !== "textarea" && (widget.tag !== "input" || widget.type !== "text")) {
+            if (widget.tag !== "textarea"
+              && (widget.tag !== "input" || !["email", "text", "url"].includes(widget.type))) {
               widget = {tag: "input", type: "text"}
             }
           }
@@ -255,7 +244,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   //
 
   let idByStringCache = {}
-  let objectSchemaId = getIdFromSymbol("schema:object")
+  let objectSchemaId = getIdFromSymbolOrFail("schema:object")
 
   async function getOrNewIdFromString(typedLanguage, string, {inactiveStatementIds = null, properties = null,
     userId = null} = {}) {
@@ -335,7 +324,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         value = null
       }
     }
-    if (schema.$ref === "/schemas/bijective-uri-reference") {
+    if (schema.$ref === "/schemas/bijective-card-reference") {
       let referencedCardId = cardIdByKeyValue[value.targetId]
       if (referencedCardId === undefined) {
         let cardWarnings = cardWarningsByKeyValue[keyValue]
@@ -351,7 +340,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         let reverseNameId = await getOrNewIdFromString(typedLanguage, reverseName, {inactiveStatementIds, userId})
         value.reverseKeyId = reverseNameId
       }
-    } else if (schema.type === "array" && schema.items.$ref === "/schemas/bijective-uri-reference") {
+    } else if (schema.type === "array" && schema.items.$ref === "/schemas/bijective-card-reference") {
       let items = []
       for (let [index, item] of value.entries()) {
         let referencedCardId = cardIdByKeyValue[item.targetId]
@@ -377,18 +366,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         items.push(item)
       }
       value = items
-    } else if (schema.$ref === "/schemas/localized-string") {
-      if (typeof value === "string") {
-        value = {[language]: value}
-      }
-    } else if (schema.type === "array" && schema.items.$ref === "/schemas/localized-string") {
-      value = value.map(item => {
-        if (typeof item === "string") {
-          item = {[language]: item}
-        }
-        return item
-      })
-    } else if (schema.type === "string" && schema.format === "uriref") {
+    } else if (schema.$ref === "/schemas/card-reference") {
       let referencedCardId = cardIdByKeyValue[value]
       if (referencedCardId === undefined) {
         let cardWarnings = cardWarningsByKeyValue[keyValue]
@@ -400,7 +378,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       } else {
         value = referencedCardId
       }
-    } else if (schema.type === "array" && schema.items.type === "string" && schema.items.format === "uriref") {
+    } else if (schema.type === "array" && schema.items.$ref === "/schemas/card-reference") {
       let items = []
       for (let [index, item] of value.entries()) {
         let referencedCardId = cardIdByKeyValue[item]
@@ -422,6 +400,50 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         items.push(item)
       }
       value = items
+    } else if (schema.$ref === "/schemas/type-reference") {
+      let subTypeId = getIdFromIdOrSymbol(value)
+      if (!subTypeId || !(await db.one("SELECT EXISTS (SELECT 1 FROM types WHERE id = $1)", subTypeId)).exists) {
+        let cardWarnings = cardWarningsByKeyValue[keyValue]
+        if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+        cardWarnings[name] = `Unknown referenced type: "${value}".`
+        schema = {type: "string"}
+        // TODO: Change widget.
+      } else {
+        value = subTypeId
+      }
+    } else if (schema.type === "array" && schema.items.$ref === "/schemas/type-reference") {
+      let items = []
+      for (let [index, item] of value.entries()) {
+        let subTypeId = getIdFromIdOrSymbol(item)
+        if (!subTypeId || !(await db.one("SELECT EXISTS (SELECT 1 FROM types WHERE id = $1)", subTypeId)).exists) {
+          let cardWarnings = cardWarningsByKeyValue[keyValue]
+          if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+          let attributeWarnings = cardWarnings[name]
+          if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
+          attributeWarnings[String(index)] = `Unknown referenced type: "${item}".`
+
+          schema = Object.assign({}, schema)
+          if (Array.isArray(schema.items)) schema.items = [...schema.items]
+          else schema.items = value.map(() => Object.assign({}, schema.items))
+          schema.items[index] = {type: "string"}
+          // TODO: Change widget.
+        } else {
+          item = subTypeId
+        }
+        items.push(item)
+      }
+      value = items
+    } else if (schema.$ref === "/schemas/localized-string") {
+      if (typeof value === "string") {
+        value = {[language]: value}
+      }
+    } else if (schema.type === "array" && schema.items.$ref === "/schemas/localized-string") {
+      value = value.map(item => {
+        if (typeof item === "string") {
+          item = {[language]: item}
+        }
+        return item
+      })
     }
     return [schema, widget, value]
   }
@@ -442,7 +464,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   // Upsert and rate all cards using only keyName to retrieve them.
   let cardIdByKeyValue = {}
   let cardWarningsByKeyValue = {}
-  let typedLanguage = await getObjectFromId(getIdFromSymbol(`localization.${language}`))
+  let typedLanguage = await getObjectFromId(getIdFromSymbolOrFail(`localization.${language}`))
   let keyNameId = await getOrNewIdFromString(typedLanguage, keyName, {inactiveStatementIds, userId})
   for (let attributes of bundle.cards) {
     let keyValue = attributes[keyName]
@@ -613,16 +635,16 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   // Create new card with its properties.
   let inactiveStatementIds = null  // No existings objects to remove when creating a new card.
   let properties = {}
-  let typedLanguage = await getObjectFromId(getIdFromSymbol(`localization.${language}`))
+  let typedLanguage = await getObjectFromId(getIdFromSymbolOrFail(`localization.${language}`))
   for (let [name, value] of Object.entries(cardInfos.value)) {
     // Convert attribute name to a typed value.
     let nameId = await getOrNewLocalizedString(typedLanguage, name, {inactiveStatementIds, userId})
-    let schemaId = (await getOrNewValue(getIdFromSymbol("schema:object"), null, cardInfos.schemas[name],
+    let schemaId = (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, cardInfos.schemas[name],
       {inactiveStatementIds, userId})).id
     let widget = cardInfos.widgets[name]
     let widgetId = null
     if (widget) {
-      widgetId = (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
+      widgetId = (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, widget,
         {inactiveStatementIds, userId})).id
     }
     let valueId = (await getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, userId})).id
@@ -656,6 +678,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let offset = req.query.offset || 0
   let show = req.query.show || []
   let subTypes = req.query.type || []
+  let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
   let tags = req.query.tag || []
   let term = req.query.term
   let userName = req.query.user  // email or urlName
@@ -721,8 +744,8 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
   // }
 
-  if (subTypes.length > 0) {
-    whereClauses.push("sub_types && $<subTypes>")
+  if (subTypeIds.length > 0) {
+    whereClauses.push("sub_types && $<subTypeIds>")
   }
 
   if (tags.length > 0) {
@@ -758,7 +781,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 
   let coreArguments = {
     // language,
-    subTypes,
+    subTypeIds,
     tags: tags.map(tag => ({[language || "en"]: tag})),
     term,
     userId: user === null ? null : user.id,
@@ -813,6 +836,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
   let subTypes = req.query.type || []
+  let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
   let tags = req.query.tag || []
 
   let whereClauses = [
@@ -823,8 +847,8 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
   // }
 
-  if (subTypes.length > 0) {
-    whereClauses.push("sub_types && $<subTypes>")
+  if (subTypeIds.length > 0) {
+    whereClauses.push("sub_types && $<subTypeIds>")
   }
 
   if (tags.length > 0) {
@@ -835,7 +859,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
 
   let coreArguments = {
     // language,
-    subTypes,
+    subTypeIds,
     tags: tags.map(tag => ({[language || "en"]: tag})),
   }
   let count = (await db.one(

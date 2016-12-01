@@ -23,7 +23,7 @@ import assert from "assert"
 
 import config from "./config"
 import {db} from "./database"
-import {getIdFromSymbol, getSymbolOrId, idBySymbol} from "./symbols"
+import {getIdFromSymbolOrFail, getSymbolOrId, idBySymbol} from "./symbols"
 
 
 export const languageConfigurationNameByCode = {
@@ -60,7 +60,7 @@ export async function addAction(objectId, type) {
 
 
 export function addReferences(referencedIds, schema, value) {
-  if (schema.$ref === "/schemas/bijective-uri-reference") {
+  if (schema.$ref === "/schemas/bijective-card-reference") {
     referencedIds.add(value.targetId)
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
@@ -72,7 +72,7 @@ export function addReferences(referencedIds, schema, value) {
         addReferences(referencedIds, schema.items, itemValue)
       }
     }
-  } else if (schema.type === "string" && schema.format === "uriref") {
+  } else if (["/schemas/card-reference", "/schemas/type-reference"].includes(schema.$ref)) {
     referencedIds.add(value)
   }
 }
@@ -148,7 +148,7 @@ export function entryToObject(entry) {
     createdAt: entry.created_at,
     id: entry.id,
     properties: entry.properties,
-    subTypes: entry.sub_types,
+    subTypeIds: entry.sub_types,
     symbol: entry.symbol,  // Given only when JOIN with table symbols
     tags: entry.tags,
     type: entry.type,
@@ -200,7 +200,7 @@ export async function generateObjectTextSearch(object) {
     let valueIdByKeyId = object.properties
     if (valueIdByKeyId) {
       for (let keySymbol of ["name", "title"]) {
-        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+        let valueId = valueIdByKeyId[getIdFromSymbolOrFail(keySymbol)]
         if (valueId !== undefined) {
           let value = await getObjectFromId(valueId)
           assert.ok(value, `Missing value at ID ${valueId}`)
@@ -209,7 +209,7 @@ export async function generateObjectTextSearch(object) {
         }
       }
       for (let keySymbol of ["twitter-name"]) {
-        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+        let valueId = valueIdByKeyId[getIdFromSymbolOrFail(keySymbol)]
         if (valueId !== undefined) {
           let value = await getObjectFromId(valueId)
           assert.ok(value, `Missing value at ID ${valueId}`)
@@ -219,11 +219,11 @@ export async function generateObjectTextSearch(object) {
       }
       autocomplete = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
       for (let keySymbol of ["name", "title", "twitter-name"]) {
-        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+        let valueId = valueIdByKeyId[getIdFromSymbolOrFail(keySymbol)]
         if (valueId === undefined) continue
         let value = await getObjectFromId(valueId)
         assert.ok(value, `Missing value at ID ${valueId}`)
-        if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
+        if (value.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
           for (let [language, text] of Object.entries(value.value)) {
             if (!text) continue
             let searchableTexts = searchableTextsByLanguage[language]
@@ -399,8 +399,8 @@ export async function getOrNewLocalizedString(typedLanguage, string, {inactiveSt
     [typedLanguage.symbol.split(".")[1]]: string,
   }
   return await getOrNewValue(
-    getIdFromSymbol("schema:localized-string"),
-    getIdFromSymbol("widget:input-text"),
+    getIdFromSymbolOrFail("schema:localized-string"),
+    getIdFromSymbolOrFail("widget:input-text"),
     localizedString, {
       inactiveStatementIds,
       properties,
@@ -449,7 +449,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
       keyId,
       objectId,
       properties,
-      subTypes: result.sub_types,
+      subTypeIds: result.sub_types,
       tags: result.tags,
       type: result.type,
       valueId,
@@ -499,15 +499,15 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
 
   // Note: getOrNewValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
-  // possible to use function getIdFromSymbol("schema:localized-string").
+  // possible to use function getIdFromSymbolOrFail("schema:localized-string").
   let localizedStringSchemaId = idBySymbol["schema:localized-string"]
   if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
     // Getting and rating a localized string, requires to get and rate each of its strings.
     if (!properties) properties = {}
     for (let [language, string] of Object.entries(value)) {
-      let typedString = await getOrNewValue(getIdFromSymbol("schema:string"), null, string,
+      let typedString = await getOrNewValue(getIdFromSymbolOrFail("schema:string"), null, string,
         {inactiveStatementIds, userId})
-      properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
+      properties[getIdFromSymbolOrFail(`localization.${language}`)] = typedString.id
     }
   }
 
@@ -528,7 +528,7 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
       id: result.id,
       properties,
       schemaId,
-      subTypes: result.sub_types,
+      subTypeIds: result.sub_types,
       tags: result.tags,
       type: result.type,
       value,
@@ -558,7 +558,7 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
 
 export async function getValue(schemaId, widgetId, value) {
   // Note: getValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
-  // possible to use function getIdFromSymbol("schema:localized-string").
+  // possible to use function getIdFromSymbolOrFail("schema:localized-string").
   let localizedStringSchemaId = idBySymbol["schema:localized-string"]
   let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId ?
     "value @> $<value:json>" :
@@ -599,7 +599,7 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
     createdAt: result.created_at,
     id: result.id,
     properties,
-    subTypes: result.sub_types,
+    subTypeIds: result.sub_types,
     tags: result.tags,
     type: result.type,
   }
@@ -887,6 +887,11 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
       await toDataJson1(valueId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
         showValues})
     }
+
+    for (let subTypeId of (object.subTypeIds || [])) {
+      await toDataJson1(subTypeId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
+    }
   }
 }
 
@@ -901,6 +906,9 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
       properties[keySymbol] = getSymbolOrId(valueId)
       if (keySymbol !== keyId) delete properties[keyId]
     }
+  }
+  if (objectJson.subTypeIds) {
+    objectJson.subTypeIds = object.subTypeIds.map(getSymbolOrId)
   }
 
   if (object.type === "Concept") {

@@ -25,7 +25,7 @@ import deepEqual from "deep-equal"
 import {checkDatabase, db, dbSharedConnectionObject} from "./database"
 import {addAction, addReferences, describe, generateObjectTextSearch, getObjectFromId, getOrNewValue, entryToAction,
   entryToBallot} from "./model"
-import {getIdFromSymbol, getValueValueFromSymbol, idBySymbol} from "./symbols"
+import {getIdFromSymbolOrFail, getValueValueFromSymbol, idBySymbol} from "./symbols"
 
 
 let languageByKeyId = null
@@ -96,7 +96,7 @@ async function handlePropertyChange(objectId, keyId) {
       INNER JOIN properties ON statements.id = properties.id
       INNER JOIN values ON properties.value_id = values.id
       INNER JOIN values AS schemas ON values.schema_id = schemas.id
-      WHERE (schemas.value->>'$ref') = '/schemas/bijective-uri-reference'
+      WHERE (schemas.value->>'$ref') = '/schemas/bijective-card-reference'
       AND (values.value->>'targetId')::bigint = $<objectId>
       AND (values.value->>'reverseKeyId')::bigint = $<keyId>
     `,
@@ -109,11 +109,11 @@ async function handlePropertyChange(objectId, keyId) {
     delete description.rating_count
     description.ratingSum = description.rating_sum
     delete description.rating_sum
-    description.schema = getValueValueFromSymbol("schema:uri-reference")
-    description.schemaId = getIdFromSymbol("schema:uri-reference")
+    description.schema = getValueValueFromSymbol("schema:card-reference")
+    description.schemaId = getIdFromSymbolOrFail("schema:card-reference")
     description.valueId = null
     description.widget = getValueValueFromSymbol("widget:rated-item-or-set")
-    description.widgetId = getIdFromSymbol("widget:rated-item-or-set")
+    description.widgetId = getIdFromSymbolOrFail("widget:rated-item-or-set")
     return description
   })
   sameKeyDescriptions = sameKeyDescriptions.concat(inverseDescriptions)
@@ -129,7 +129,7 @@ async function handlePropertyChange(objectId, keyId) {
       INNER JOIN values ON properties.value_id = values.id
       INNER JOIN values AS schemas ON values.schema_id = schemas.id
       WHERE (schemas.value->>'type') = 'array'
-      AND (schemas.value->'items') @> '{"$ref": "/schemas/bijective-uri-reference"}'
+      AND (schemas.value->'items') @> '{"$ref": "/schemas/bijective-card-reference"}'
       AND values.value @> '{"reverseKeyId": $<keyId~>, "targetId": $<objectId~>}'
     `,
     {
@@ -141,37 +141,37 @@ async function handlePropertyChange(objectId, keyId) {
     let schemaItems = entry.schema.items
     if (Array.isArray(schemaItems)) {
       for (let itemSchema of schemaItems) {
-        if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
+        if (itemSchema.$ref === "/schemas/bijective-card-reference") {
           // let itemValue = entry.values[index]
           sameKeyDescriptions.push({
             id: entry.id,
             rating: entry.rating,
             ratingCount: entry.rating_count,
             ratingSum: entry.rating_sum,
-            schema: getValueValueFromSymbol("schema:uri-reference"),
-            schemaId: getIdFromSymbol("schema:uri-reference"),
+            schema: getValueValueFromSymbol("schema:card-reference"),
+            schemaId: getIdFromSymbolOrFail("schema:card-reference"),
             value: entry.value,
             valueId: null,
             widget: getValueValueFromSymbol("widget:rated-item-or-set"),
-            widgetId: getIdFromSymbol("widget:rated-item-or-set"),
+            widgetId: getIdFromSymbolOrFail("widget:rated-item-or-set"),
           })
         }
       }
     } else {
       let itemSchema =  schemaItems
-      if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
+      if (itemSchema.$ref === "/schemas/bijective-card-reference") {
         for (let itemValue of entry.values) {
           sameKeyDescriptions.push({
             id: entry.id,
             rating: entry.rating,
             ratingCount: entry.rating_count,
             ratingSum: entry.rating_sum,
-            schema: getValueValueFromSymbol("schema:uri-reference"),
-            schemaId: getIdFromSymbol("schema:uri-reference"),
+            schema: getValueValueFromSymbol("schema:card-reference"),
+            schemaId: getIdFromSymbolOrFail("schema:card-reference"),
             value: entry.value,
             valueId: null,
             widget: getValueValueFromSymbol("widget:rated-item-or-set"),
-            widgetId: getIdFromSymbol("widget:rated-item-or-set"),
+            widgetId: getIdFromSymbolOrFail("widget:rated-item-or-set"),
           })
         }
       }
@@ -237,11 +237,11 @@ async function handlePropertyChange(objectId, keyId) {
       // Now that bestDescription is found, lets ensure that it matchs a typed value in database.
       if (bestDescription.valueId === null) {
         if (bestDescription.schemaId === null) {
-          let schema = await getOrNewValue(getIdFromSymbol("schema:object"), null, bestDescription.schema)
+          let schema = await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, bestDescription.schema)
           bestDescription.schemaId = schema.id
         }
         if (bestDescription.wigetId === null && bestDescription.wiget !== null) {
-          let widget = await getOrNewValue(getIdFromSymbol("schema:object"), null, bestDescription.widget)
+          let widget = await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, bestDescription.widget)
           bestDescription.widgetId = widget.id
         }
         let value = await getOrNewValue(bestDescription.schemaId, bestDescription.widgetId, bestDescription.value)
@@ -327,22 +327,21 @@ async function processAction(action) {
       }
     }
 
-    // Compute object subTypes from properties.
-    let subTypes = null
-    let subTypesId = properties[getIdFromSymbol("types")]
+    // Compute object subTypeIds from properties.
+    let subTypeIds = null
+    let subTypesId = properties[getIdFromSymbolOrFail("types")]
     if (subTypesId !== undefined) {
       let subTypesValue = await getObjectFromId(subTypesId)
-      if (subTypesValue.schemaId === getIdFromSymbol("schema:localized-string")) {
-        let englishString = subTypesValue.value.en
-        if (englishString) subTypes = [subTypesValue.value.en]
-      } else if (subTypesValue.schemaId === getIdFromSymbol("schema:localized-strings-array")) {
-        subTypes = subTypesValue.value.map(item => item.en).filter(item => item != undefined)
+      if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-reference")) {
+        subTypeIds = [subTypesValue.value]
+      } else if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-references-array")) {
+        subTypeIds = subTypesValue.value
       }
     }
-    if (!deepEqual(subTypes, object.subTypes)) {
-      await db.none("UPDATE objects SET sub_types = $<subTypes> WHERE id = $<id>", {
+    if (!deepEqual(subTypeIds, object.subTypeIds)) {
+      await db.none("UPDATE objects SET sub_types = $<subTypeIds> WHERE id = $<id>", {
         id: object.id,
-        subTypes,
+        subTypeIds,
       })
       propertiesChanged = true
       // await addAction(object.id, "value")  TODO?
@@ -350,12 +349,12 @@ async function processAction(action) {
 
     // Compute object tags from properties.
     let tags = null
-    let tagsId = properties[getIdFromSymbol("tags")]
+    let tagsId = properties[getIdFromSymbolOrFail("tags")]
     if (tagsId !== undefined) {
       let tagsValue = await getObjectFromId(tagsId)
-      if (tagsValue.schemaId === getIdFromSymbol("schema:localized-string")) {
+      if (tagsValue.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
         tags = [tagsValue.value]
-      } else if (tagsValue.schemaId === getIdFromSymbol("schema:localized-strings-array")) {
+      } else if (tagsValue.schemaId === getIdFromSymbolOrFail("schema:localized-strings-array")) {
         tags = tagsValue.value
       }
     }
@@ -369,12 +368,12 @@ async function processAction(action) {
     }
 
     if (object.type === "Value") {
-      if (object.schemaId === getIdFromSymbol("schema:localized-string")) {
+      if (object.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
         let localizations = {}
         for (let [keyId, valueId] of Object.entries(object.properties || {})) {
           if (localizationKeysId.includes(keyId)) {
             let localizationValue = await getObjectFromId(valueId)
-            if (localizationValue.schemaId === getIdFromSymbol("schema:string")) {
+            if (localizationValue.schemaId === getIdFromSymbolOrFail("schema:string")) {
               localizations[languageByKeyId[keyId]] = localizationValue.value
             }
           }
@@ -477,18 +476,18 @@ async function processAction(action) {
         assert.ok(propertyValue, `Missing value for ${await describe(object)}`)
         let schema = await getObjectFromId(propertyValue.schemaId)
         assert.ok(schema, `Missing schema for ${await describe(propertyValue)}`)
-        if (schema.$ref === "/schemas/bijective-uri-reference") {
+        if (schema.$ref === "/schemas/bijective-card-reference") {
           let value = propertyValue.value
           await handlePropertyChange(value.targetId, value.reverseKeyId)
         } else if (schema.type === "array") {
           if (Array.isArray(schema.items)) {
             for (let [index, itemSchema] of schema.items.entries()) {
-              if (itemSchema.$ref === "/schemas/bijective-uri-reference") {
+              if (itemSchema.$ref === "/schemas/bijective-card-reference") {
                 let itemValue = propertyValue[index]
                 await handlePropertyChange(itemValue.targetId, itemValue.reverseKeyId)
               }
             }
-          } else if (schema.items.$ref === "/schemas/bijective-uri-reference") {
+          } else if (schema.items.$ref === "/schemas/bijective-card-reference") {
             for (let itemValue of propertyValue) {
               await handlePropertyChange(itemValue.targetId, itemValue.reverseKeyId)
             }

@@ -21,7 +21,7 @@
 
 import {db} from "../database"
 import {entryToProperty, getObjectFromId, toDataJson, wrapAsyncMiddleware} from "../model"
-import {idBySymbol} from "../symbols"
+import {getIdFromIdOrSymbol, idBySymbol} from "../symbols"
 
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
@@ -43,20 +43,15 @@ export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function li
   let objectId = req.object.id
   let show = req.query.show || []
 
-  let keyId = req.params.keyIdOrSymbol
-  if (isNaN(parseInt(keyId))) {
-    // ID is a symbol.
-    let symbol = keyId
-    keyId = idBySymbol[symbol]
-    if (keyId === undefined) {
-      res.status(404)
-      res.json({
-        apiVersion: "1",
-        code: 404,
-        message: `No object with symbol "${symbol}".`,
-      })
-      return
-    }
+  let keyId = getIdFromIdOrSymbol(req.params.keyIdOrSymbol)
+  if (!keyId) {
+    res.status(404)
+    res.json({
+      apiVersion: "1",
+      code: 404,
+      message: `No object with symbol "${req.params.keyIdOrSymbol}".`,
+    })
+    return
   }
   let typedKey = await getObjectFromId(keyId)
   if (typedKey === null) {
@@ -64,7 +59,7 @@ export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function li
     res.json({
       apiVersion: "1",
       code: 404,
-      message: `No object with ID "${keyId}".`,
+      message: `No object with ID or symbol "${req.params.keyIdOrSymbol}".`,
     })
     return
   }
@@ -100,20 +95,15 @@ export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function li
 
 
 export const requireObject = wrapAsyncMiddleware(async function requireObject(req, res, next) {
-  let id = req.params.idOrSymbol
-  if (isNaN(parseInt(id))) {
-    // ID is a symbol.
-    let symbol = id
-    id = idBySymbol[symbol]
-    if (id === undefined) {
-      res.status(404)
-      res.json({
-        apiVersion: "1",
-        code: 404,
-        message: `No object with symbol "${symbol}".`,
-      })
-      return
-    }
+  let id = getIdFromIdOrSymbol(req.params.idOrSymbol)
+  if (!id) {
+    res.status(404)
+    res.json({
+      apiVersion: "1",
+      code: 404,
+      message: `No object with symbol "${req.params.idOrSymbol}".`,
+    })
+    return
   }
   let object = await getObjectFromId(id)
   if (object === null) {
@@ -121,7 +111,7 @@ export const requireObject = wrapAsyncMiddleware(async function requireObject(re
     res.json({
       apiVersion: "1",
       code: 404,
-      message: `No object with ID "${id}".`,
+      message: `No object with ID or symbol "${req.params.idOrSymbol}".`,
     })
     return
   }

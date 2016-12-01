@@ -20,8 +20,8 @@
 
 
 export const schemaByPath = {
-  "/schemas/bijective-uri-reference": {
-    description: "JSON Schema for a bijective URI reference",
+  "/schemas/bijective-card-reference": {
+    description: "JSON Schema for a bijective card reference",
     type: "object",
     properties: {
       "reverseKeyId": {
@@ -37,6 +37,11 @@ export const schemaByPath = {
       "reverseKeyId",
       "targetId",
     ],
+  },
+  "/schemas/card-reference": {
+    description: "JSON Schema for a card reference",
+    type: "string",
+    pattern: "^[0-9]+$",
   },
   "/schemas/localized-string": {
     description: "JSON Schema for a string localized in several languages",
@@ -47,10 +52,10 @@ export const schemaByPath = {
       },
     },
   },
-  "/schemas/uri-reference": {
-    description: "JSON Schema for a URI reference",
+  "/schemas/type-reference": {
+    description: "JSON Schema for a type reference",
     type: "string",
-    format: "uriref",
+    pattern: "^[0-9]+$",
   },
 }
 
@@ -58,8 +63,8 @@ export const schemaByPath = {
 export const bundleSchemaByPath = Object.assign({}, schemaByPath, {
   // The same schema, except that targetId is not required to be a number.
   // Used in bundles because the id of the cards is not known.
-  "/schemas/bijective-uri-reference": {
-    description: "JSON Schema for a bijective URI reference (version for bundles)",
+  "/schemas/bijective-card-reference": {
+    description: "JSON Schema for a bijective card reference (version for bundles)",
     type: "object",
     properties: {
       "reverseKeyId": {
@@ -73,6 +78,10 @@ export const bundleSchemaByPath = Object.assign({}, schemaByPath, {
       "reverseKeyId",
       "targetId",
     ],
+  },
+  "/schemas/card-reference": {
+    description: "JSON Schema for a card reference (version for bundles)",
+    type: "string",
   },
   "/schemas/localized-string": {
     description: "JSON Schema for a string localized in several languages (version for bundles)",
@@ -89,5 +98,9 @@ export const bundleSchemaByPath = Object.assign({}, schemaByPath, {
         },
       },
     ],
+  },
+  "/schemas/type-reference": {
+    description: "JSON Schema for a type reference (version for bundles)",
+    type: "string",
   },
 })

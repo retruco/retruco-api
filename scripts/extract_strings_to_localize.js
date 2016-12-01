@@ -22,7 +22,7 @@
 import json2csv from "json2csv"
 
 import {checkDatabase, db} from "../src/database"
-import {getIdFromSymbol} from "../src/symbols"
+import {getIdFromSymbolOrFail} from "../src/symbols"
 
 
 const fields = [
@@ -70,8 +70,8 @@ async function extractLocalizedStrings() {
       ORDER BY id
     `,
     {
-      nameId: getIdFromSymbol("name"),
-      schemaId: getIdFromSymbol("schema:localized-string"),
+      nameId: getIdFromSymbolOrFail("name"),
+      schemaId: getIdFromSymbolOrFail("schema:localized-string"),
     },
   )
   const csvString = json2csv({
