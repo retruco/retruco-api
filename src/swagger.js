@@ -2796,9 +2796,6 @@ const SPEC = {
           },
           values: {
             type: "object",
-            additionalProperties: {
-              type: "object",
-            },
           },
           widgets: {
             type: "object",
