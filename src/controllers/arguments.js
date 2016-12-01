@@ -40,7 +40,7 @@ export const requireArgument = wrapAsyncMiddleware(async function requireArgumen
 
   let argument = entryToStatement(await db.oneOrNone(
     `SELECT * FROM statements
-      WHERE (data->>'claimId')::bigint = $<claimId> and (data->>'groundId')::bigint = $<groundId>`,
+      WHERE (data->>'claimId') = $<claimId>::text and (data->>'groundId') = $<groundId>::text`,
     {
       claimId: statement.id,
       groundId: ground.id,

@@ -1024,7 +1024,7 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
 //   if (showAbuse) {
 //     const abuse = entryToStatement(await db.oneOrNone(
 //       `SELECT * FROM statements
-//         WHERE (data->>'statementId')::bigint = $<id> and type = 'Abuse'`,
+//         WHERE (data->>'statementId') = $<id>::text and type = 'Abuse'`,
 //       statement,
 //     ))
 //     statementJson.abuseId = abuse !== null ? abuse.id : null
@@ -1036,7 +1036,7 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
 //   if (showGrounds) {
 //     const groundArguments = (await db.any(
 //       `SELECT * FROM statements
-//         WHERE (data->>'claimId')::bigint = $<id>`,
+//         WHERE (data->>'claimId') = $<id>::text`,
 //       statement,
 //     )).map(entryToStatement)
 //     statementJson.groundIds = groundArguments.map(groundArgument => groundArgument.id)
@@ -1059,7 +1059,7 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
 //   if (showProperties) {
 //     const properties = (await db.any(
 //       `SELECT * FROM statements
-//         WHERE (data->>'statementId')::bigint = $<id> and type = 'Property'`,
+//         WHERE (data->>'statementId') = $<id>::text and type = 'Property'`,
 //       statement,
 //     )).map(entryToStatement)
 //     let activePropertiesIds = properties.reduce(
@@ -1114,7 +1114,7 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
 //   if (showTags) {
 //     const tags = (await db.any(
 //       `SELECT * FROM statements
-//         WHERE (data->>'statementId')::bigint = $<id> and type = 'Tag'`,
+//         WHERE (data->>'statementId') = $<id>::text and type = 'Tag'`,
 //       statement,
 //     )).map(entryToStatement)
 //     statementJson.tagIds = tags.map(tag => tag.id)

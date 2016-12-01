@@ -29,7 +29,7 @@ export const listStatementTags = wrapAsyncMiddleware(async function listStatemen
 
   let tags = (await db.oneOrNone(
     `SELECT * FROM statements
-      WHERE (data->>'statementId')::bigint = $<id> and type = 'Tag'`,
+      WHERE (data->>'statementId') = $<id>::text and type = 'Tag'`,
     statement,
   )).map(entryToStatement)
   res.json({
@@ -54,7 +54,7 @@ export const requireTag = wrapAsyncMiddleware(async function requireTag(req, res
 
   let tag = entryToStatement(await db.oneOrNone(
     `SELECT * FROM statements
-      WHERE (data->>'name') = $<tagName> and (data->>'statementId')::bigint = $<id> and type = 'Tag'`,
+      WHERE (data->>'name') = $<tagName> and (data->>'statementId') = $<id>::text and type = 'Tag'`,
     {
       id: statement.id,
       tagName,

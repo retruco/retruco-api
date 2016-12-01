@@ -97,8 +97,8 @@ async function handlePropertyChange(objectId, keyId) {
       INNER JOIN values ON properties.value_id = values.id
       INNER JOIN values AS schemas ON values.schema_id = schemas.id
       WHERE (schemas.value->>'$ref') = '/schemas/bijective-card-reference'
-      AND (values.value->>'targetId')::bigint = $<objectId>
-      AND (values.value->>'reverseKeyId')::bigint = $<keyId>
+      AND (values.value->>'targetId') = $<objectId>::text
+      AND (values.value->>'reverseKeyId') = $<keyId>::text
     `,
     {
       keyId,
@@ -407,7 +407,7 @@ async function processAction(action) {
     }
     // TODO: Replace ground arguments with "pros" and "cons" properties.
     // let groundArguments = (await db.any(
-    //   "SELECT * FROM statements WHERE (data->>'claimId')::bigint = $<id>",
+    //   "SELECT * FROM statements WHERE (data->>'claimId') = $<id>::text",
     //   object,
     // )).map(entryToStatement)
     // for (let argument of groundArguments) {
@@ -459,7 +459,7 @@ async function processAction(action) {
       // rating du statement les ayant en pros ou cons.
       // let claimArguments = (await db.any(
       //   `SELECT * FROM statements
-      //     WHERE (data->>'groundId')::bigint = $<id>`,
+      //     WHERE (data->>'groundId') = $<id>::text`,
       //   object,
       // )).map(entryToStatement)
       // for (let argument of claimArguments) {
@@ -517,7 +517,7 @@ async function processAction(action) {
       //       )
       //       let claimArguments = (await db.any(
       //         `SELECT * FROM statements
-      //           WHERE (data->>'groundId')::bigint = $<id>`,
+      //           WHERE (data->>'groundId') = $<id>::text`,
       //         flaggedEntry,
       //       )).map(entryToStatement)
       //       for (let argument of claimArguments) {

@@ -37,7 +37,7 @@ export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req,
   }
   let abuse = entryToStatement(await db.oneOrNone(
     `SELECT * FROM statements
-      WHERE (data->>'statementId')::bigint = $<id> and type = 'Abuse'`,
+      WHERE (data->>'statementId') = $<id>::text and type = 'Abuse'`,
     statement,
   ))
   if (abuse === null) {
