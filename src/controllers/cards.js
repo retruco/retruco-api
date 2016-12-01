@@ -93,7 +93,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let schemaErrorsByName = {}
   for (let [name, schema] of Object.entries(bundle.schemas || {})) {
     if (typeof schema === "string") {
-      let schemaId = schema
+      let schemaId = getIdFromIdOrSymbol(schema)
       schema = await getObjectFromId(schemaId)
       if (schema === null) {
         schemaErrorsByName[name] = `Ùnknown schema: "${schemaId}".`
@@ -117,7 +117,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let widgetErrorsByName = {}
   for (let [name, widget] of (Object.entries(bundle.widgets || {}))) {
     if (typeof widget === "string") {
-      let widgetId = widget
+      let widgetId = getIdFromIdOrSymbol(widget)
       widget = await getObjectFromId(widgetId)
       if (widget === null) {
         widgetErrorsByName[name] = `Ùnknown widget: "${widgetId}".`
@@ -606,7 +606,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   let schemaIdByName = {}
   for (let [name, schema] of Object.entries(cardInfos.schemas || {})) {
     if (typeof schema === "string") {
-      let schemaId = schema
+      let schemaId = getIdFromIdOrSymbol(schema)
       schema = await getObjectFromId(schemaId)
       if (schema === null) {
         schemaErrorsByName[name] = `Ùnknown schema: "${schemaId}".`
@@ -628,7 +628,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   let widgetIdByName = {}
   for (let [name, widget] of (Object.entries(cardInfos.widgets || {}))) {
     if (typeof widget === "string") {
-      let widgetId = widget
+      let widgetId = getIdFromIdOrSymbol(widget)
       widget = await getObjectFromId(widgetId)
       if (widget === null) {
         widgetErrorsByName[name] = `Ùnknown widget: "${widgetId}".`
