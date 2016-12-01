@@ -468,7 +468,7 @@ async function configureDatabase() {
 
 async function configureSymbols() {
   // Create missing symbols and their values.
-  let symbol = "/types/object"
+  let symbol = "schema:object"
   let value = {type: "object"}
   let typedValue = entryToValue(await db.oneOrNone(
     `
@@ -553,11 +553,11 @@ async function configureSymbols() {
       symbolById[typedValue.id] = symbol
     }
 
-    if (schemaSymbol === "/schemas/localized-string") {
+    if (schemaSymbol === "schema:localized-string") {
       // Creating a localized string, requires to create each of its strings.
       let properties = {}
       for (let [language, string] of Object.entries(value)) {
-        let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("/types/string"), null, string)
+        let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), null, string)
         properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
       }
       // Do an optimistic optimization.
@@ -674,14 +674,14 @@ export async function getOrNewValueWithSymbol(schemaId, widgetId, value, {inacti
     symbolById[typedValue.id] = symbol
   }
 
-  // Note: getOrNewValueWithSymbol may be called before the ID of the symbol "/schemas/localized-string" is known.
-  // So it is not possible to use function getIdFromSymbol("/schemas/localized-string").
-  let localizedStringSchemaId = idBySymbol["/schemas/localized-string"]
+  // Note: getOrNewValueWithSymbol may be called before the ID of the symbol "schema:localized-string" is known.
+  // So it is not possible to use function getIdFromSymbol("schema:localized-string").
+  let localizedStringSchemaId = idBySymbol["schema:localized-string"]
   if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
     // Getting and rating a localized string, requires to get and rate each of its strings.
     if (!properties) properties = {}
     for (let [language, string] of Object.entries(value)) {
-      let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("/types/string"), null, string,
+      let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), null, string,
         {inactiveStatementIds, userId})
       properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
     }

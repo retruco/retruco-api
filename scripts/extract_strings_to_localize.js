@@ -71,7 +71,7 @@ async function extractLocalizedStrings() {
     `,
     {
       nameId: getIdFromSymbol("name"),
-      schemaId: getIdFromSymbol("/schemas/localized-string"),
+      schemaId: getIdFromSymbol("schema:localized-string"),
     },
   )
   const csvString = json2csv({

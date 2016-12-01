@@ -25,65 +25,65 @@
 export const idBySymbol = {}
 
 export const symbolizedTypedValues = [
-  // Basic schemas
+  // Basic schemas (aka types)
 
-  // /types/object is created manually because it references itself.
+  // schema:object is created manually because it references itself.
   // {
-  //   symbol: "/types/object",
-  //   schemaSymbol: "/types/object",
+  //   symbol: "schema:object",
+  //   schemaSymbol: "schema:object",
   //   value: {type: "object"},
   //   widgetSymbol: null,
   // },
   {
-    symbol: "/types/boolean",
-    schemaSymbol: "/types/object",
+    symbol: "schema:boolean",
+    schemaSymbol: "schema:object",
     value: {type: "boolean"},
     widgetSymbol: null,
   },
   {
-    symbol: "/types/email",
-    schemaSymbol: "/types/object",
+    symbol: "schema:email",
+    schemaSymbol: "schema:object",
     value: {type: "string", format: "email"},
     widgetSymbol: null,
   },
   {
-    symbol: "/types/number",
-    schemaSymbol: "/types/object",
+    symbol: "schema:number",
+    schemaSymbol: "schema:object",
     value: {type: "number"},
     widgetSymbol: null,
   },
   {
-    symbol: "/types/string",
-    schemaSymbol: "/types/object",
+    symbol: "schema:string",
+    schemaSymbol: "schema:object",
     value: {type: "string"},
     widgetSymbol: null,
   },
   {
-    symbol: "/types/uri",
-    schemaSymbol: "/types/object",
+    symbol: "schema:uri",
+    schemaSymbol: "schema:object",
     value: {type: "string", format: "uri"},
     widgetSymbol: null,
   },
 
-  // Schemas
+  // More complex Schemas
 
   // {
-  //   symbol: "/schemas/bijective-uri-reference",
-  //   schemaSymbol: "/types/object",
+  //   symbol: "schema:bijective-uri-reference",
+  //   schemaSymbol: "schema:object",
   //   value: clean(schemaByPath["/schemas/bijective-uri-reference"]),
   //   widgetSymbol: null,
   // },
   {
-    symbol: "/schemas/bijective-uri-reference",
-    schemaSymbol: "/types/object",
+    symbol: "schema:bijective-uri-reference",
+    schemaSymbol: "schema:object",
     value: {
       $ref: "/schemas/bijective-uri-reference",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "/schemas/bijective-uri-references-array",
-    schemaSymbol: "/types/object",
+    symbol: "schema:bijective-uri-references-array",
+    schemaSymbol: "schema:object",
     value: {
       type: "array",
       items: {
@@ -93,22 +93,22 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   // {
-  //   symbol: "/schemas/localized-string",
-  //   schemaSymbol: "/types/object",
+  //   symbol: "schema:localized-string",
+  //   schemaSymbol: "schema:object",
   //   value: clean(schemaByPath["/schemas/localized-string"]),
   //   widgetSymbol: null,
   // },
   {
-    symbol: "/schemas/localized-string",
-    schemaSymbol: "/types/object",
+    symbol: "schema:localized-string",
+    schemaSymbol: "schema:object",
     value: {
       $ref: "/schemas/localized-string",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "/schemas/localized-strings-array",
-    schemaSymbol: "/types/object",
+    symbol: "schema:localized-strings-array",
+    schemaSymbol: "schema:object",
     value: {
       type: "array",
       items: {
@@ -118,22 +118,22 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   // {
-  //   symbol: "/schemas/uri-reference",
-  //   schemaSymbol: "/types/object",
+  //   symbol: "schema:uri-reference",
+  //   schemaSymbol: "schema:object",
   //   value: clean(schemaByPath["/schemas/uri-reference"]),
   //   widgetSymbol: null,
   // },
   {
-    symbol: "/schemas/uri-reference",
-    schemaSymbol: "/types/object",
+    symbol: "schema:uri-reference",
+    schemaSymbol: "schema:object",
     value: {
       $ref: "/schemas/uri-reference",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "/schemas/uri-references-array",
-    schemaSymbol: "/types/object",
+    symbol: "schema:uri-references-array",
+    schemaSymbol: "schema:object",
     value: {
       type: "array",
       items: {
@@ -146,24 +146,24 @@ export const symbolizedTypedValues = [
   // Widgets
 
   {
-    symbol: "/widgets/autocomplete",
-    schemaSymbol: "/types/object",
+    symbol: "widget:autocomplete",
+    schemaSymbol: "schema:object",
     value: {
       tag: "Autocomplete",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "/widgets/image",
-    schemaSymbol: "/types/object",
+    symbol: "widget:image",
+    schemaSymbol: "schema:object",
     value: {
       tag: "Image",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "/widgets/input-checkbox",
-    schemaSymbol: "/types/object",
+    symbol: "widget:input-checkbox",
+    schemaSymbol: "schema:object",
     value: {
       tag: "input",
       type: "checkbox",
@@ -171,8 +171,8 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
-    symbol: "/widgets/input-email",
-    schemaSymbol: "/types/object",
+    symbol: "widget:input-email",
+    schemaSymbol: "schema:object",
     value: {
       tag: "input",
       type: "email",
@@ -180,8 +180,8 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
-    symbol: "/widgets/input-number",
-    schemaSymbol: "/types/object",
+    symbol: "widget:input-number",
+    schemaSymbol: "schema:object",
     value: {
       tag: "input",
       type: "number",
@@ -189,8 +189,8 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
-    symbol: "/widgets/input-text",
-    schemaSymbol: "/types/object",
+    symbol: "widget:input-text",
+    schemaSymbol: "schema:object",
     value: {
       tag: "input",
       type: "text",
@@ -198,8 +198,8 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
-    symbol: "/widgets/input-url",
-    schemaSymbol: "/types/object",
+    symbol: "widget:input-url",
+    schemaSymbol: "schema:object",
     value: {
       tag: "input",
       type: "url",
@@ -207,16 +207,16 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
-    symbol: "/widgets/rated-item-or-set",
-    schemaSymbol: "/types/object",
+    symbol: "widget:rated-item-or-set",
+    schemaSymbol: "schema:object",
     value: {
       tag: "RatedItemOrSet",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "/widgets/textarea",
-    schemaSymbol: "/types/object",
+    symbol: "widget:textarea",
+    schemaSymbol: "schema:object",
     value: {
       tag: "textarea",
     },
@@ -225,203 +225,203 @@ export const symbolizedTypedValues = [
 
   // Keys of properties
 
-  { // localization.en must be first value of type "/schemas/localized-string".
+  { // localization.en must be first value of type "schema:localized-string".
     symbol: "localization.en",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "English Localization",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/types/string", ["/widgets/input-text", "/widgets/textarea"]],
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
     ],
   },
   {
     symbol: "cons",  // pros & cons
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Cons",  // Against
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/localized-strings-array", ["/widgets/rated-item-or-set"]],
+      ["schema:localized-strings-array", ["widget:rated-item-or-set"]],
     ],
   },
   {
     symbol: "description",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Description",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/localized-string", ["/widgets/textarea", "/widgets/input-text"]],
+      ["schema:localized-string", ["widget:textarea", "widget:input-text"]],
     ],
   },
   {
     symbol: "license",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "License",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/localized-string", ["/widgets/input-text", "/widgets/textarea"]],
+      ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
     ],
   },
   {
     symbol: "localization.es",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Spanish Localization",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/types/string", ["/widgets/input-text", "/widgets/textarea"]],
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
     ],
   },
   {
     symbol: "localization.fr",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "French Localization",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/types/string", ["/widgets/input-text", "/widgets/textarea"]],
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
     ],
   },
   {
     symbol: "logo",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Logo",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/types/uri", ["/widgets/image", "/widgets/input-url"]],
+      ["schema:uri", ["widget:image", "widget:input-url"]],
     ],
   },
   {
     symbol: "name",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Name",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/localized-string", ["/widgets/input-text", "/widgets/textarea"]],
+      ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
     ],
   },
   {
     symbol: "pros",  // pros & cons
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Pros",  // For
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/localized-strings-array", ["/widgets/rated-item-or-set"]],
+      ["schema:localized-strings-array", ["widget:rated-item-or-set"]],
     ],
   },
   {
     symbol: "screenshot",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Screenshot",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/types/uri", ["/widgets/image", "/widgets/input-url"]],
+      ["schema:uri", ["widget:image", "widget:input-url"]],
     ],
   },
   {
     symbol: "tags",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Tags",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/localized-strings-array", ["/widgets/rated-item-or-set"]],
+      ["schema:localized-strings-array", ["widget:rated-item-or-set"]],
     ],
   },
   {
     symbol: "title",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Title",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/localized-string", ["/widgets/input-text", "/widgets/textarea"]],
+      ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
     ],
   },
   {
     symbol: "twitter-name",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Twitter Name",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/types/string", ["/widgets/input-text"]],
+      ["schema:string", ["widget:input-text"]],
     ],
   },
   {
     symbol: "types",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Types",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/localized-strings-array", ["/widgets/rated-item-or-set"]],
+      ["schema:localized-strings-array", ["widget:rated-item-or-set"]],
     ],
   },
   {
     symbol: "used-by",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Used by",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/bijective-uri-references-array", ["/widgets/autocomplete"]],
+      ["schema:bijective-uri-references-array", ["widget:autocomplete"]],
     ],
   },
   {
     symbol: "used-for",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Used for",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/schemas/bijective-uri-references-array", ["/widgets/autocomplete"]],
+      ["schema:bijective-uri-references-array", ["widget:autocomplete"]],
     ],
   },
   {
     symbol: "website",
-    schemaSymbol: "/schemas/localized-string",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Website",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["/types/uri", ["/widgets/input-url"]],
+      ["schema:uri", ["widget:input-url"]],
     ],
   },
 
   // OGP Toolbox specific types
 
   {
-    symbol: "Platform",
-    schemaSymbol: "/schemas/localized-string",
+    symbol: "type:platform",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Platform",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     keysOrder: [
       "types",
       "name",
@@ -432,12 +432,12 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "Software",
-    schemaSymbol: "/schemas/localized-string",
+    symbol: "type:software",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Software",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     keysOrder: [
       "types",
       "name",
@@ -449,12 +449,12 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "Organization",
-    schemaSymbol: "/schemas/localized-string",
+    symbol: "type:organization",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Organization",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     keysOrder: [
       "types",
       "name",
@@ -465,12 +465,12 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "UseCase",
-    schemaSymbol: "/schemas/localized-string",
+    symbol: "type:use-case",
+    schemaSymbol: "schema:localized-string",
     value: {
       en: "Use Case",
     },
-    widgetSymbol: "/widgets/input-text",
+    widgetSymbol: "widget:input-text",
     keysOrder: [
       "types",
       "name",
@@ -483,7 +483,7 @@ export const symbolizedTypedValues = [
 ]
 
 export const symbols = [
-  "/types/object",
+  "schema:object",
   ...symbolizedTypedValues.map(infos => infos.symbol),
 ]
 

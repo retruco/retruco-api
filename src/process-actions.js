@@ -109,11 +109,11 @@ async function handlePropertyChange(objectId, keyId) {
     delete description.rating_count
     description.ratingSum = description.rating_sum
     delete description.rating_sum
-    description.schema = getValueValueFromSymbol("/schemas/uri-reference")
-    description.schemaId = getIdFromSymbol("/schemas/uri-reference")
+    description.schema = getValueValueFromSymbol("schema:uri-reference")
+    description.schemaId = getIdFromSymbol("schema:uri-reference")
     description.valueId = null
-    description.widget = getValueValueFromSymbol("/widgets/rated-item-or-set")
-    description.widgetId = getIdFromSymbol("/widgets/rated-item-or-set")
+    description.widget = getValueValueFromSymbol("widget:rated-item-or-set")
+    description.widgetId = getIdFromSymbol("widget:rated-item-or-set")
     return description
   })
   sameKeyDescriptions = sameKeyDescriptions.concat(inverseDescriptions)
@@ -148,12 +148,12 @@ async function handlePropertyChange(objectId, keyId) {
             rating: entry.rating,
             ratingCount: entry.rating_count,
             ratingSum: entry.rating_sum,
-            schema: getValueValueFromSymbol("/schemas/uri-reference"),
-            schemaId: getIdFromSymbol("/schemas/uri-reference"),
+            schema: getValueValueFromSymbol("schema:uri-reference"),
+            schemaId: getIdFromSymbol("schema:uri-reference"),
             value: entry.value,
             valueId: null,
-            widget: getValueValueFromSymbol("/widgets/rated-item-or-set"),
-            widgetId: getIdFromSymbol("/widgets/rated-item-or-set"),
+            widget: getValueValueFromSymbol("widget:rated-item-or-set"),
+            widgetId: getIdFromSymbol("widget:rated-item-or-set"),
           })
         }
       }
@@ -166,12 +166,12 @@ async function handlePropertyChange(objectId, keyId) {
             rating: entry.rating,
             ratingCount: entry.rating_count,
             ratingSum: entry.rating_sum,
-            schema: getValueValueFromSymbol("/schemas/uri-reference"),
-            schemaId: getIdFromSymbol("/schemas/uri-reference"),
+            schema: getValueValueFromSymbol("schema:uri-reference"),
+            schemaId: getIdFromSymbol("schema:uri-reference"),
             value: entry.value,
             valueId: null,
-            widget: getValueValueFromSymbol("/widgets/rated-item-or-set"),
-            widgetId: getIdFromSymbol("/widgets/rated-item-or-set"),
+            widget: getValueValueFromSymbol("widget:rated-item-or-set"),
+            widgetId: getIdFromSymbol("widget:rated-item-or-set"),
           })
         }
       }
@@ -237,11 +237,11 @@ async function handlePropertyChange(objectId, keyId) {
       // Now that bestDescription is found, lets ensure that it matchs a typed value in database.
       if (bestDescription.valueId === null) {
         if (bestDescription.schemaId === null) {
-          let schema = await getOrNewValue(getIdFromSymbol("/types/object"), null, bestDescription.schema)
+          let schema = await getOrNewValue(getIdFromSymbol("schema:object"), null, bestDescription.schema)
           bestDescription.schemaId = schema.id
         }
         if (bestDescription.wigetId === null && bestDescription.wiget !== null) {
-          let widget = await getOrNewValue(getIdFromSymbol("/types/object"), null, bestDescription.widget)
+          let widget = await getOrNewValue(getIdFromSymbol("schema:object"), null, bestDescription.widget)
           bestDescription.widgetId = widget.id
         }
         let value = await getOrNewValue(bestDescription.schemaId, bestDescription.widgetId, bestDescription.value)
@@ -332,10 +332,10 @@ async function processAction(action) {
     let subTypesId = properties[getIdFromSymbol("types")]
     if (subTypesId !== undefined) {
       let subTypesValue = await getObjectFromId(subTypesId)
-      if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+      if (subTypesValue.schemaId === getIdFromSymbol("schema:localized-string")) {
         let englishString = subTypesValue.value.en
         if (englishString) subTypes = [subTypesValue.value.en]
-      } else if (subTypesValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
+      } else if (subTypesValue.schemaId === getIdFromSymbol("schema:localized-strings-array")) {
         subTypes = subTypesValue.value.map(item => item.en).filter(item => item != undefined)
       }
     }
@@ -353,9 +353,9 @@ async function processAction(action) {
     let tagsId = properties[getIdFromSymbol("tags")]
     if (tagsId !== undefined) {
       let tagsValue = await getObjectFromId(tagsId)
-      if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+      if (tagsValue.schemaId === getIdFromSymbol("schema:localized-string")) {
         tags = [tagsValue.value]
-      } else if (tagsValue.schemaId === getIdFromSymbol("/schemas/localized-strings-array")) {
+      } else if (tagsValue.schemaId === getIdFromSymbol("schema:localized-strings-array")) {
         tags = tagsValue.value
       }
     }
@@ -369,12 +369,12 @@ async function processAction(action) {
     }
 
     if (object.type === "Value") {
-      if (object.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+      if (object.schemaId === getIdFromSymbol("schema:localized-string")) {
         let localizations = {}
         for (let [keyId, valueId] of Object.entries(object.properties || {})) {
           if (localizationKeysId.includes(keyId)) {
             let localizationValue = await getObjectFromId(valueId)
-            if (localizationValue.schemaId === getIdFromSymbol("/types/string")) {
+            if (localizationValue.schemaId === getIdFromSymbol("schema:string")) {
               localizations[languageByKeyId[keyId]] = localizationValue.value
             }
           }

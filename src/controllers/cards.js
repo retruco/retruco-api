@@ -255,7 +255,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   //
 
   let idByStringCache = {}
-  let objectSchemaId = getIdFromSymbol("/types/object")
+  let objectSchemaId = getIdFromSymbol("schema:object")
 
   async function getOrNewIdFromString(typedLanguage, string, {inactiveStatementIds = null, properties = null,
     userId = null} = {}) {
@@ -617,12 +617,12 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   for (let [name, value] of Object.entries(cardInfos.value)) {
     // Convert attribute name to a typed value.
     let nameId = await getOrNewLocalizedString(typedLanguage, name, {inactiveStatementIds, userId})
-    let schemaId = (await getOrNewValue(getIdFromSymbol("/types/object"), null, cardInfos.schemas[name],
+    let schemaId = (await getOrNewValue(getIdFromSymbol("schema:object"), null, cardInfos.schemas[name],
       {inactiveStatementIds, userId})).id
     let widget = cardInfos.widgets[name]
     let widgetId = null
     if (widget) {
-      widgetId = (await getOrNewValue(getIdFromSymbol("/types/object"), null, widget,
+      widgetId = (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
         {inactiveStatementIds, userId})).id
     }
     let valueId = (await getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, userId})).id

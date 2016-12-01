@@ -223,7 +223,7 @@ export async function generateObjectTextSearch(object) {
         if (valueId === undefined) continue
         let value = await getObjectFromId(valueId)
         assert.ok(value, `Missing value at ID ${valueId}`)
-        if (value.schemaId === getIdFromSymbol("/schemas/localized-string")) {
+        if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
           for (let [language, text] of Object.entries(value.value)) {
             if (!text) continue
             let searchableTexts = searchableTextsByLanguage[language]
@@ -399,8 +399,8 @@ export async function getOrNewLocalizedString(typedLanguage, string, {inactiveSt
     [typedLanguage.symbol.split(".")[1]]: string,
   }
   return await getOrNewValue(
-    getIdFromSymbol("/schemas/localized-string"),
-    getIdFromSymbol("/widgets/input-text"),
+    getIdFromSymbol("schema:localized-string"),
+    getIdFromSymbol("widget:input-text"),
     localizedString, {
       inactiveStatementIds,
       properties,
@@ -498,14 +498,14 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
   assert(typeof schemaId === "string")
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
 
-  // Note: getOrNewValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not
-  // possible to use function getIdFromSymbol("/schemas/localized-string").
-  let localizedStringSchemaId = idBySymbol["/schemas/localized-string"]
+  // Note: getOrNewValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
+  // possible to use function getIdFromSymbol("schema:localized-string").
+  let localizedStringSchemaId = idBySymbol["schema:localized-string"]
   if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
     // Getting and rating a localized string, requires to get and rate each of its strings.
     if (!properties) properties = {}
     for (let [language, string] of Object.entries(value)) {
-      let typedString = await getOrNewValue(getIdFromSymbol("/types/string"), null, string,
+      let typedString = await getOrNewValue(getIdFromSymbol("schema:string"), null, string,
         {inactiveStatementIds, userId})
       properties[getIdFromSymbol(`localization.${language}`)] = typedString.id
     }
@@ -557,9 +557,9 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
 
 
 export async function getValue(schemaId, widgetId, value) {
-  // Note: getValue may be called before the ID of the symbol "/schemas/localized-string" is known. So it is not
-  // possible to use function getIdFromSymbol("/schemas/localized-string").
-  let localizedStringSchemaId = idBySymbol["/schemas/localized-string"]
+  // Note: getValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
+  // possible to use function getIdFromSymbol("schema:localized-string").
+  let localizedStringSchemaId = idBySymbol["schema:localized-string"]
   let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId ?
     "value @> $<value:json>" :
     "value = $<value:json>"
@@ -731,30 +731,30 @@ export async function rateStatement(statementId, voterId, rating) {
 }
 
 
-export {toBallotData}
-async function toBallotData(ballot, statements, user, {depth = 0, showAbuse = false, showAuthor = false,
-  showBallot = false, showGrounds = false, showProperties = false, showReferences = false, showTags = false} = {}) {
-  let data = {
-    ballots: {[ballot.id]: toBallotJson(ballot)},
-    id: ballot.id,
-    statements: {},
-    users: {},
-  }
-  let statementsCache = {}
-  for (let statement of statements) {
-    statementsCache[statement.id] = statement
-  }
+// export {toBallotData}
+// async function toBallotData(ballot, statements, user, {depth = 0, showAbuse = false, showAuthor = false,
+//   showBallot = false, showGrounds = false, showProperties = false, showReferences = false, showTags = false} = {}) {
+//   let data = {
+//     ballots: {[ballot.id]: toBallotJson(ballot)},
+//     id: ballot.id,
+//     statements: {},
+//     users: {},
+//   }
+//   let statementsCache = {}
+//   for (let statement of statements) {
+//     statementsCache[statement.id] = statement
+//   }
 
-  for (let statement of statements) {
-    await toStatementData1(data, statement, statementsCache, user,
-      {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-  }
+//   for (let statement of statements) {
+//     await toStatementData1(data, statement, statementsCache, user,
+//       {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
+//   }
 
-  if (Object.keys(data.ballots).length === 0) delete data.ballots
-  if (Object.keys(data.statements).length === 0) delete data.statements
-  if (Object.keys(data.users).length === 0) delete data.users
-  return data
-}
+//   if (Object.keys(data.ballots).length === 0) delete data.ballots
+//   if (Object.keys(data.statements).length === 0) delete data.statements
+//   if (Object.keys(data.users).length === 0) delete data.users
+//   return data
+// }
 
 
 function toBallotJson(ballot) {
