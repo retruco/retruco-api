@@ -585,21 +585,37 @@ export async function getValue(schemaId, widgetId, value) {
 
 export async function newCard({inactiveStatementIds = null, properties = null, userId = null} = {}) {
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
+
+  // Compute object subTypeIds from properties for optimistic optimization.
+  let subTypeIds = null
+  if (properties) {
+    let subTypesId = properties[getIdFromSymbolOrFail("types")]
+    if (subTypesId !== undefined) {
+      let subTypesValue = await getObjectFromId(subTypesId)
+      if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-reference")) {
+        subTypeIds = [subTypesValue.value]
+      } else if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-references-array")) {
+        subTypeIds = subTypesValue.value
+      }
+    }
+  }
+
   let result = await db.one(
     `
-      INSERT INTO objects(created_at, properties, type)
-      VALUES (current_timestamp, $<properties:json>, 'Card')
-      RETURNING created_at, id, properties, sub_types, tags, type
+      INSERT INTO objects(created_at, properties, sub_types, type)
+      VALUES (current_timestamp, $<properties:json>, $<subTypeIds>, 'Card')
+      RETURNING created_at, id, tags, type
     `,
     {
       properties,  // Note: Properties are typically set for optimistic optimization.
+      subTypeIds,
     },
   )
   let card = {
     createdAt: result.created_at,
     id: result.id,
     properties,
-    subTypeIds: result.sub_types,
+    subTypeIds,
     tags: result.tags,
     type: result.type,
   }
@@ -635,6 +651,7 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
       card.propertyByKeyId[keyId] = await getOrNewProperty(card.id, keyId, valueId, {inactiveStatementIds, userId})
     }
   }
+
   return card
 }
 
