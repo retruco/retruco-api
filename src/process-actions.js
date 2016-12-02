@@ -423,6 +423,21 @@ async function processAction(action) {
     //   }
     // }
 
+    if (object.type === "Card") {
+      let keyIds = Object.keys(object.properties || {})
+      let ogpToolboxScore = keyIds.length
+      if (keyIds.includes(getIdFromSymbolOrFail("logo"))
+        || keyIds.includes(getIdFromSymbolOrFail("screenshot"))) {
+        ogpToolboxScore *= 10
+      }
+      // if ((object.subTypeIds || []).includes(getIdFromSymbolOrFail("type:software"))) {
+
+      // }
+      ratingCount += ogpToolboxScore
+      ratingSum += ogpToolboxScore
+      console.log(ogpToolboxScore)
+    }
+
     if (ratingCount != object.ratingCount || ratingSum != object.ratingSum) {
       // Save statement rating.
       let rating

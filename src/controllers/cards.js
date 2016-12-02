@@ -829,7 +829,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       INNER JOIN cards on statements.id = cards.id
       LEFT JOIN symbols ON objects.id = symbols.id
       ${whereClause}
-      ORDER BY created_at DESC
+      ORDER BY rating_count DESC, created_at DESC
       LIMIT $<limit>
       OFFSET $<offset>
     `,
