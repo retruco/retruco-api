@@ -896,7 +896,7 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
     Value: data.values,
   }[object.type]
   assert.notStrictEqual(objectJsonBySymbolOrId, undefined)
-  const objectJson = toObjectJson(object)
+  const objectJson = await toObjectJson(object)
   objectJsonBySymbolOrId[object.symbol || object.id] = objectJson
 
   if (showBallots && user) {
@@ -949,7 +949,35 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
 }
 
 
-export function toObjectJson(object, {showApiKey = false, showEmail = false} = {}) {
+export async function toSchemaValueJson(schema, value) {
+  if (schema.$ref === "/schemas/bijective-card-reference") {
+    return {
+      reverseKeyId: getSymbolOrId(value.reverseKeyId),
+      targetId: getSymbolOrId(value.targetId),
+    }
+  } else if (["/schemas/card-reference", "/schemas/type-reference"].includes(schema.$ref)) {
+    return getSymbolOrId(value)
+  } else if (schema.type === "array") {
+    if (Array.isArray(schema.items)) {
+      let valueJson = []
+      for (let [index, itemSchema] of schema.items.entries()) {
+        valueJson.push(await toSchemaValueJson(itemSchema, value[index]))
+      }
+      return valueJson
+    } else {
+      let valueJson = []
+      for (let itemValue of value) {
+        valueJson.push(await toSchemaValueJson(schema.items, itemValue))
+      }
+      return valueJson
+    }
+  } else {
+    return value
+  }
+}
+
+
+export async function toObjectJson(object, {showApiKey = false, showEmail = false} = {}) {
   let objectJson = Object.assign({}, object)
   objectJson.createdAt = objectJson.createdAt.toISOString()
   if (objectJson.properties) {
@@ -979,6 +1007,8 @@ export function toObjectJson(object, {showApiKey = false, showEmail = false} = {
   } else if (object.type === "Value") {
     objectJson.schemaId = getSymbolOrId(objectJson.schemaId)
     objectJson.widgetId = getSymbolOrId(objectJson.widgetId)
+    let schema = (await getObjectFromId(object.schemaId)).value
+    objectJson.value = await toSchemaValueJson(schema, objectJson.value)
   }
 
   for (let [key, value] of Object.entries(objectJson)) {
