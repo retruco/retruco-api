@@ -300,6 +300,7 @@ async function processAction(action) {
       }
       addReferences(referencedIds, schema, typedValue.value)
     }
+    referencedIds.delete(object.id)  // Remove references to itself.
     let existingReferencedIds = new Set(
       (await db.any("SELECT target_id FROM objects_references WHERE source_id = $1", object.id)).map(
         entry => entry.target_id))
