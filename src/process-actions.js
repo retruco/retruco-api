@@ -441,7 +441,7 @@ async function processAction(action) {
         "SELECT count(*) AS count FROM objects_references WHERE target_id = $<id>",
         object,
       )).count
-      ogpToolboxScore *= referencesCount
+      ogpToolboxScore *= Math.max(referencesCount, 0.5)
       // if ((object.subTypeIds || []).includes(getIdFromSymbolOrFail("type:software"))) {}
 
       ogpToolboxScore = Math.round(ogpToolboxScore)
