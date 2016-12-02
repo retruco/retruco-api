@@ -913,16 +913,44 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
   }
 
   if (showReferences && depth > 0) {
-    let sourceIds = new Set(
-      (await db.any("SELECT source_id FROM objects_references WHERE target_id = $1", object.id)).map(
-        entry => entry.source_id))
-    let targetIds = new Set(
-      (await db.any("SELECT target_id FROM objects_references WHERE source_id = $1", object.id)).map(
-        entry => entry.target_id))
-    let referencedIds = new Set([...sourceIds, ...targetIds])
+    let sourceEntries = await db.any(
+      `
+        SELECT id, sub_types
+        FROM objects
+        INNER JOIN objects_references ON id = source_id
+        WHERE target_id = $<id>
+      `,
+      object,
+    )
+    let targetEntries = await db.any(
+      `
+        SELECT id, sub_types
+        FROM objects
+        INNER JOIN objects_references ON id = target_id
+        WHERE source_id = $<id>
+      `,
+      object,
+    )
+
+    let referencedIds = new Set([...sourceEntries.map(entry => entry.id), ...targetEntries.map(entry => entry.id)])
     for (let referencedId of referencedIds) {
       await toDataJson1(referencedId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
         showReferences, showValues})
+    }
+
+    let references = {}
+    for (let {id, sub_types} of sourceEntries.concat(targetEntries)) {
+      for (let subTypeId of sub_types || []) {
+        let subTypeReferences = references[subTypeId]
+        if (subTypeReferences === undefined) references[subTypeId] = subTypeReferences = new Set()
+        subTypeReferences.add(id)
+      }
+    }
+    if (Object.keys(references).length > 0) {
+      objectJson.references = {}
+      for (let [subTypeId, ids] of Object.entries(references)) {
+        objectJson.references[getSymbolOrId(subTypeId)] = [...ids].sort().map(getSymbolOrId)
+      }
     }
   }
 
