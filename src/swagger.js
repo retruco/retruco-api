@@ -472,6 +472,88 @@ const SPEC = {
         // security: {},
       },
     },
+    "/objects/{idOrSymbol}/next-properties": {
+      get: {
+        tags: ["object", "property"],
+        summary: "List the informations of the next properties for user to create",
+        // description: "",
+        // externalDocs: {},
+        operationId: "objects.nextProperties",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/idOrSymbolPathParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested object",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  type: "object",
+                  properties: {
+                    order: {
+                      type: "array",
+                      items: [
+                        {  // key ID or symbol
+                            $ref: "#/definitions/IdOrSymbol",
+                        },
+                        {
+                          type: "array",
+                          items: [
+                            {  // schema ID or symbol
+                                $ref: "#/definitions/IdOrSymbol",
+                            },
+                            {
+                              type: "array",
+                              items: {  // widget ID or symbol
+                                  $ref: "#/definitions/IdOrSymbol",
+                              },
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                    values: {
+                      type: "object",
+                      additionalProperties: {
+                        $ref: "#/definitions/Value",
+                      },
+                    },
+                  },
+                  required: [
+                    "order",
+                    "values",
+                  ],
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/objects/{idOrSymbol}/properties/{keyIdOrSymbol}": {
       get: {
         tags: ["object", "property"],
@@ -2577,7 +2659,10 @@ const SPEC = {
       type: "string",
       pattern: "^[0-9]+(/[0-9]+)?$",
     },
-    language: {
+    IdOrSymbol: {
+      type: "string",
+    },
+    Language: {
       type: "string",
       enum: config.languages,
       pattern: "^[a-z]{2}$",
@@ -2601,7 +2686,7 @@ const SPEC = {
               default: false,
             },
             language: {
-              $ref: "#/definitions/language",
+              $ref: "#/definitions/Language",
             },
             name: {
               type: "string",
@@ -2630,7 +2715,7 @@ const SPEC = {
               default: false,
             },
             // language: {
-            //   $ref: "#/definitions/language",
+            //   $ref: "#/definitions/Language",
             // },
             name: {
               type: "string",
@@ -2750,6 +2835,29 @@ const SPEC = {
         "urlName",
       ],
     },
+    Value: {
+      type: "object",
+      properties: {
+        id: {
+          $ref: "#/definitions/Id",
+        },
+        schemaId: {
+          $ref: "#/definitions/IdOrSymbol",
+        },
+        symbol: {
+          type: "string",
+        },
+        // value: anything,
+        widgetId: {
+          $ref: "#/definitions/IdOrSymbol",
+        },
+      },
+      required: [
+        "id",
+        "schemaId",
+        // "value",
+      ],
+    },
     Widget: {
       type: "object",
       // properties: {
@@ -2792,7 +2900,7 @@ const SPEC = {
         properties: {
           language: {
             description: "Language used by default by the card (for example, for the keys of its attributes)",
-            $ref: "#/definitions/language",
+            $ref: "#/definitions/Language",
           },
           schemas: {
             type: "object",
@@ -2831,7 +2939,7 @@ const SPEC = {
           },
           language: {
             description: "Language used by default by the cards (for example, for the keys of their attributes)",
-            $ref: "#/definitions/language",
+            $ref: "#/definitions/Language",
           },
           schemas: {
             type: "object",

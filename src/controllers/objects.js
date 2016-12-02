@@ -20,8 +20,8 @@
 
 
 import {db} from "../database"
-import {entryToProperty, getObjectFromId, toDataJson, wrapAsyncMiddleware} from "../model"
-import {getIdFromIdOrSymbol} from "../symbols"
+import {entryToProperty, getObjectFromId, toDataJson, toObjectJson, wrapAsyncMiddleware} from "../model"
+import {getIdFromIdOrSymbol, getSymbolOrId} from "../symbols"
 
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
@@ -90,6 +90,87 @@ export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function li
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
+  })
+})
+
+
+export const nextProperties = wrapAsyncMiddleware(async function nextProperties(req, res) {
+  let object = req.object
+  let keysOrder = null
+  for (let subTypeId of object.subTypeIds || []) {
+    keysOrder = (await db.oneOrNone(
+      `
+        SELECT keys_order FROM types
+        WHERE id = $1
+      `,
+      subTypeId,
+    )).keys_order
+    if (keysOrder !== null) break
+  }
+  let nextKeysOrder = null
+  if (keysOrder === null) {
+    nextKeysOrder = []
+  } else {
+    let latestPropertyKeyIds = (await db.any(
+      `
+        SELECT key_id FROM properties
+        WHERE object_id = $<id>
+        ORDER BY id DESC
+      `,
+      object,
+    )).map(entry => entry.key_id)
+    for (let keyId of latestPropertyKeyIds) {
+      let keyIdIndex = keysOrder.indexOf(keyId)
+      if (keyIdIndex >= 0) {
+        nextKeysOrder = keysOrder.slice(keyIdIndex + 1).filter(id => !latestPropertyKeyIds.includes(id))
+        if (nextKeysOrder.length > 0) break
+      }
+    }
+    if (nextKeysOrder === null) {
+      // No key from keysOrder has been used yet. Take them all.
+      nextKeysOrder = keysOrder.filter(id => !latestPropertyKeyIds.includes(id))
+    }
+  }
+
+  let order = []
+  let valueByIdOrSymbol = {}
+  for (let keyId of nextKeysOrder) {
+    let keySymbolOrId = getSymbolOrId(keyId)
+    if (valueByIdOrSymbol[keySymbolOrId] === undefined) {
+      valueByIdOrSymbol[keySymbolOrId] = await toObjectJson(await getObjectFromId(keyId))
+    }
+    let keySchemasWidgetsOrder = (await db.oneOrNone(
+      `
+        SELECT schemas_widgets_order FROM keys
+        WHERE id = $1
+      `,
+      keyId,
+    )).schemas_widgets_order || []
+    let keyOrder = []
+    for (let [schemaId, widgetIds] of keySchemasWidgetsOrder) {
+      let schemaSymbolOrId = getSymbolOrId(schemaId)
+      if (valueByIdOrSymbol[schemaSymbolOrId] === undefined) {
+        valueByIdOrSymbol[schemaSymbolOrId] = await toObjectJson(await getObjectFromId(schemaId))
+      }
+      let widgetsOrder = []
+      for (let widgetId of widgetIds) {
+        let widgetSymbolOrId = getSymbolOrId(widgetId)
+        if (valueByIdOrSymbol[widgetSymbolOrId] === undefined) {
+          valueByIdOrSymbol[widgetSymbolOrId] = await toObjectJson(await getObjectFromId(widgetId))
+        }
+        widgetsOrder.push(widgetSymbolOrId)
+      }
+      keyOrder.push([schemaSymbolOrId, widgetsOrder])
+    }
+    order.push([keySymbolOrId, keyOrder])
+  }
+
+  res.json({
+    apiVersion: "1",
+    data: {
+      order,
+      values: valueByIdOrSymbol,
+    },
   })
 })
 

@@ -121,6 +121,8 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
 
   app.get("/objects/:idOrSymbol", usersController.authenticate(false), objectsController.requireObject,
     objectsController.getObject)
+  app.get("/objects/:idOrSymbol/next-properties", usersController.authenticate(false),
+    objectsController.requireObject, objectsController.nextProperties)
   app.get("/objects/:idOrSymbol/properties/:keyIdOrSymbol", usersController.authenticate(false),
     objectsController.requireObject, objectsController.listObjectSameKeyProperties)
 
