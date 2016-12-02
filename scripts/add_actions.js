@@ -26,7 +26,6 @@ import {addAction} from "../src/model"
 
 
 const optionsDefinition = [
-  {alias:  "e", name: "event", type: String, multiple: true, defaultValue: ["properties", "rating"]},
   {alias:  "t", name: "type", type: String, multiple: true, defaultValue: []},
 ]
 const options = commandLineArgs(optionsDefinition)
@@ -45,7 +44,7 @@ async function addActions() {
     },
   )).map(object => object.id)
   for (let id of ids) {
-    for (let eventType of options.event) await addAction(id, eventType)
+    await addAction(id, "properties")
   }
 
   process.exit(0)

@@ -285,115 +285,120 @@ async function processAction(action) {
   if (object === null) return
   let description = await describe(object)
   console.log(`Processing ${action.type} of ${action.createdAt.toISOString()} for ${description}...`)
-  if (action.type === "properties") {
-    let properties = object.properties || {}
-    let propertiesChanged = false
 
-    // Compute object references from properties.
-    let referencedIds = new Set()
-    for (let valueId of Object.values(properties)) {
-      let typedValue = await getObjectFromId(valueId)
-      let schema = (await getObjectFromId(typedValue.schemaId)).value
-      if (schema === undefined) {
-        console.log("Skipping property value without schema:", typedValue)
-        continue
-      }
-      addReferences(referencedIds, schema, typedValue.value)
+  // Compute object references from properties.
+  let contentChanged = false
+  let properties = object.properties || {}
+  let referencedIds = new Set()
+  let textSearchUpdateNeeded = false
+  for (let valueId of Object.values(properties)) {
+    let typedValue = await getObjectFromId(valueId)
+    let schema = (await getObjectFromId(typedValue.schemaId)).value
+    if (schema === undefined) {
+      console.log("Skipping property value without schema:", typedValue)
+      continue
     }
-    referencedIds.delete(object.id)  // Remove references to itself.
-    let existingReferencedIds = new Set(
-      (await db.any("SELECT target_id FROM objects_references WHERE source_id = $1", object.id)).map(
-        entry => entry.target_id))
-    for (let referencedId of new Set(referencedIds)) {
-      if (existingReferencedIds.has(referencedId)) {
-        existingReferencedIds.delete(referencedId)
-        referencedIds.delete(referencedId)
-      }
-    }
-    if (existingReferencedIds.size > 0) {
-      await db.none(
-        "DELETE FROM objects_references WHERE source_id = $<sourceId> AND target_id in ($<targetIds:csv>)",
-        {
-          sourceId: object.id,
-          targetIds: [...existingReferencedIds],
-        },
-      )
-    }
-    if (referencedIds.size > 0) {
-      for (let referencedId of referencedIds) {
-        await db.none("INSERT INTO objects_references(source_id, target_id) VALUES ($<sourceId>, $<targetId>)", {
-          sourceId: object.id,
-          targetId: referencedId,
-        })
-      }
-    }
+    addReferences(referencedIds, schema, typedValue.value)
+  }
+  referencedIds.delete(object.id)  // Remove reference to itself.
 
-    // Compute object subTypeIds from properties.
-    let subTypeIds = null
-    let subTypesId = properties[getIdFromSymbolOrFail("types")]
-    if (subTypesId !== undefined) {
-      let subTypesValue = await getObjectFromId(subTypesId)
-      if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-reference")) {
-        subTypeIds = [subTypesValue.value]
-      } else if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-references-array")) {
-        subTypeIds = subTypesValue.value
-      }
+  // TODO: action.type is not handled. It should be removed.
+
+  let existingReferencedIds = new Set(
+    (await db.any("SELECT target_id FROM objects_references WHERE source_id = $1", object.id)).map(
+      entry => entry.target_id))
+  for (let referencedId of new Set(referencedIds)) {
+    if (existingReferencedIds.has(referencedId)) {
+      existingReferencedIds.delete(referencedId)
+      referencedIds.delete(referencedId)
     }
-    if (!deepEqual(subTypeIds, object.subTypeIds)) {
-      await db.none("UPDATE objects SET sub_types = $<subTypeIds> WHERE id = $<id>", {
-        id: object.id,
-        subTypeIds,
+  }
+  if (existingReferencedIds.size > 0) {
+    await db.none(
+      "DELETE FROM objects_references WHERE source_id = $<sourceId> AND target_id in ($<targetIds:csv>)",
+      {
+        sourceId: object.id,
+        targetIds: [...existingReferencedIds],
+      },
+    )
+    contentChanged = true
+  }
+  if (referencedIds.size > 0) {
+    for (let referencedId of referencedIds) {
+      await db.none("INSERT INTO objects_references(source_id, target_id) VALUES ($<sourceId>, $<targetId>)", {
+        sourceId: object.id,
+        targetId: referencedId,
       })
-      propertiesChanged = true
-      // await addAction(object.id, "value")  TODO?
     }
+    contentChanged = true
+  }
 
-    // Compute object tags from properties.
-    let tags = null
-    let tagsId = properties[getIdFromSymbolOrFail("tags")]
-    if (tagsId !== undefined) {
-      let tagsValue = await getObjectFromId(tagsId)
-      if (tagsValue.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
-        tags = [tagsValue.value]
-      } else if (tagsValue.schemaId === getIdFromSymbolOrFail("schema:localized-strings-array")) {
-        tags = tagsValue.value
-      }
+  // Compute object subTypeIds from properties.
+  let subTypeIds = null
+  let subTypesId = properties[getIdFromSymbolOrFail("types")]
+  if (subTypesId !== undefined) {
+    let subTypesValue = await getObjectFromId(subTypesId)
+    if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-reference")) {
+      subTypeIds = [subTypesValue.value]
+    } else if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-references-array")) {
+      subTypeIds = subTypesValue.value
     }
-    if (!deepEqual(tags, object.tags)) {
-      await db.none("UPDATE objects SET tags = $<tags:json> WHERE id = $<id>", {
-        id: object.id,
-        tags,
-      })
-      propertiesChanged = true
-      // await addAction(object.id, "value")  TODO?
-    }
+  }
+  if (!deepEqual(subTypeIds, object.subTypeIds)) {
+    await db.none("UPDATE objects SET sub_types = $<subTypeIds> WHERE id = $<id>", {
+      id: object.id,
+      subTypeIds,
+    })
+    contentChanged = true
+    textSearchUpdateNeeded = true
+    // await addAction(object.id, "value")  TODO?
+  }
 
-    if (object.type === "Value") {
-      if (object.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
-        let localizations = {}
-        for (let [keyId, valueId] of Object.entries(object.properties || {})) {
-          if (localizationKeysId.includes(keyId)) {
-            let localizationValue = await getObjectFromId(valueId)
-            if (localizationValue.schemaId === getIdFromSymbolOrFail("schema:string")) {
-              localizations[languageByKeyId[keyId]] = localizationValue.value
-            }
+  // Compute object tags from properties.
+  let tags = null
+  let tagsId = properties[getIdFromSymbolOrFail("tags")]
+  if (tagsId !== undefined) {
+    let tagsValue = await getObjectFromId(tagsId)
+    if (tagsValue.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
+      tags = [tagsValue.value]
+    } else if (tagsValue.schemaId === getIdFromSymbolOrFail("schema:localized-strings-array")) {
+      tags = tagsValue.value
+    }
+  }
+  if (!deepEqual(tags, object.tags)) {
+    await db.none("UPDATE objects SET tags = $<tags:json> WHERE id = $<id>", {
+      id: object.id,
+      tags,
+    })
+    contentChanged = true
+    textSearchUpdateNeeded = true
+    // await addAction(object.id, "value")  TODO?
+  }
+
+  if (object.type === "Value") {
+    if (object.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
+      let localizations = {}
+      for (let [keyId, valueId] of Object.entries(object.properties || {})) {
+        if (localizationKeysId.includes(keyId)) {
+          let localizationValue = await getObjectFromId(valueId)
+          if (localizationValue.schemaId === getIdFromSymbolOrFail("schema:string")) {
+            localizations[languageByKeyId[keyId]] = localizationValue.value
           }
         }
-        if (!deepEqual(localizations, object.value)) {
-          await db.none("UPDATE values SET value = $<localizations:json> WHERE id = $<id>", {
-            id: object.id,
-            localizations,
-          })
-          propertiesChanged = true
-          // await addAction(object.id, "value")  TODO?
-        }
+      }
+      if (!deepEqual(localizations, object.value)) {
+        await db.none("UPDATE values SET value = $<localizations:json> WHERE id = $<id>", {
+          id: object.id,
+          localizations,
+        })
+        contentChanged = true
+        textSearchUpdateNeeded = true
+        // await addAction(object.id, "value")  TODO?
       }
     }
+  }
 
-    if (propertiesChanged) {
-      await generateObjectTextSearch(object)
-    }
-  } else if (action.type === "rating") {
+  if (object.ratingSum !== undefined) {
     // object is a statement (aka a rated object)
     // Compute statement rating.
     let ratingCount = 0
@@ -515,6 +520,12 @@ async function processAction(action) {
           }
         }
       }
+
+      // Propagate rating change to every reference of object.
+      for (let referencedId of referencedIds) {
+        addAction(referencedId, action.type)
+      }
+
       // if (object.type === "Abuse") {
       //   let flaggedEntry = await db.oneOrNone(
       //     `SELECT data FROM statements
@@ -578,17 +589,17 @@ async function processAction(action) {
       //   }
       // }
     }
-  } else {
-    console.warn(`Unexpected action ${action.type} of ${action.createdAt.toISOString()}.`)
-    // Reinsert action.
-    let result = await db.one(
-      `INSERT INTO actions(created_at, object_id, type)
-        VALUES (current_timestamp, $<objectId>, $<type>)
-        RETURNING created_at, id`,
-      action,
-    )
-    action.createdAt = result.created_at
-    action.id = result.id
+  }
+
+  if (textSearchUpdateNeeded) {
+    await generateObjectTextSearch(object)
+  }
+
+  if (contentChanged) {
+    // Propagate rating change to every reference of object.
+    for (let referencedId of referencedIds) {
+      addAction(referencedId, action.type)
+    }
   }
 }
 
