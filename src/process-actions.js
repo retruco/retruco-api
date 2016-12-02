@@ -425,17 +425,22 @@ async function processAction(action) {
 
     if (object.type === "Card") {
       let keyIds = Object.keys(object.properties || {})
-      let ogpToolboxScore = keyIds.length
+      // When there is at least 5 properties, score is multiplied up by two.
+      let ogpToolboxScore = Math.atan(keyIds.length / 5) * 4 / Math.PI
       if (keyIds.includes(getIdFromSymbolOrFail("logo"))
         || keyIds.includes(getIdFromSymbolOrFail("screenshot"))) {
-        ogpToolboxScore *= 10
+        ogpToolboxScore *= 2
       }
-      // if ((object.subTypeIds || []).includes(getIdFromSymbolOrFail("type:software"))) {
+      let referencesCount = (await db.one(
+        "SELECT count(*) AS count FROM objects_references WHERE target_id = $<id>",
+        object,
+      )).count
+      ogpToolboxScore *= referencesCount
+      // if ((object.subTypeIds || []).includes(getIdFromSymbolOrFail("type:software"))) {}
 
-      // }
+      ogpToolboxScore = Math.round(ogpToolboxScore)
       ratingCount += ogpToolboxScore
       ratingSum += ogpToolboxScore
-      console.log(ogpToolboxScore)
     }
 
     if (ratingCount != object.ratingCount || ratingSum != object.ratingSum) {
