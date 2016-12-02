@@ -429,7 +429,7 @@ async function processAction(action) {
       let ogpToolboxScore = Math.atan(keyIds.length / 5) * 4 / Math.PI
       if (keyIds.includes(getIdFromSymbolOrFail("logo"))
         || keyIds.includes(getIdFromSymbolOrFail("screenshot"))) {
-        ogpToolboxScore *= 2
+        ogpToolboxScore *= 10
       }
       let referencesCount = (await db.one(
         "SELECT count(*) AS count FROM objects_references WHERE target_id = $<id>",
