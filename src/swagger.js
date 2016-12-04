@@ -131,7 +131,7 @@ const SPEC = {
             $ref: "#/parameters/showParam",
           },
           {
-            $ref: "#/parameters/tagsNameQueryParam",
+            $ref: "#/parameters/tagsQueryParam",
           },
           {
             $ref: "#/parameters/termQueryParam",
@@ -295,7 +295,7 @@ const SPEC = {
             $ref: "#/parameters/offsetQueryParam",
           },
           {
-            $ref: "#/parameters/tagsNameQueryParam",
+            $ref: "#/parameters/tagsQueryParam",
           },
           {
             $ref: "#/parameters/typesQueryParam",
@@ -317,24 +317,39 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      count: {
-                        minimum: 1,
-                        type: "integer",
+                  type: "object",
+                  properties: {
+                    popularity: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          count: {
+                            minimum: 1,
+                            type: "integer",
+                          },
+                          tagId: {
+                            type: "string",
+                          },
+                        },
+                        required: [
+                          "count",
+                          "tag",
+                        ],
                       },
-                      tag: {
-                        type: "string",
+                      $ref: "#/definitions/DataIdsList",
+                    },
+                    values: {
+                      type: "object",
+                      additionalProperties: {
+                        $ref: "#/definitions/Value",
                       },
                     },
-                    required: [
-                      "count",
-                      "tag",
-                    ],
                   },
-                  $ref: "#/definitions/DataIdsList",
+                  required: [
+                    "popularity",
+                    "values",
+                  ],
                 },
               },
               required: [
@@ -637,7 +652,7 @@ const SPEC = {
             $ref: "#/parameters/showParam",
           },
           {
-            $ref: "#/parameters/tagsNameQueryParam",
+            $ref: "#/parameters/tagsQueryParam",
           },
           {
             $ref: "#/parameters/termQueryParam",
@@ -3088,7 +3103,7 @@ const SPEC = {
       required: true,
       type: "string",
     },
-    tagsNameQueryParam: {
+    tagsQueryParam: {
       // description: "",
       in: "query",
       name: "tag",

@@ -22,10 +22,11 @@
 import assert from "assert"
 import deepEqual from "deep-equal"
 
+import config from "./config"
 import {checkDatabase, db, dbSharedConnectionObject} from "./database"
-import {addAction, addReferences, describe, generateObjectTextSearch, getObjectFromId, getOrNewValue, entryToAction,
-  entryToBallot} from "./model"
-import {getIdFromSymbolOrFail, getValueValueFromSymbol, idBySymbol} from "./symbols"
+import {addAction, addReferences, describe, generateObjectTextSearch, getObjectFromId, getOrNewValue,
+  getSubTypeIdsFromProperties, getTagIdsFromProperties, entryToAction, entryToBallot} from "./model"
+import {getIdFromSymbol, getValueFromSymbol, idBySymbol} from "./symbols"
 
 
 let languageByKeyId = null
@@ -109,11 +110,11 @@ async function handlePropertyChange(objectId, keyId) {
     delete description.rating_count
     description.ratingSum = description.rating_sum
     delete description.rating_sum
-    description.schema = getValueValueFromSymbol("schema:card-reference")
-    description.schemaId = getIdFromSymbolOrFail("schema:card-reference")
+    description.schema = getValueFromSymbol("schema:card-id")
+    description.schemaId = getIdFromSymbol("schema:card-id")
     description.valueId = null
-    description.widget = getValueValueFromSymbol("widget:rated-item-or-set")
-    description.widgetId = getIdFromSymbolOrFail("widget:rated-item-or-set")
+    description.widget = getValueFromSymbol("widget:rated-item-or-set")
+    description.widgetId = getIdFromSymbol("widget:rated-item-or-set")
     return description
   })
   sameKeyDescriptions = sameKeyDescriptions.concat(inverseDescriptions)
@@ -148,12 +149,12 @@ async function handlePropertyChange(objectId, keyId) {
             rating: entry.rating,
             ratingCount: entry.rating_count,
             ratingSum: entry.rating_sum,
-            schema: getValueValueFromSymbol("schema:card-reference"),
-            schemaId: getIdFromSymbolOrFail("schema:card-reference"),
+            schema: getValueFromSymbol("schema:card-id"),
+            schemaId: getIdFromSymbol("schema:card-id"),
             value: entry.value,
             valueId: null,
-            widget: getValueValueFromSymbol("widget:rated-item-or-set"),
-            widgetId: getIdFromSymbolOrFail("widget:rated-item-or-set"),
+            widget: getValueFromSymbol("widget:rated-item-or-set"),
+            widgetId: getIdFromSymbol("widget:rated-item-or-set"),
           })
         }
       }
@@ -166,12 +167,12 @@ async function handlePropertyChange(objectId, keyId) {
             rating: entry.rating,
             ratingCount: entry.rating_count,
             ratingSum: entry.rating_sum,
-            schema: getValueValueFromSymbol("schema:card-reference"),
-            schemaId: getIdFromSymbolOrFail("schema:card-reference"),
+            schema: getValueFromSymbol("schema:card-id"),
+            schemaId: getIdFromSymbol("schema:card-id"),
             value: entry.value,
             valueId: null,
-            widget: getValueValueFromSymbol("widget:rated-item-or-set"),
-            widgetId: getIdFromSymbolOrFail("widget:rated-item-or-set"),
+            widget: getValueFromSymbol("widget:rated-item-or-set"),
+            widgetId: getIdFromSymbol("widget:rated-item-or-set"),
           })
         }
       }
@@ -237,11 +238,11 @@ async function handlePropertyChange(objectId, keyId) {
       // Now that bestDescription is found, lets ensure that it matchs a typed value in database.
       if (bestDescription.valueId === null) {
         if (bestDescription.schemaId === null) {
-          let schema = await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, bestDescription.schema)
+          let schema = await getOrNewValue(getIdFromSymbol("schema:object"), null, bestDescription.schema)
           bestDescription.schemaId = schema.id
         }
         if (bestDescription.wigetId === null && bestDescription.wiget !== null) {
-          let widget = await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, bestDescription.widget)
+          let widget = await getOrNewValue(getIdFromSymbol("schema:object"), null, bestDescription.widget)
           bestDescription.widgetId = widget.id
         }
         let value = await getOrNewValue(bestDescription.schemaId, bestDescription.widgetId, bestDescription.value)
@@ -268,7 +269,7 @@ async function handlePropertyChange(objectId, keyId) {
     await db.none(
       `
         UPDATE objects
-        SET properties = $<properties>
+        SET properties = $<properties:json>
         WHERE id = $<id>
       `,
       object,
@@ -280,6 +281,8 @@ async function handlePropertyChange(objectId, keyId) {
 
 
 async function processAction(action) {
+  // TODO: action.type is not handled. It should be removed.
+
   await db.none("DELETE FROM actions WHERE id = $<id>", action)
   let object = await getObjectFromId(action.objectId)
   if (object === null) return
@@ -302,15 +305,14 @@ async function processAction(action) {
   }
   referencedIds.delete(object.id)  // Remove reference to itself.
 
-  // TODO: action.type is not handled. It should be removed.
-
+  let newReferencedIds = new Set(referencedIds)
   let existingReferencedIds = new Set(
     (await db.any("SELECT target_id FROM objects_references WHERE source_id = $1", object.id)).map(
       entry => entry.target_id))
   for (let referencedId of new Set(referencedIds)) {
     if (existingReferencedIds.has(referencedId)) {
       existingReferencedIds.delete(referencedId)
-      referencedIds.delete(referencedId)
+      newReferencedIds.delete(referencedId)
     }
   }
   if (existingReferencedIds.size > 0) {
@@ -323,8 +325,8 @@ async function processAction(action) {
     )
     contentChanged = true
   }
-  if (referencedIds.size > 0) {
-    for (let referencedId of referencedIds) {
+  if (newReferencedIds.size > 0) {
+    for (let referencedId of newReferencedIds) {
       await db.none("INSERT INTO objects_references(source_id, target_id) VALUES ($<sourceId>, $<targetId>)", {
         sourceId: object.id,
         targetId: referencedId,
@@ -333,17 +335,8 @@ async function processAction(action) {
     contentChanged = true
   }
 
-  // Compute object subTypeIds from properties.
-  let subTypeIds = null
-  let subTypesId = properties[getIdFromSymbolOrFail("types")]
-  if (subTypesId !== undefined) {
-    let subTypesValue = await getObjectFromId(subTypesId)
-    if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-reference")) {
-      subTypeIds = [subTypesValue.value]
-    } else if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-references-array")) {
-      subTypeIds = subTypesValue.value
-    }
-  }
+  // Compute object sub types from properties.
+  let subTypeIds = await getSubTypeIdsFromProperties(properties)
   if (!deepEqual(subTypeIds, object.subTypeIds)) {
     await db.none("UPDATE objects SET sub_types = $<subTypeIds> WHERE id = $<id>", {
       id: object.id,
@@ -354,21 +347,46 @@ async function processAction(action) {
     // await addAction(object.id, "value")  TODO?
   }
 
-  // Compute object tags from properties.
-  let tags = null
-  let tagsId = properties[getIdFromSymbolOrFail("tags")]
-  if (tagsId !== undefined) {
-    let tagsValue = await getObjectFromId(tagsId)
-    if (tagsValue.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
-      tags = [tagsValue.value]
-    } else if (tagsValue.schemaId === getIdFromSymbolOrFail("schema:localized-strings-array")) {
-      tags = tagsValue.value
-    }
+  // Compute object usage tags for OGP toolbox tools.
+  let referencerIds = new Set(
+    (await db.any("SELECT source_id FROM objects_references WHERE target_id = $1", object.id)).map(
+      entry => entry.source_id))
+  let referenceIds = new Set([...referencedIds, ...referencerIds])
+  let usageIds = null
+  if (referenceIds.size > 0) {
+    usageIds = (await db.any(
+      `
+        SELECT DISTINCT unnest(tags) AS tag
+        FROM objects
+        WHERE id in ($1:csv)
+        AND sub_types && $2
+        ORDER BY tag
+      `,
+      [[...referenceIds].sort(), [getIdFromSymbol("use-case")]]
+    )).map(entry => entry.tag)
+    if (usageIds.length === 0) usageIds = null
   }
-  if (!deepEqual(tags, object.tags)) {
-    await db.none("UPDATE objects SET tags = $<tags:json> WHERE id = $<id>", {
+  if (!deepEqual(usageIds, object.usageIds)) {
+    await db.none("UPDATE objects SET usages = $<usageIds> WHERE id = $<id>", {
       id: object.id,
-      tags,
+      usageIds,
+    })
+    contentChanged = true
+    textSearchUpdateNeeded = true
+    // await addAction(object.id, "value")  TODO?
+  }
+
+  // Compute object tags from properties.
+  let tagIds = await getTagIdsFromProperties(properties)
+  // Add usage to tags, to index them.
+  if (usageIds !== null) {
+    if (tagIds === null) tagIds = usageIds
+    else tagIds = [...new Set([...tagIds, ...usageIds])].sort()
+  }
+  if (!deepEqual(tagIds, object.tagIds)) {
+    await db.none("UPDATE objects SET tags = $<tagIds> WHERE id = $<id>", {
+      id: object.id,
+      tagIds,
     })
     contentChanged = true
     textSearchUpdateNeeded = true
@@ -376,20 +394,21 @@ async function processAction(action) {
   }
 
   if (object.type === "Value") {
-    if (object.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
-      let localizations = {}
+    if (object.schemaId === getIdFromSymbol("schema:localized-string")) {
+      // Compute value of a localized-string from its properties.
+      let stringIdByLanguageId = {}
       for (let [keyId, valueId] of Object.entries(object.properties || {})) {
         if (localizationKeysId.includes(keyId)) {
           let localizationValue = await getObjectFromId(valueId)
-          if (localizationValue.schemaId === getIdFromSymbolOrFail("schema:string")) {
-            localizations[languageByKeyId[keyId]] = localizationValue.value
+          if (localizationValue.schemaId === getIdFromSymbol("schema:string")) {
+            stringIdByLanguageId[keyId] = valueId
           }
         }
       }
-      if (!deepEqual(localizations, object.value)) {
-        await db.none("UPDATE values SET value = $<localizations:json> WHERE id = $<id>", {
+      if (!deepEqual(stringIdByLanguageId, object.value)) {
+        await db.none("UPDATE values SET value = $<stringIdByLanguageId:json> WHERE id = $<id>", {
           id: object.id,
-          localizations,
+          stringIdByLanguageId,
         })
         contentChanged = true
         textSearchUpdateNeeded = true
@@ -433,8 +452,8 @@ async function processAction(action) {
       let keyIds = Object.keys(object.properties || {})
       // When there is at least 5 properties, score is multiplied up by two.
       let ogpToolboxScore = Math.atan(keyIds.length / 5) * 4 / Math.PI
-      if (keyIds.includes(getIdFromSymbolOrFail("logo"))
-        || keyIds.includes(getIdFromSymbolOrFail("screenshot"))) {
+      if (keyIds.includes(getIdFromSymbol("logo"))
+        || keyIds.includes(getIdFromSymbol("screenshot"))) {
         ogpToolboxScore *= 10
       }
       let referencesCount = (await db.one(
@@ -442,7 +461,7 @@ async function processAction(action) {
         object,
       )).count
       ogpToolboxScore *= Math.max(referencesCount, 0.5)
-      // if ((object.subTypeIds || []).includes(getIdFromSymbolOrFail("type:software"))) {}
+      // if ((object.subTypeIds || []).includes(getIdFromSymbol("software"))) {}
 
       ogpToolboxScore = Math.round(ogpToolboxScore)
       ratingCount += ogpToolboxScore
@@ -606,7 +625,7 @@ async function processAction(action) {
 
 async function processActions () {
   languageByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
-    if (symbol.startsWith("localization.")) d[id] = symbol.slice("localization.".length)
+    if (config.languages.includes(symbol)) d[id] = symbol
     return d
   }, {})
   localizationKeysId = Array.from(Object.keys(languageByKeyId))

@@ -23,7 +23,7 @@ import assert from "assert"
 
 import config from "./config"
 import {db} from "./database"
-import {getIdFromIdOrSymbol, getIdFromSymbolOrFail, getSymbolOrId, idBySymbol} from "./symbols"
+import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol, idBySymbol} from "./symbols"
 
 
 export const languageConfigurationNameByCode = {
@@ -62,6 +62,8 @@ export async function addAction(objectId, type) {
 export function addReferences(referencedIds, schema, value) {
   if (schema.$ref === "/schemas/bijective-card-reference") {
     referencedIds.add(value.targetId)
+  } else if (["/schemas/card-id", "/schemas/value-id"].includes(schema.$ref)) {
+    referencedIds.add(value)
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       for (let [index, itemSchema] of schema.items.entries()) {
@@ -72,45 +74,67 @@ export function addReferences(referencedIds, schema, value) {
         addReferences(referencedIds, schema.items, itemValue)
       }
     }
-  } else if (["/schemas/card-reference", "/schemas/type-reference"].includes(schema.$ref)) {
-    referencedIds.add(value)
   }
 }
 
 
-export async function convertJsonToFieldValue(schema, widget, value) {
+export async function convertValidJsonToTypedValue(schema, widget, value,
+  {cache = null, inactiveStatementIds = null, userId = null} = {}) {
   // Convert symbols to IDs, etc.
   let warning = null
-  if (schema.$ref === "/schemas/type-reference") {
-    let subTypeId = getIdFromIdOrSymbol(value)
-    if (!subTypeId || !(await db.one("SELECT EXISTS (SELECT 1 FROM types WHERE id = $1)", subTypeId)).exists) {
-      warning = `Unknown referenced type: "${value}".`
-      schema = {type: "string"}
-      // TODO: Change widget.
-    } else {
-      value = subTypeId
-    }
-  } else if (schema.type === "array" && schema.items.$ref === "/schemas/type-reference") {
-    let items = []
-    for (let [index, item] of value.entries()) {
-      let subTypeId = getIdFromIdOrSymbol(item)
-      if (!subTypeId || !(await db.one("SELECT EXISTS (SELECT 1 FROM types WHERE id = $1)", subTypeId)).exists) {
-        if (warning === null) warning = {}
-        warning[String(index)] = `Unknown referenced type: "${item}".`
-
-        schema = Object.assign({}, schema)
-        if (Array.isArray(schema.items)) schema.items = [...schema.items]
-        else schema.items = value.map(() => Object.assign({}, schema.items))
-        schema.items[index] = {type: "string"}
-        // TODO: Change widget.
-      } else {
-        item = subTypeId
+  if (schema.$ref === "/schemas/card-id") {
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) return [null, `Unknown ID or symbol: ${value}`]
+    if (object.type !== "Card") return [null, `Object with ID or symbol "${value}" is not a card.`]
+    value = id
+  } else if (schema.$ref === "/schemas/localized-string") {
+    let stringIdByLanguageId = {}
+    let warnings = {}
+    let widgetId = widget === null ? null :
+      (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
+        {cache, inactiveStatementIds, userId})).id
+    for (let [language, string] of Object.entries(value)) {
+      let languageId = idBySymbol[language]
+      if (languageId === undefined) {
+        warnings[language] = `Unknown language: ${language}`
+        continue
       }
-      items.push(item)
+      let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string,
+        {cache, inactiveStatementIds, userId})).id
+      stringIdByLanguageId[languageId] = stringId
     }
-    value = items
+    value = stringIdByLanguageId
+    if (Object.keys(warnings).length > 0) warning = warnings
+    if (Object.keys(value).length === 0) return [null, warning]
+  } else if (schema.$ref === "/schemas/value-id") {
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) return [null, `Unknown ID or symbol: ${value}`]
+    if (object.type !== "Value") return [null, `Object with ID or symbol "${value}" is not a value.`]
+    return [object, null]
+  } else if (schema.type === "array") {
+    let itemIds = []
+    let warnings = {}
+    for (let [index, item] of value.entries()) {
+      let schemaItem = Array.isArray(schema.items) ? schema.items[index] : schema.items
+      let [typedItem, itemWarning] = (await convertValidJsonToTypedValue(schemaItem, widget, item,
+        {inactiveStatementIds, userId}))
+      if (typedItem === null) continue
+      itemIds.push(typedItem.id)
+      if (itemWarning !== null) warnings[String(index)] = itemWarning
+    }
+    schema = getValueFromSymbol("schema:value-ids-array")
+    value = itemIds
+    if (Object.keys(warnings).length > 0) warning = warnings
   }
-  return [schema, widget, value, warning]
+
+  let schemaId = (await getOrNewValue(getIdFromSymbol("schema:object"), null, schema,
+      {cache, inactiveStatementIds, userId})).id
+  let widgetId = widget === null ? null : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
+    {cache, inactiveStatementIds, userId})).id
+  let typedValue = await getOrNewValue(schemaId, widgetId, value, {cache, inactiveStatementIds, userId})
+  return [typedValue, warning]
 }
 
 
@@ -130,7 +154,9 @@ export async function describe(object) {
   } else if (type === "User") {
     return `user ${object.name} <${object.email}>`
   } else if (type === "Value") {
-    return `value ${JSON.stringify(object.value)}`
+    let schema = await getObjectFromId(object.schemaId)
+    let valueJson = await toSchemaValueJson(schema, object.value)
+    return `value ${JSON.stringify(valueJson)}`
   } else {
     return `object of unknown type ${type}`
   }
@@ -186,8 +212,9 @@ export function entryToObject(entry) {
     properties: entry.properties,
     subTypeIds: entry.sub_types,
     symbol: entry.symbol,  // Given only when JOIN with table symbols
-    tags: entry.tags,
+    tagIds: entry.tags,
     type: entry.type,
+    usageIds: entry.usages,
   }
 }
 
@@ -236,7 +263,7 @@ export async function generateObjectTextSearch(object) {
     let valueIdByKeyId = object.properties
     if (valueIdByKeyId) {
       for (let keySymbol of ["name", "title"]) {
-        let valueId = valueIdByKeyId[getIdFromSymbolOrFail(keySymbol)]
+        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
         if (valueId !== undefined) {
           let value = await getObjectFromId(valueId)
           assert.ok(value, `Missing value at ID ${valueId}`)
@@ -245,7 +272,7 @@ export async function generateObjectTextSearch(object) {
         }
       }
       for (let keySymbol of ["twitter-name"]) {
-        let valueId = valueIdByKeyId[getIdFromSymbolOrFail(keySymbol)]
+        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
         if (valueId !== undefined) {
           let value = await getObjectFromId(valueId)
           assert.ok(value, `Missing value at ID ${valueId}`)
@@ -255,16 +282,19 @@ export async function generateObjectTextSearch(object) {
       }
       autocomplete = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
       for (let keySymbol of ["name", "title", "twitter-name"]) {
-        let valueId = valueIdByKeyId[getIdFromSymbolOrFail(keySymbol)]
+        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
         if (valueId === undefined) continue
         let value = await getObjectFromId(valueId)
         assert.ok(value, `Missing value at ID ${valueId}`)
-        if (value.schemaId === getIdFromSymbolOrFail("schema:localized-string")) {
-          for (let [language, text] of Object.entries(value.value)) {
-            if (!text) continue
+        if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
+          for (let [languageId, textId] of Object.entries(value.value)) {
+            let language = getIdOrSymbolFromId(languageId)
+            assert.notStrictEqual(languageId, language)
+            let typedText = await getObjectFromId(textId)
+            if (typedText === null) continue
             let searchableTexts = searchableTextsByLanguage[language]
             if (searchableTexts === undefined) searchableTextsByLanguage[language] = searchableTexts = []
-            searchableTexts.push(text)
+            searchableTexts.push(typedText.value)
           }
         }
       }
@@ -343,6 +373,7 @@ export async function generateObjectTextSearch(object) {
 
 
 export async function getObjectFromId(id) {
+  assert.ok(id)
   let entry = await db.oneOrNone("SELECT * FROM objects WHERE id = $1", id)
   if (entry === null) return null
   if (entry.type === "Card") {
@@ -429,15 +460,21 @@ export async function getObjectFromId(id) {
 }
 
 
-export async function getOrNewLocalizedString(typedLanguage, string, {inactiveStatementIds = null, properties = null,
-  userId = null} = {}) {
+export async function getOrNewLocalizedString(language, string, widgetIdOrSymbolFromId,
+  {cache = null, inactiveStatementIds = null, properties = null, userId = null} = {}) {
+  assert.strictEqual(typeof string, "string")
+  let widgetId = getIdFromIdOrSymbol(widgetIdOrSymbolFromId)
+  let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string,
+    {cache, inactiveStatementIds, userId})).id
   let localizedString = {
-    [typedLanguage.symbol.split(".")[1]]: string,
+    [getIdFromSymbol(language)]: stringId,
   }
   return await getOrNewValue(
-    getIdFromSymbolOrFail("schema:localized-string"),
-    getIdFromSymbolOrFail("widget:input-text"),
-    localizedString, {
+    getIdFromSymbol("schema:localized-string"),
+    widgetId,
+    localizedString,
+    {
+      cache,
       inactiveStatementIds,
       properties,
       userId,
@@ -473,7 +510,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
       `
         INSERT INTO objects(created_at, properties, type)
         VALUES (current_timestamp, $<properties:json>, 'Property')
-        RETURNING created_at, id, properties, sub_types, tags, type
+        RETURNING created_at, id, properties, sub_types, tags, type, usages
       `,
       {
         properties,  // Note: Properties are typically set for optimistic optimization.
@@ -486,8 +523,9 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
       objectId,
       properties,
       subTypeIds: result.sub_types,
-      tags: result.tags,
+      tagIds: result.tags,
       type: result.type,
+      usageIds: result.usages,
       valueId,
     }
     result = await db.one(
@@ -529,22 +567,25 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
 }
 
 
-export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, properties = null,
-  userId = null} = {}) {
+export async function getOrNewValue(schemaId, widgetId, value, {cache = null, inactiveStatementIds = null,
+  properties = null, userId = null} = {}) {
   assert(typeof schemaId === "string")
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
 
+  let cacheKey
+  if (cache !== null) {
+    cacheKey =  JSON.stringify({schemaId, type: "Value", value, widgetId})
+    let cacheValue = cache[cacheKey]
+    if (cacheValue !== undefined) return cacheValue
+  }
+
   // Note: getOrNewValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
-  // possible to use function getIdFromSymbolOrFail("schema:localized-string").
+  // possible to use function getIdFromSymbol("schema:localized-string").
   let localizedStringSchemaId = idBySymbol["schema:localized-string"]
   if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
-    // Getting and rating a localized string, requires to get and rate each of its strings.
+    // A localized string contains its value in its properties
     if (!properties) properties = {}
-    for (let [language, string] of Object.entries(value)) {
-      let typedString = await getOrNewValue(getIdFromSymbolOrFail("schema:string"), null, string,
-        {inactiveStatementIds, userId})
-      properties[getIdFromSymbolOrFail(`localization.${language}`)] = typedString.id
-    }
+    Object.assign(properties, value)
   }
 
   let typedValue = await getValue(schemaId, widgetId, value)
@@ -553,7 +594,7 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
       `
         INSERT INTO objects(created_at, properties, type)
         VALUES (current_timestamp, $<properties:json>, 'Value')
-        RETURNING created_at, id, properties, sub_types, tags, type
+        RETURNING created_at, id, properties, sub_types, tags, type, usages
       `,
       {
         properties,  // Note: Properties are typically set for optimistic optimization.
@@ -565,8 +606,9 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
       properties,
       schemaId,
       subTypeIds: result.sub_types,
-      tags: result.tags,
+      tagIds: result.tags,
       type: result.type,
+      usageIds: result.usages,
       value,
       widgetId,
     }
@@ -588,18 +630,72 @@ export async function getOrNewValue(schemaId, widgetId, value, {inactiveStatemen
         userId})
     }
   }
+
+  if (cache !== null) {
+    cache[cacheKey] = typedValue
+  }
   return typedValue
+}
+
+
+export async function getSubTypeIdsFromProperties(properties) {
+  let subTypeIds = null
+  if (properties) {
+    let subTypesId = properties[getIdFromSymbol("types")]
+    if (subTypesId !== undefined) {
+      let subTypesTypedValue = await getObjectFromId(subTypesId)
+      if (subTypesTypedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
+        subTypeIds = [subTypesId]
+      } else if (subTypesTypedValue.schemaId === getIdFromSymbol("schema:value-ids-array")) {
+        subTypeIds = new Set()
+        for (let itemId of subTypesTypedValue.value) {
+          let typedItem = await getObjectFromId(itemId)
+          if (typedItem.schemaId === getIdFromSymbol("schema:localized-string")) {
+            subTypeIds.add(itemId)
+          }
+        }
+        subTypeIds = [...subTypeIds].sort()
+        if (subTypeIds.length === 0) subTypeIds = null
+      }
+    }
+  }
+  return subTypeIds
+}
+
+
+export async function getTagIdsFromProperties(properties) {
+  let tagIds = null
+  if (properties) {
+    let tagsId = properties[getIdFromSymbol("tags")]
+    if (tagsId !== undefined) {
+      let tagsTypedValue = await getObjectFromId(tagsId)
+      if (tagsTypedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
+        tagIds = [tagsId]
+      } else if (tagsTypedValue.schemaId === getIdFromSymbol("schema:value-ids-array")) {
+        tagIds = new Set()
+        for (let itemId of tagsTypedValue.value) {
+          let typedItem = await getObjectFromId(itemId)
+          if (typedItem.schemaId === getIdFromSymbol("schema:localized-string")) {
+            tagIds.add(itemId)
+          }
+        }
+        tagIds = [...tagIds].sort()
+        if (tagIds.length === 0) tagIds = null
+      }
+    }
+  }
+  return tagIds
 }
 
 
 export async function getValue(schemaId, widgetId, value) {
   // Note: getValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
-  // possible to use function getIdFromSymbolOrFail("schema:localized-string").
+  // possible to use function getIdFromSymbol("schema:localized-string").
   let localizedStringSchemaId = idBySymbol["schema:localized-string"]
   let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId ?
     "value @> $<value:json>" :
     "value = $<value:json>"
-  let widgetClause = widgetId === null || widgetId === undefined ? "widget_id IS NULL" : "widget_id = $<widgetId>"
+  // Note: The ORDER BY objects.id LIMIT 1 is a tentative to reduce the number of used duplicate values.
   return entryToValue(await db.oneOrNone(
     `
       SELECT objects.*, values.*, symbol
@@ -607,8 +703,9 @@ export async function getValue(schemaId, widgetId, value) {
       INNER JOIN values ON objects.id = values.id
       LEFT JOIN symbols ON values.id = symbols.id
       WHERE schema_id = $<schemaId>
-      AND ${widgetClause}
       AND ${valueClause}
+      ORDER BY objects.id
+      LIMIT 1
     `,
     {
       schemaId,
@@ -623,28 +720,21 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
 
   // Compute object subTypeIds from properties for optimistic optimization.
-  let subTypeIds = null
-  if (properties) {
-    let subTypesId = properties[getIdFromSymbolOrFail("types")]
-    if (subTypesId !== undefined) {
-      let subTypesValue = await getObjectFromId(subTypesId)
-      if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-reference")) {
-        subTypeIds = [subTypesValue.value]
-      } else if (subTypesValue.schemaId === getIdFromSymbolOrFail("schema:type-references-array")) {
-        subTypeIds = subTypesValue.value
-      }
-    }
-  }
+  let subTypeIds = await getSubTypeIdsFromProperties(properties)
+
+  // Compute object tagIds from properties for optimistic optimization.
+  let tagIds = await getTagIdsFromProperties(properties)
 
   let result = await db.one(
     `
-      INSERT INTO objects(created_at, properties, sub_types, type)
-      VALUES (current_timestamp, $<properties:json>, $<subTypeIds>, 'Card')
-      RETURNING created_at, id, tags, type
+      INSERT INTO objects(created_at, properties, sub_types, tags, type)
+      VALUES (current_timestamp, $<properties:json>, $<subTypeIds>, $<tagIds>, 'Card')
+      RETURNING created_at, id, type, usages
     `,
     {
       properties,  // Note: Properties are typically set for optimistic optimization.
       subTypeIds,
+      tagIds,
     },
   )
   let card = {
@@ -652,8 +742,9 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
     id: result.id,
     properties,
     subTypeIds,
-    tags: result.tags,
+    tagIds,
     type: result.type,
+    usageIds: result.usages,
   }
   result = await db.one(
     `
@@ -888,16 +979,16 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
   const cachedObject = objectsCache[object.id]
   if (cachedObject) object = cachedObject
 
-  const objectJsonBySymbolOrId = {
+  const objectJsonByIdOrSymbol = {
     Card: data.cards,
     Concept: data.concepts,
     Property: data.properties,
     User: data.users,
     Value: data.values,
   }[object.type]
-  assert.notStrictEqual(objectJsonBySymbolOrId, undefined)
+  assert.notStrictEqual(objectJsonByIdOrSymbol, undefined)
   const objectJson = await toObjectJson(object)
-  objectJsonBySymbolOrId[object.symbol || object.id] = objectJson
+  objectJsonByIdOrSymbol[object.symbol || object.id] = objectJson
 
   if (showBallots && user) {
     let ballotJsonById = data.ballots
@@ -919,6 +1010,7 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
         FROM objects
         INNER JOIN objects_references ON id = source_id
         WHERE target_id = $<id>
+        AND type = 'Card'
       `,
       object,
     )
@@ -928,6 +1020,7 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
         FROM objects
         INNER JOIN objects_references ON id = target_id
         WHERE source_id = $<id>
+        AND type = 'Card'
       `,
       object,
     )
@@ -949,7 +1042,7 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
     if (Object.keys(references).length > 0) {
       objectJson.references = {}
       for (let [subTypeId, ids] of Object.entries(references)) {
-        objectJson.references[getSymbolOrId(subTypeId)] = [...ids].sort().map(getSymbolOrId)
+        objectJson.references[getIdOrSymbolFromId(subTypeId)] = [...ids].sort().map(getIdOrSymbolFromId)
       }
     }
   }
@@ -960,6 +1053,24 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
         showValues})
       await toDataJson1(object.valueId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
         showValues})
+    } else if (object.type == "Value") {
+      if (object.schemaId === getIdFromSymbol("schema:bijective-card-reference")) {
+        await toDataJson1(object.value.reverseKeyId, data, objectsCache, user, {depth: depth - 1, showBallots,
+          showProperties, showValues})
+        await toDataJson1(object.value.targetId, data, objectsCache, user, {depth: depth - 1, showBallots,
+          showProperties, showValues})
+      } else if (object.schemaId === getIdFromSymbol("schema:card-id")) {
+        await toDataJson1(object.value, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+          showValues})
+      } else if ([
+          getIdFromSymbol("schema:card-ids-array"),
+          getIdFromSymbol("schema:value-ids-array"),
+        ].includes(object.schemaId)) {
+        for (let itemId of (object.value)) {
+          await toDataJson1(itemId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+            showValues})
+        }
+      }
     }
 
     for (let [keyId, valueId] of Object.entries(object.properties || {})) {
@@ -973,6 +1084,16 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
       await toDataJson1(subTypeId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
         showValues})
     }
+
+    for (let tagId of (object.tagIds || [])) {
+      await toDataJson1(tagId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
+    }
+
+    for (let usageId of (object.usageIds || [])) {
+      await toDataJson1(usageId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
+    }
   }
 }
 
@@ -980,11 +1101,19 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
 export async function toSchemaValueJson(schema, value) {
   if (schema.$ref === "/schemas/bijective-card-reference") {
     return {
-      reverseKeyId: getSymbolOrId(value.reverseKeyId),
-      targetId: getSymbolOrId(value.targetId),
+      reverseKeyId: getIdOrSymbolFromId(value.reverseKeyId),
+      targetId: getIdOrSymbolFromId(value.targetId),
     }
-  } else if (["/schemas/card-reference", "/schemas/type-reference"].includes(schema.$ref)) {
-    return getSymbolOrId(value)
+  } else if (schema.$ref === "/schemas/card-id") {
+    return getIdOrSymbolFromId(value)
+  } else if (schema.$ref === "/schemas/localized-string") {
+    let stringByLanguage = {}
+    for (let [languageId, stringId] of Object.entries(value)) {
+      let language = getIdOrSymbolFromId(languageId)
+      let typedString = await getObjectFromId(stringId)
+      stringByLanguage[language] = typedString.value
+    }
+    return stringByLanguage
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       let valueJson = []
@@ -1011,30 +1140,42 @@ export async function toObjectJson(object, {showApiKey = false, showEmail = fals
   if (objectJson.properties) {
     let properties = objectJson.properties = Object.assign({}, objectJson.properties)
     for (let [keyId, valueId] of Object.entries(properties)) {
-      let keySymbol = getSymbolOrId(keyId)
-      properties[keySymbol] = getSymbolOrId(valueId)
+      let keySymbol = getIdOrSymbolFromId(keyId)
+      properties[keySymbol] = getIdOrSymbolFromId(valueId)
       if (keySymbol !== keyId) delete properties[keyId]
     }
   }
   delete objectJson.propertyByKeyId
   if (objectJson.subTypeIds) {
-    objectJson.subTypeIds = object.subTypeIds.map(getSymbolOrId)
+    objectJson.subTypeIds = object.subTypeIds.map(getIdOrSymbolFromId)
+  }
+  if (objectJson.usageIds) {
+    objectJson.usageIds = object.usageIds.map(getIdOrSymbolFromId)
+  }
+  if (objectJson.tagIds) {
+    let usageIds = objectJson.usageIds || []
+    // Remove usage tags from tags. Usage tags are merged with tags for indexation, but they should not be exported to
+    // UI.
+    let tagIds = object.tagIds.map(getIdOrSymbolFromId).filter(tagId => !usageIds.includes(tagId))
+    if (tagIds.length > 0) {
+      objectJson.tagIds = tagIds
+    }
   }
 
   if (object.type === "Concept") {
-    objectJson.valueId = getSymbolOrId(objectJson.valueId)
+    objectJson.valueId = getIdOrSymbolFromId(objectJson.valueId)
   } else if (object.type === "Property") {
-    objectJson.objectId = getSymbolOrId(objectJson.objectId)
-    objectJson.keyId = getSymbolOrId(objectJson.keyId)
-    objectJson.valueId = getSymbolOrId(objectJson.valueId)
+    objectJson.objectId = getIdOrSymbolFromId(objectJson.objectId)
+    objectJson.keyId = getIdOrSymbolFromId(objectJson.keyId)
+    objectJson.valueId = getIdOrSymbolFromId(objectJson.valueId)
   } else if (object.type === "User") {
     if (!showApiKey) delete objectJson.apiKey
     if (!showEmail) delete objectJson.email
     delete objectJson.passwordDigest
     delete objectJson.salt
   } else if (object.type === "Value") {
-    objectJson.schemaId = getSymbolOrId(objectJson.schemaId)
-    objectJson.widgetId = getSymbolOrId(objectJson.widgetId)
+    objectJson.schemaId = getIdOrSymbolFromId(objectJson.schemaId)
+    objectJson.widgetId = getIdOrSymbolFromId(objectJson.widgetId)
     let schema = (await getObjectFromId(object.schemaId)).value
     objectJson.value = await toSchemaValueJson(schema, objectJson.value)
   }

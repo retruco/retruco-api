@@ -36,7 +36,7 @@ export const schemaByPath = {
       "targetId",
     ],
   },
-  "/schemas/card-reference": {
+  "/schemas/card-id": {
     description: "JSON Schema for a card reference (ID or symbol)",
     type: "string",
   },
@@ -49,8 +49,8 @@ export const schemaByPath = {
       },
     },
   },
-  "/schemas/type-reference": {
-    description: "JSON Schema for a type reference (ID or symbol)",
+  "/schemas/value-id": {
+    description: "JSON Schema for a value reference (ID or symbol)",
     type: "string",
   },
 }

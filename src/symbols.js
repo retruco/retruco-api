@@ -112,12 +112,6 @@ export const symbolizedTypedValues = [
 
   // More complex Schemas
 
-  // {
-  //   symbol: "schema:bijective-card-reference",
-  //   schemaSymbol: "schema:object",
-  //   value: clean(schemaByPath["/schemas/bijective-card-reference"]),
-  //   widgetSymbol: null,
-  // },
   {
     symbol: "schema:bijective-card-reference",
     schemaSymbol: "schema:object",
@@ -126,7 +120,7 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
-  {
+  { // Import only symbol. Not used internally.
     symbol: "schema:bijective-card-references-array",
     schemaSymbol: "schema:object",
     value: {
@@ -137,37 +131,25 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
-  // {
-  //   symbol: "schema:card-reference",
-  //   schemaSymbol: "schema:object",
-  //   value: clean(schemaByPath["/schemas/card-reference"]),
-  //   widgetSymbol: null,
-  // },
   {
-    symbol: "schema:card-reference",
+    symbol: "schema:card-id",
     schemaSymbol: "schema:object",
     value: {
-      $ref: "/schemas/card-reference",
+      $ref: "/schemas/card-id",
     },
     widgetSymbol: null,
   },
   {
-    symbol: "schema:card-references-array",
+    symbol: "schema:card-ids-array",
     schemaSymbol: "schema:object",
     value: {
       type: "array",
       items: {
-        $ref: "/schemas/card-reference",
+        $ref: "/schemas/card-id",
       },
     },
     widgetSymbol: null,
   },
-  // {
-  //   symbol: "schema:localized-string",
-  //   schemaSymbol: "schema:object",
-  //   value: clean(schemaByPath["/schemas/localized-string"]),
-  //   widgetSymbol: null,
-  // },
   {
     symbol: "schema:localized-string",
     schemaSymbol: "schema:object",
@@ -176,7 +158,7 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
-  {
+  { // Import only symbol. Not used internally.
     symbol: "schema:localized-strings-array",
     schemaSymbol: "schema:object",
     value: {
@@ -188,20 +170,12 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
-    symbol: "schema:type-reference",
-    schemaSymbol: "schema:object",
-    value: {
-      $ref: "/schemas/type-reference",
-    },
-    widgetSymbol: null,
-  },
-  {
-    symbol: "schema:type-references-array",
+    symbol: "schema:value-ids-array",
     schemaSymbol: "schema:object",
     value: {
       type: "array",
       items: {
-        $ref: "/schemas/type-reference",
+        $ref: "/schemas/value-id",
       },
     },
     widgetSymbol: null,
@@ -289,8 +263,8 @@ export const symbolizedTypedValues = [
 
   // Keys of properties
 
-  { // localization.en must be first value of type "schema:localized-string".
-    symbol: "localization.en",
+  { // localization "en" must be first value of type "schema:localized-string".
+    symbol: "en",
     schemaSymbol: "schema:localized-string",
     value: {
       en: "English Localization",
@@ -300,17 +274,17 @@ export const symbolizedTypedValues = [
       ["schema:string", ["widget:input-text", "widget:textarea"]],
     ],
   },
-  {
-    symbol: "cons",  // pros & cons
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Cons",  // Against
-    },
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:localized-strings-array", ["widget:rated-item-or-set"]],
-    ],
-  },
+  // {
+  //   symbol: "cons",  // pros & cons
+  //   schemaSymbol: "schema:localized-string",
+  //   value: {
+  //     en: "Cons",  // Against
+  //   },
+  //   widgetSymbol: "widget:input-text",
+  //   schemasWidgetsOrder: [
+  //     ["schema:concept-ids-array", ["widget:rated-item-or-set"]],
+  //   ],
+  // },
   {
     symbol: "description",
     schemaSymbol: "schema:localized-string",
@@ -320,6 +294,28 @@ export const symbolizedTypedValues = [
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
       ["schema:localized-string", ["widget:textarea", "widget:input-text"]],
+    ],
+  },
+  {
+    symbol: "es",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Spanish Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "fr",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "French Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
     ],
   },
   {
@@ -334,25 +330,14 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "localization.es",
+    symbol: "location",
     schemaSymbol: "schema:localized-string",
     value: {
-      en: "Spanish Localization",
+      en: "Location",
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
-  },
-  {
-    symbol: "localization.fr",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "French Localization",
-    },
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
+      ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
     ],
   },
   {
@@ -377,17 +362,17 @@ export const symbolizedTypedValues = [
       ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
     ],
   },
-  {
-    symbol: "pros",  // pros & cons
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Pros",  // For
-    },
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:localized-strings-array", ["widget:rated-item-or-set"]],
-    ],
-  },
+  // {
+  //   symbol: "pros",  // pros & cons
+  //   schemaSymbol: "schema:localized-string",
+  //   value: {
+  //     en: "Pros",  // For
+  //   },
+  //   widgetSymbol: "widget:input-text",
+  //   schemasWidgetsOrder: [
+  //     ["schema:concept-ids-array", ["widget:rated-item-or-set"]],
+  //   ],
+  // },
   {
     symbol: "screenshot",
     schemaSymbol: "schema:localized-string",
@@ -407,7 +392,7 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["schema:localized-strings-array", ["widget:rated-item-or-set"]],
+      ["schema:value-ids-array", ["widget:rated-item-or-set"]],
     ],
   },
   {
@@ -440,7 +425,7 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
-      ["schema:type-references-array", ["widget:rated-item-or-set"]],
+      ["schema:value-ids-array", ["widget:rated-item-or-set"]],
     ],
   },
   {
@@ -480,7 +465,7 @@ export const symbolizedTypedValues = [
   // OGP Toolbox specific types
 
   {
-    symbol: "type:platform",
+    symbol: "platform",
     schemaSymbol: "schema:localized-string",
     value: {
       en: "Platform",
@@ -497,7 +482,7 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "type:software",
+    symbol: "software",
     schemaSymbol: "schema:localized-string",
     value: {
       en: "Software",
@@ -515,7 +500,7 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "type:organization",
+    symbol: "organization",
     schemaSymbol: "schema:localized-string",
     value: {
       en: "Organization",
@@ -532,7 +517,7 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "type:use-case",
+    symbol: "use-case",
     schemaSymbol: "schema:localized-string",
     value: {
       en: "Use Case",
@@ -557,7 +542,7 @@ export const symbols = [
 
 export const symbolById = {}
 
-const valueValueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
+const valueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
   d[typedValue.symbol] = typedValue.value
   return d
 }, {})
@@ -574,27 +559,27 @@ const valueValueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
 
 export function getIdFromIdOrSymbol(idOrSymbol) {
   if (idOrSymbol === null) return null
-  if (isNaN(parseInt(idOrSymbol))) return idBySymbol[idOrSymbol]
+  if (isNaN(parseInt(idOrSymbol))) return getIdFromSymbol(idOrSymbol)
   return idOrSymbol
 }
 
 
-export function getIdFromSymbolOrFail(symbol) {
+export function getIdFromSymbol(symbol) {
   if (symbol === null) return null
   let valueId = idBySymbol[symbol]
-  if (valueId === undefined) throw `Unknown symbol for getIdFromSymbolOrFail: ${symbol}`
+  if (valueId === undefined) throw `Unknown symbol for getIdFromSymbol: ${symbol}`
   return valueId
 }
 
 
-export function getSymbolOrId(id) {
+export function getIdOrSymbolFromId(id) {
   if (id === null) return null
   return symbolById[id] || id
 }
 
-export function getValueValueFromSymbol(symbol) {
+export function getValueFromSymbol(symbol) {
   if (symbol === null) return null
-  let value = valueValueBySymbol[symbol]
-  if (value === undefined) throw `Unknown symbol for getValueValueFromSymbol: ${symbol}`
+  let value = valueBySymbol[symbol]
+  if (value === undefined) throw `Unknown symbol for getValueFromSymbol: ${symbol}`
   return value
 }

@@ -23,7 +23,7 @@ import assert from "assert"
 
 import {db, entryToStatement, versionNumber} from "./database"
 import {entryToValue, generateObjectTextSearch, getOrNewProperty, getValue, types} from "./model"
-import {getIdFromSymbolOrFail, symbolizedTypedValues, idBySymbol, symbolById} from "./symbols"
+import {getIdFromSymbol, symbolizedTypedValues, idBySymbol, symbolById} from "./symbols"
 
 
 async function configureDatabase() {
@@ -94,6 +94,14 @@ async function configureDatabase() {
     await db.none("DROP INDEX IF EXISTS users_email_idx")
     await db.none("DROP INDEX IF EXISTS users_url_name_idx")
   }
+  if (version.number < 17) {
+    await db.none("ALTER TABLE objects DROP COLUMN IF EXISTS tags")
+    await db.none("ALTER TABLE objects ADD COLUMN IF NOT EXISTS tags text[]")
+    await db.none("ALTER TABLE objects ADD COLUMN IF NOT EXISTS usages text[]")
+  }
+  if (version.number < 18) {
+    await db.none("DROP INDEX IF EXISTS values_schema_id_widget_id_value_idx")
+  }
 
   // Objects
 
@@ -118,8 +126,9 @@ async function configureDatabase() {
       id bigserial NOT NULL PRIMARY KEY,
       properties jsonb,
       sub_types text[],
-      tags jsonb,
-      type object_type NOT NULL
+      tags text[],
+      type object_type NOT NULL,
+      usages text[]
     )
   `)
   await db.none("CREATE INDEX IF NOT EXISTS objects_created_at_idx ON objects(created_at)")
@@ -131,7 +140,7 @@ async function configureDatabase() {
   await db.none(`
     CREATE INDEX IF NOT EXISTS objects_tags_idx
     ON objects
-    USING GIN (tags jsonb_path_ops)
+    USING GIN (tags)
   `)
 
   // Table: objects_references
@@ -201,8 +210,8 @@ async function configureDatabase() {
     )
   `)
   await db.none(`
-    CREATE INDEX IF NOT EXISTS values_schema_id_widget_id_value_idx
-    ON values(schema_id, widget_id, value)
+    CREATE INDEX IF NOT EXISTS values_schema_id_value_idx
+    ON values(schema_id, value)
   `)
   await db.none(`
     CREATE INDEX IF NOT EXISTS values_value_idx
@@ -527,48 +536,69 @@ async function configureSymbols() {
   symbolById[typedValue.id] = symbol
 
   for (let {keysOrder, schemaSymbol, schemasWidgetsOrder, symbol, value, widgetSymbol} of symbolizedTypedValues) {
-    let schemaId = getIdFromSymbolOrFail(schemaSymbol)
-    let widgetId = getIdFromSymbolOrFail(widgetSymbol)
-    let widgetClause = widgetId === null ? "widget_id IS NULL" : "widget_id = $<widgetId>"
+    let initialValue = schemaSymbol === "schema:localized-string" ? "TO BE REPLACED LATER" : value
+
+    let schemaId = getIdFromSymbol(schemaSymbol)
+    let widgetId = getIdFromSymbol(widgetSymbol)
     let typedValue = entryToValue(await db.oneOrNone(
       `
         SELECT * FROM objects
         INNER JOIN values ON objects.id = values.id
         INNER JOIN symbols ON objects.id = symbols.id
         WHERE schema_id = $<schemaId>
-        AND ${widgetClause}
         AND symbol = $<symbol>
       `,
       {
         schemaId,
         symbol,
-        value,
-        widgetId,
       },
     ))
     if (typedValue === null) {
-      typedValue = await getOrNewValueWithSymbol(schemaId, widgetId, value, {symbol})
+      typedValue = await getOrNewValueWithSymbol(schemaId, widgetId, initialValue, {symbol})
     } else {
       idBySymbol[symbol] = typedValue.id
       symbolById[typedValue.id] = symbol
+
+      // Update widgetId in exiting typed value.
+      if (typedValue.widgetId != widgetId) {
+        typedValue.widgetId = widgetId
+        await db.none(
+          `
+            UPDATE values
+            SET widget_id = $<widgetId>
+            WHERE id = $<id>
+          `,
+          typedValue,
+        )
+      }
     }
 
     if (schemaSymbol === "schema:localized-string") {
       // Creating a localized string, requires to create each of its strings.
       let properties = {}
       for (let [language, string] of Object.entries(value)) {
-        let typedString = await getOrNewValueWithSymbol(getIdFromSymbolOrFail("schema:string"), null, string)
-        properties[getIdFromSymbolOrFail(`localization.${language}`)] = typedString.id
+        let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), widgetId, string)
+        properties[getIdFromSymbol(language)] = typedString.id
       }
+      typedValue.value = value = properties
+      await db.none(
+        `
+          UPDATE values
+          SET value = $<value:json>
+          WHERE id = $<id>
+        `,
+        typedValue,
+      )
+
       // Do an optimistic optimization.
       if (typedValue.properties === null) typedValue.properties = {}
-      for (let [languageId, stringId] of Object.entries(properties)) {
+      for (let [languageId, stringId] of Object.entries(value)) {
         if (typedValue.properties[languageId] === undefined) typedValue.properties[languageId] = stringId
       }
       await db.none(
         `
           UPDATE objects
-          SET properties = $<properties>
+          SET properties = $<properties:json>
           WHERE id = $<id>
         `,
         typedValue,
@@ -585,7 +615,7 @@ async function configureSymbols() {
         `,
         {
           id: typedValue.id,
-          keysOrder: keysOrder.map(getIdFromSymbolOrFail),
+          keysOrder: keysOrder.map(getIdFromSymbol),
         }
       )
     } else {
@@ -609,8 +639,8 @@ async function configureSymbols() {
         {
           id: typedValue.id,
           schemasWidgetsOrder: schemasWidgetsOrder.map(([schemaSymbol, widgetSymbols]) => [
-            getIdFromSymbolOrFail(schemaSymbol),
-            widgetSymbols.map(getIdFromSymbolOrFail),
+            getIdFromSymbol(schemaSymbol),
+            widgetSymbols.map(getIdFromSymbol),
           ]),
         }
       )
@@ -636,10 +666,8 @@ async function configureSymbols() {
 }
 
 
-export async function getOrNewValueWithSymbol(schemaId, widgetId, value, {inactiveStatementIds, properties = null,
-  userId = null, symbol = null} = {}) {
-  // Custom (and slower) version of getOrNewValue to avoid missing symbols during configuration of symbols.
-  if (properties) assert(userId, "Properties can only be set when userId is not null.")
+export async function getOrNewValueWithSymbol(schemaId, widgetId, value, {symbol = null} = {}) {
+  // Custom (and partial and slower) version of getOrNewValue to avoid missing symbols during configuration of symbols.
 
   let typedValue = await getValue(schemaId, widgetId, value)
   if (typedValue === null) {
@@ -653,7 +681,7 @@ export async function getOrNewValueWithSymbol(schemaId, widgetId, value, {inacti
     typedValue = {
       createdAt: result.created_at,
       id: result.id,
-      properties,
+      properties: null,
       schemaId,
       symbol,
       type: result.type,
@@ -681,41 +709,6 @@ export async function getOrNewValueWithSymbol(schemaId, widgetId, value, {inacti
     )
     idBySymbol[symbol] = typedValue.id
     symbolById[typedValue.id] = symbol
-  }
-
-  // Note: getOrNewValueWithSymbol may be called before the ID of the symbol "schema:localized-string" is known.
-  // So it is not possible to use function getIdFromSymbolOrFail("schema:localized-string").
-  let localizedStringSchemaId = idBySymbol["schema:localized-string"]
-  if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
-    // Getting and rating a localized string, requires to get and rate each of its strings.
-    if (!properties) properties = {}
-    for (let [language, string] of Object.entries(value)) {
-      let typedString = await getOrNewValueWithSymbol(getIdFromSymbolOrFail("schema:string"), null, string,
-        {inactiveStatementIds, userId})
-      properties[getIdFromSymbolOrFail(`localization.${language}`)] = typedString.id
-    }
-  }
-
-  if (properties) {
-    await db.none(
-      `
-        UPDATE objects
-        SET properties = $<properties:json>
-        WHERE id = $<id>
-      `,
-      {
-        properties,  // Note: Properties are typically set for optimistic optimization.
-        id: typedValue.id,
-      },
-    )
-
-    typedValue.propertyByKeyId = {}
-    for (let [keyId, valueId] of Object.entries(properties)) {
-      assert.strictEqual(typeof keyId, "string")
-      assert.strictEqual(typeof valueId, "string")
-      typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, {inactiveStatementIds,
-        userId})
-    }
   }
   return typedValue
 }

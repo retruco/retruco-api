@@ -24,11 +24,11 @@ import assert from "assert"
 
 import config from "../config"
 import {db} from "../database"
-import {convertJsonToFieldValue, entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString, getOrNewProperty,
-  getOrNewValue, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, unrateStatement,
-  wrapAsyncMiddleware} from "../model"
+import {convertValidJsonToTypedValue, entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString,
+  getOrNewProperty, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson,
+  unrateStatement, wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
-import {getIdFromIdOrSymbol, getIdFromSymbolOrFail} from "../symbols"
+import {getIdFromIdOrSymbol, getIdOrSymbolFromId, toObjectJson} from "../symbols"
 
 
 const ajvStrict = new Ajv({
@@ -191,9 +191,9 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           }
         } else if (valueType === "string") {
           let strings$ref = [
-            "/schemas/card-reference",
+            "/schemas/card-id",
+            "/schemas/value-id",
             "/schemas/localized-string",
-            "/schemas/type-reference",
           ]
           if (!strings$ref.includes(schema.$ref) && schema.type !== "string") {
             schema = {$ref: "/schemas/localized-string"}
@@ -260,187 +260,6 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   // Convert input cards
   //
 
-  let idByStringCache = {}
-  let objectSchemaId = getIdFromSymbolOrFail("schema:object")
-
-  async function getOrNewIdFromString(typedLanguage, string, {inactiveStatementIds = null, properties = null,
-    userId = null} = {}) {
-    assert.strictEqual(typeof string, "string")
-    let id = idByStringCache[string]
-    if (id !== undefined) {
-      assert(!isNaN(parseInt(id)), `Ìnvalid id "${id}" for string "${string}".`)
-      return id
-    }
-    id = (await getOrNewLocalizedString(typedLanguage, string, {inactiveStatementIds, properties, userId})).id
-    assert(!isNaN(parseInt(id)), `Ìnvalid id "${id}" for string "${string}".`)
-    idByStringCache[string] = id
-    return id
-  }
-
-  async function getOrNewIdFromSchemaWidgetValue(schema, widget, value, {inactiveStatementIds = null,
-    properties = null, userId = null} = {}) {
-    let schemaString = JSON.stringify({
-      schemaId: objectSchemaId,
-      value: schema,
-      widgetId: null,
-    })
-    let schemaId = idByStringCache[schemaString]
-    if (schemaId === undefined) {
-      schemaId = (await getOrNewValue(objectSchemaId, null, schema, {inactiveStatementIds, userId})).id
-      idByStringCache[schemaString] = schemaId
-    }
-
-    let widgetId = null
-    if (widget) {
-      let widgetString = JSON.stringify({
-        schemaId: objectSchemaId,
-        value: widget,
-        widgetId: null,
-      })
-      widgetId = idByStringCache[widgetString]
-      if (widgetId === undefined) {
-        widgetId = (await getOrNewValue(objectSchemaId, null, widget, {inactiveStatementIds, userId})).id
-        idByStringCache[widgetString] = widgetId
-      }
-    }
-
-    let valueString =  JSON.stringify({
-      schemaId,
-      value,
-      widgetId,
-    })
-    let valueId = idByStringCache[valueString]
-    if (valueId === undefined) {
-      valueId = (await getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, properties, userId})).id
-      idByStringCache[valueString] = valueId
-    }
-    return valueId
-  }
-
-  async function simplifyFieldValue(cardWarningsByKeyValue, keyValue, name, field, value, {
-    inactiveStatementIds = null,
-    userId = null,
-  } = {}) {
-    // Simplify value and schema of attribute.
-    let {maxLength, schema, widget} = field
-    if (maxLength > 1) {
-      if (!Array.isArray(value)) {
-        schema = schema.items
-      } else if (value.length === 0) {
-        schema = {type: null}
-        value = null
-      } else if (value.length === 1) {
-        schema = schema.items
-        value = value[0]
-      }
-    } else if (Array.isArray(value)) {
-      if (value.length > 0) {
-        value = value[0]
-      } else {
-        schema = {type: null}
-        value = null
-      }
-    }
-    if (schema.$ref === "/schemas/bijective-card-reference") {
-      let referencedCardId = cardIdByKeyValue[value.targetId]
-      if (referencedCardId === undefined) {
-        let cardWarnings = cardWarningsByKeyValue[keyValue]
-        if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-        cardWarnings[name] = `Unknown key "${value.targetId}" for referenced card.`
-        value = value.targetId
-
-        schema = {type: "string"}
-        // TODO: Change widget.
-      } else {
-        value.targetId = referencedCardId
-        let reverseName = value.reverseKeyId
-        let reverseNameId = await getOrNewIdFromString(typedLanguage, reverseName, {inactiveStatementIds, userId})
-        value.reverseKeyId = reverseNameId
-      }
-    } else if (schema.type === "array" && schema.items.$ref === "/schemas/bijective-card-reference") {
-      let items = []
-      for (let [index, item] of value.entries()) {
-        let referencedCardId = cardIdByKeyValue[item.targetId]
-        if (referencedCardId === undefined) {
-          let cardWarnings = cardWarningsByKeyValue[keyValue]
-          if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-          let attributeWarnings = cardWarnings[name]
-          if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
-          attributeWarnings[String(index)] = `Unknown key "${item.targetId}" for referenced card`
-          item = item.targetId
-
-          schema = Object.assign({}, schema)
-          if (Array.isArray(schema.items)) schema.items = [...schema.items]
-          else schema.items = value.map(() => Object.assign({}, schema.items))
-          schema.items[index] = {type: "string"}
-          // TODO: Change widget.
-        } else {
-          item.targetId = referencedCardId
-          let reverseName = item.reverseKeyId
-          let reverseNameId = await getOrNewIdFromString(typedLanguage, reverseName, {inactiveStatementIds, userId})
-          item.reverseKeyId = reverseNameId
-        }
-        items.push(item)
-      }
-      value = items
-    } else if (schema.$ref === "/schemas/card-reference") {
-      let referencedCardId = cardIdByKeyValue[value]
-      if (referencedCardId === undefined) {
-        let cardWarnings = cardWarningsByKeyValue[keyValue]
-        if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-        cardWarnings[name] = `Unknown key "${value}" for referenced card.`
-
-        schema = {type: "string"}
-        // TODO: Change widget.
-      } else {
-        value = referencedCardId
-      }
-    } else if (schema.type === "array" && schema.items.$ref === "/schemas/card-reference") {
-      let items = []
-      for (let [index, item] of value.entries()) {
-        let referencedCardId = cardIdByKeyValue[item]
-        if (referencedCardId === undefined) {
-          let cardWarnings = cardWarningsByKeyValue[keyValue]
-          if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-          let attributeWarnings = cardWarnings[name]
-          if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
-          attributeWarnings[String(index)] = `Unknown key "${item}" for referenced card`
-
-          schema = Object.assign({}, schema)
-          if (Array.isArray(schema.items)) schema.items = [...schema.items]
-          else schema.items = value.map(() => Object.assign({}, schema.items))
-          schema.items[index] = {type: "string"}
-          // TODO: Change widget.
-        } else {
-          item = referencedCardId
-        }
-        items.push(item)
-      }
-      value = items
-    } else if (schema.$ref === "/schemas/localized-string") {
-      if (typeof value === "string") {
-        value = {[language]: value}
-      }
-    } else if (schema.type === "array" && schema.items.$ref === "/schemas/localized-string") {
-      value = value.map(item => {
-        if (typeof item === "string") {
-          item = {[language]: item}
-        }
-        return item
-      })
-    }
-
-    let warning
-    [schema, widget, value, warning] = await convertJsonToFieldValue(schema, widget, value)
-    if (warning !== null) {
-      let cardWarnings = cardWarningsByKeyValue[keyValue]
-      if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-      if (cardWarnings[name] === undefined) cardWarnings[name] = warning
-    }
-
-    return [schema, widget, value]
-  }
-
   for (let field of Object.values(fieldByName)) {
     if (field.maxLength > 1) {
       field.schema = {
@@ -455,16 +274,17 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   }
 
   // Upsert and rate all cards using only keyName to retrieve them.
+  let cache = {}
   let cardIdByKeyValue = {}
   let cardWarningsByKeyValue = {}
-  let typedLanguage = await getObjectFromId(getIdFromSymbolOrFail(`localization.${language}`))
-  let keyNameId = await getOrNewIdFromString(typedLanguage, keyName, {inactiveStatementIds, userId})
+  let keyNameId = (await getOrNewLocalizedString(language, keyName, "widget:input-text",
+    {cache, inactiveStatementIds, userId})).id
   for (let attributes of bundle.cards) {
     let keyValue = attributes[keyName]
-    let [keySchema, keyWidget, simplifiedKeyValue] = await simplifyFieldValue(cardWarningsByKeyValue, keyValue,
-      keyName, fieldByName[keyName], attributes[keyName], {inactiveStatementIds, userId})
-    let keyValueId = await getOrNewIdFromSchemaWidgetValue(keySchema, keyWidget, simplifiedKeyValue,
-      {inactiveStatementIds, userId})
+    let keyTypedValue = await getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsByKeyValue, language,
+      keyValue, keyName, fieldByName[keyName], attributes[keyName], {cache, inactiveStatementIds, userId})
+    if (keyTypedValue === null) continue
+    let keyValueId = keyTypedValue.id
 
     // Try to retrieve a card rated by user and having key property rated by user.
     let card = entryToCard(await db.oneOrNone(
@@ -540,15 +360,14 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
 
     for (let [name, value] of Object.entries(attributes)) {
       // Convert attribute name to a typed value.
-      let nameId = await getOrNewIdFromString(typedLanguage, name, {inactiveStatementIds, userId})
+      let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text",
+        {cache, inactiveStatementIds, userId})).id
 
       // Convert attribute value to a typed value, after simplifying it and replacing names with IDs.
-      let schema, widget
-      [schema, widget, value] = await simplifyFieldValue(cardWarningsByKeyValue, keyValue, name, fieldByName[name],
-        value, {inactiveStatementIds, userId})
-      let valueId = await getOrNewIdFromSchemaWidgetValue(schema, widget, value, {inactiveStatementIds, userId})
-
-      await getOrNewProperty(cardId, nameId, valueId, {inactiveStatementIds, userId})
+      let typedValue = await getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsByKeyValue, language,
+        keyValue, name, fieldByName[name], value, {cache, inactiveStatementIds, userId})
+      if (typedValue === null) continue
+      await getOrNewProperty(cardId, nameId, typedValue.id, {inactiveStatementIds, userId})
     }
   }
 
@@ -647,30 +466,23 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   }
 
   // Create new card with its properties.
+  let cache = {}
   let inactiveStatementIds = null  // No existings objects to remove when creating a new card.
   let properties = {}
-  let typedLanguage = await getObjectFromId(getIdFromSymbolOrFail(`localization.${language}`))
   let warnings = {}
   for (let [name, value] of Object.entries(cardInfos.values)) {
     // Convert attribute name to a typed value.
-    let nameId = (await getOrNewLocalizedString(typedLanguage, name, {inactiveStatementIds, userId})).id
+    let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text",
+      {cache, inactiveStatementIds, userId})).id
     let schema = cardInfos.schemas[name]
-    let schemaId = schemaIdByName[name] || (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, schema,
-      {inactiveStatementIds, userId})).id
     let widget = cardInfos.widgets[name] || null
-    let widgetId = null
-    if (widget !== null) {
-      widgetId = widgetIdByName[name] || (await getOrNewValue(getIdFromSymbolOrFail("schema:object"), null, widget,
-        {inactiveStatementIds, userId})).id
-    }
-
-    let warning
-    [schema, widget, value, warning] = await convertJsonToFieldValue(schema, widget, value)
+    let [typedValue, warning] = await convertValidJsonToTypedValue(schema, widget, value,
+      {cache, inactiveStatementIds, userId})
     if (warning !== null) {
       warnings[name] = warning
     }
-    let valueId = (await getOrNewValue(schemaId, widgetId, value, {inactiveStatementIds, userId})).id
-    properties[nameId] = valueId
+    if (typedValue === null) continue
+    properties[nameId] = typedValue.id
   }
   let card = await newCard({
     inactiveStatementIds,
@@ -694,6 +506,131 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
 })
 
 
+async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsByKeyValue, language, keyValue, name,
+  field, value, {cache = null, inactiveStatementIds = null, userId = null} = {}) {
+  // Simplify value and schema of attribute.
+  let {maxLength, schema, widget} = field
+  if (maxLength > 1) {
+    if (!Array.isArray(value)) {
+      schema = schema.items
+    } else if (value.length === 0) {
+      schema = {type: null}
+      value = null
+    } else if (value.length === 1) {
+      schema = schema.items
+      value = value[0]
+    }
+  } else if (Array.isArray(value)) {
+    if (value.length > 0) {
+      value = value[0]
+    } else {
+      schema = {type: null}
+      value = null
+    }
+  }
+  if (schema.$ref === "/schemas/bijective-card-reference") {
+    let referencedCardId = cardIdByKeyValue[value.targetId]
+    if (referencedCardId === undefined) {
+      let cardWarnings = cardWarningsByKeyValue[keyValue]
+      if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+      cardWarnings[name] = `Unknown key "${value.targetId}" for referenced card.`
+      value = value.targetId
+
+      schema = {type: "string"}
+      // TODO: Change widget.
+    } else {
+      value.targetId = referencedCardId
+      let reverseName = value.reverseKeyId
+      let reverseNameId = (await getOrNewLocalizedString(language, reverseName, "widget:input-text",
+        {cache, inactiveStatementIds, userId})).id
+      value.reverseKeyId = reverseNameId
+    }
+  } else if (schema.type === "array" && schema.items.$ref === "/schemas/bijective-card-reference") {
+    let items = []
+    for (let [index, item] of value.entries()) {
+      let referencedCardId = cardIdByKeyValue[item.targetId]
+      if (referencedCardId === undefined) {
+        let cardWarnings = cardWarningsByKeyValue[keyValue]
+        if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+        let attributeWarnings = cardWarnings[name]
+        if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
+        attributeWarnings[String(index)] = `Unknown key "${item.targetId}" for referenced card`
+        item = item.targetId
+
+        schema = Object.assign({}, schema)
+        if (Array.isArray(schema.items)) schema.items = [...schema.items]
+        else schema.items = value.map(() => Object.assign({}, schema.items))
+        schema.items[index] = {type: "string"}
+        // TODO: Change widget.
+      } else {
+        item.targetId = referencedCardId
+        let reverseName = item.reverseKeyId
+        let reverseNameId = (await getOrNewLocalizedString(language, reverseName, "widget:input-text",
+          {cache, inactiveStatementIds, userId})).id
+        item.reverseKeyId = reverseNameId
+      }
+      items.push(item)
+    }
+    value = items
+  } else if (schema.$ref === "/schemas/card-id") {
+    let referencedCardId = cardIdByKeyValue[value]
+    if (referencedCardId === undefined) {
+      let cardWarnings = cardWarningsByKeyValue[keyValue]
+      if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+      cardWarnings[name] = `Unknown key "${value}" for referenced card.`
+
+      schema = {type: "string"}
+      // TODO: Change widget.
+    } else {
+      value = referencedCardId
+    }
+  } else if (schema.type === "array" && schema.items.$ref === "/schemas/card-id") {
+    let items = []
+    for (let [index, item] of value.entries()) {
+      let referencedCardId = cardIdByKeyValue[item]
+      if (referencedCardId === undefined) {
+        let cardWarnings = cardWarningsByKeyValue[keyValue]
+        if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+        let attributeWarnings = cardWarnings[name]
+        if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
+        attributeWarnings[String(index)] = `Unknown key "${item}" for referenced card`
+
+        schema = Object.assign({}, schema)
+        if (Array.isArray(schema.items)) schema.items = [...schema.items]
+        else schema.items = value.map(() => Object.assign({}, schema.items))
+        schema.items[index] = {type: "string"}
+        // TODO: Change widget.
+      } else {
+        item = referencedCardId
+      }
+      items.push(item)
+    }
+    value = items
+  } else if (schema.$ref === "/schemas/localized-string") {
+    if (typeof value === "string") {
+      value = {[language]: value}
+    }
+  } else if (schema.type === "array" && schema.items.$ref === "/schemas/localized-string") {
+    value = value.map(item => {
+      if (typeof item === "string") {
+        item = {[language]: item}
+      }
+      return item
+    })
+  }
+
+  let [typedValue, warning] = await convertValidJsonToTypedValue(schema, widget, value,
+    {inactiveStatementIds, userId})
+  if (warning !== null) {
+    let cardWarnings = cardWarningsByKeyValue[keyValue]
+    if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
+    if (cardWarnings[name] === undefined) cardWarnings[name] = warning
+  }
+
+  return typedValue
+}
+
+
 export const listCards = wrapAsyncMiddleware(async function listCards(req, res) {
   // Respond a list of statements.
   let authenticatedUser = req.authenticatedUser
@@ -704,6 +641,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let subTypes = req.query.type || []
   let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
   let tags = req.query.tag || []
+  let tagIds = tags.map(getIdFromIdOrSymbol).filter(tag => tag)
   let term = req.query.term
   let userName = req.query.user  // email or urlName
 
@@ -772,8 +710,8 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     whereClauses.push("sub_types && $<subTypeIds>")
   }
 
-  if (tags.length > 0) {
-    whereClauses.push("tags @> $<tags:json>")
+  if (tagIds.length > 0) {
+    whereClauses.push("tags && $<tagIds>")
   }
 
   if (term) {
@@ -806,7 +744,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let coreArguments = {
     // language,
     subTypeIds,
-    tags: tags.map(tag => ({[language || "en"]: tag})),
+    tagIds,
     term,
     userId: user === null ? null : user.id,
   }
@@ -856,12 +794,13 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 
 
 export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPopularity(req, res) {
-  let language = req.query.language
+  // let language = req.query.language
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
   let subTypes = req.query.type || []
   let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
   let tags = req.query.tag || []
+  let tagIds = tags.map(getIdFromIdOrSymbol).filter(tagId => tagId)
 
   let whereClauses = [
     "type = 'Card'",
@@ -875,8 +814,8 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
     whereClauses.push("sub_types && $<subTypeIds>")
   }
 
-  if (tags.length > 0) {
-    whereClauses.push("tags @> $<tags:json>")
+  if (tagIds.length > 0) {
+    whereClauses.push("tags && $<tagIds>")
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
@@ -884,13 +823,13 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   let coreArguments = {
     // language,
     subTypeIds,
-    tags: tags.map(tag => ({[language || "en"]: tag})),
+    tagIds,
   }
   let count = (await db.one(
     `
       SELECT count(*)
       FROM (
-        SELECT DISTINCT jsonb_array_elements(tags) as count
+        SELECT DISTINCT unnest(tags) AS tag
         FROM objects
         ${whereClause}
       ) AS distinct_tags
@@ -900,7 +839,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
 
   let popularity = (await db.any(
     `
-      SELECT jsonb_array_elements(tags)->>'en' AS tag, count(id) as count
+      SELECT unnest(tags) AS tag, count(id) AS count
       FROM objects
       ${whereClause}
       GROUP BY tag
@@ -912,12 +851,23 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       limit,
       offset,
     }),
-  )).filter(entry => !tags.includes(entry.tag))
+  )).filter(entry => !tagIds.includes(entry.tag)).map(entry => ({
+    tagId: entry.tag,
+    count: entry.count,
+  }))
+
+  let valueByIdOrSymbol = {}
+  for (let {tagId} of popularity) {
+    valueByIdOrSymbol[getIdOrSymbolFromId(tagId)] = await toObjectJson(await getObjectFromId(tagId))
+  }
 
   res.json({
     apiVersion: "1",
     count: count,
-    data: popularity,
+    data: {
+      popularity,
+      values: valueByIdOrSymbol,
+    },
     limit: limit,
     offset: offset,
   })

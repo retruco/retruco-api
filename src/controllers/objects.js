@@ -21,7 +21,7 @@
 
 import {db} from "../database"
 import {entryToProperty, getObjectFromId, toDataJson, toObjectJson, wrapAsyncMiddleware} from "../model"
-import {getIdFromIdOrSymbol, getSymbolOrId} from "../symbols"
+import {getIdFromIdOrSymbol, getIdOrSymbolFromId} from "../symbols"
 
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
@@ -135,9 +135,9 @@ export const nextProperties = wrapAsyncMiddleware(async function nextProperties(
   let order = []
   let valueByIdOrSymbol = {}
   for (let keyId of nextKeysOrder) {
-    let keySymbolOrId = getSymbolOrId(keyId)
-    if (valueByIdOrSymbol[keySymbolOrId] === undefined) {
-      valueByIdOrSymbol[keySymbolOrId] = await toObjectJson(await getObjectFromId(keyId))
+    let keyIdOrSymbol = getIdOrSymbolFromId(keyId)
+    if (valueByIdOrSymbol[keyIdOrSymbol] === undefined) {
+      valueByIdOrSymbol[keyIdOrSymbol] = await toObjectJson(await getObjectFromId(keyId))
     }
     let keySchemasWidgetsOrder = (await db.oneOrNone(
       `
@@ -148,21 +148,21 @@ export const nextProperties = wrapAsyncMiddleware(async function nextProperties(
     )).schemas_widgets_order || []
     let keyOrder = []
     for (let [schemaId, widgetIds] of keySchemasWidgetsOrder) {
-      let schemaSymbolOrId = getSymbolOrId(schemaId)
-      if (valueByIdOrSymbol[schemaSymbolOrId] === undefined) {
-        valueByIdOrSymbol[schemaSymbolOrId] = await toObjectJson(await getObjectFromId(schemaId))
+      let schemaIdOrSymbol = getIdOrSymbolFromId(schemaId)
+      if (valueByIdOrSymbol[schemaIdOrSymbol] === undefined) {
+        valueByIdOrSymbol[schemaIdOrSymbol] = await toObjectJson(await getObjectFromId(schemaId))
       }
       let widgetsOrder = []
       for (let widgetId of widgetIds) {
-        let widgetSymbolOrId = getSymbolOrId(widgetId)
-        if (valueByIdOrSymbol[widgetSymbolOrId] === undefined) {
-          valueByIdOrSymbol[widgetSymbolOrId] = await toObjectJson(await getObjectFromId(widgetId))
+        let widgetIdOrSymbolFromId = getIdOrSymbolFromId(widgetId)
+        if (valueByIdOrSymbol[widgetIdOrSymbolFromId] === undefined) {
+          valueByIdOrSymbol[widgetIdOrSymbolFromId] = await toObjectJson(await getObjectFromId(widgetId))
         }
-        widgetsOrder.push(widgetSymbolOrId)
+        widgetsOrder.push(widgetIdOrSymbolFromId)
       }
-      keyOrder.push([schemaSymbolOrId, widgetsOrder])
+      keyOrder.push([schemaIdOrSymbol, widgetsOrder])
     }
-    order.push([keySymbolOrId, keyOrder])
+    order.push([keyIdOrSymbol, keyOrder])
   }
 
   res.json({
