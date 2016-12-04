@@ -603,6 +603,13 @@ async function configureSymbols() {
         `,
         typedValue,
       )
+
+      typedValue.propertyByKeyId = {}
+      for (let [keyId, valueId] of Object.entries(properties)) {
+        assert.strictEqual(typeof keyId, "string")
+        assert.strictEqual(typeof valueId, "string")
+        typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId)
+      }
     }
 
     if (keysOrder) {
