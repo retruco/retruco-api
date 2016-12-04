@@ -255,7 +255,7 @@ export async function generateObjectTextSearch(object) {
   if (object === null) return
   let autocomplete = null
   let languages = []
-  let searchableTextsByLanguage = {}
+  let searchableTextsByWeightByLanguage = {}
   let table = null
   if (object.type === "Card") {
     table = "cards"
@@ -281,7 +281,12 @@ export async function generateObjectTextSearch(object) {
         }
       }
       autocomplete = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
-      for (let keySymbol of ["name", "title", "twitter-name"]) {
+      for (let [keySymbol, weight] of [
+          ["description", "B"],
+          ["name", "A"],
+          ["title", "A"],
+          ["twitter-name", "A"],
+        ]) {
         let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
         if (valueId === undefined) continue
         let value = await getObjectFromId(valueId)
@@ -292,8 +297,12 @@ export async function generateObjectTextSearch(object) {
             assert.notStrictEqual(languageId, language)
             let typedText = await getObjectFromId(textId)
             if (typedText === null) continue
-            let searchableTexts = searchableTextsByLanguage[language]
-            if (searchableTexts === undefined) searchableTextsByLanguage[language] = searchableTexts = []
+            let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
+            if (searchableTextsByWeight === undefined) {
+              searchableTextsByWeightByLanguage[language] = searchableTextsByWeight = {}
+            }
+            let searchableTexts = searchableTextsByWeight[weight]
+            if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
             searchableTexts.push(typedText.value)
           }
         }
@@ -322,8 +331,12 @@ export async function generateObjectTextSearch(object) {
         object.email,
       ]) {
         if (text) {
-          let searchableTexts = searchableTextsByLanguage[language]
-          if (searchableTexts === undefined) searchableTextsByLanguage[language] = searchableTexts = []
+          let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
+          if (searchableTextsByWeight === undefined) {
+            searchableTextsByWeightByLanguage[language] = searchableTextsByWeight = {}
+          }
+          let searchableTexts = searchableTextsByWeight["A"]
+          if (searchableTexts === undefined) searchableTextsByWeight["A"] = searchableTexts = []
           searchableTexts.push(text)
         }
       }
@@ -345,23 +358,26 @@ export async function generateObjectTextSearch(object) {
       )
     }
 
-    if (Object.keys(searchableTextsByLanguage).length === 0) {
+    if (Object.keys(searchableTextsByWeightByLanguage).length === 0) {
       await db.none(`DELETE FROM ${table}_text_search WHERE id = $1`, object.id)
     } else {
-      for (let [language, searchableTexts] of Object.entries(searchableTextsByLanguage)) {
+      for (let [language, searchableTextsByWeight] of Object.entries(searchableTextsByWeightByLanguage)) {
         let languageConfigurationName = languageConfigurationNameByCode[language]
         assert.ok(languageConfigurationName, language)
-        let searchableText = searchableTexts.join(" ")
+        let searchableTextByWeight = {
+          A: (searchableTextsByWeight["A"] || []).join(" "),
+          B: (searchableTextsByWeight["B"] || []).join(" "),
+        }
         await db.none(
           `INSERT INTO ${table}_text_search(id, configuration_name, text_search)
-            VALUES ($1, $2, to_tsvector($2, $3))
+            VALUES ($1, $2, setweight(to_tsvector($2, $3), 'A') || setweight(to_tsvector($2, $4), 'B'))
             ON CONFLICT (id, configuration_name)
-            DO UPDATE SET text_search = to_tsvector($2, $3)
+            DO UPDATE SET text_search = setweight(to_tsvector($2, $3), 'A') || setweight(to_tsvector($2, $4), 'B')
           `,
-          [object.id, languageConfigurationName, searchableText],
+          [object.id, languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
         )
       }
-      let languageConfigurationNames = Object.keys(searchableTextsByLanguage).map(
+      let languageConfigurationNames = Object.keys(searchableTextsByWeightByLanguage).map(
         language => languageConfigurationNameByCode[language])
       await db.none(
         `DELETE FROM ${table}_text_search WHERE id = $1 AND configuration_name NOT IN ($2:csv)`,
