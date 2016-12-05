@@ -726,7 +726,6 @@ export async function getValue(schemaId, widgetId, value) {
     {
       schemaId,
       value,
-      widgetId,
     },
   ))
 }
