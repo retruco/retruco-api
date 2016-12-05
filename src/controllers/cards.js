@@ -25,10 +25,10 @@ import assert from "assert"
 import config from "../config"
 import {db} from "../database"
 import {convertValidJsonToTypedValue, entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString,
-  getOrNewProperty, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson,
+  getOrNewProperty, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, toObjectJson,
   unrateStatement, wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
-import {getIdFromIdOrSymbol, getIdOrSymbolFromId, toObjectJson} from "../symbols"
+import {getIdFromIdOrSymbol, getIdOrSymbolFromId} from "../symbols"
 
 
 const ajvStrict = new Ajv({

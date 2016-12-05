@@ -142,23 +142,23 @@ export async function describe(object) {
   if (object === null) return "missing object"
   const type = object.type
   if (type === "Card") {
-    return `card ${object.id}`
+    return `card @${object.id}`
   } else if (type === "Concept") {
     const valueDescription = await describe(await getObjectFromId(object.valueId))
-    return `concept based on ${valueDescription}`
+    return `concept @${object.id} based on ${valueDescription}`
   } else if (type === "Property") {
     const keyDescription = await describe(await getObjectFromId(object.keyId))
     const objectDescription = await describe(await getObjectFromId(object.objectId))
     const valueDescription = await describe(await getObjectFromId(object.valueId))
-    return `property of ${objectDescription}: ${keyDescription} = ${valueDescription}`
+    return `property @${object.id} of ${objectDescription}: ${keyDescription} = ${valueDescription}`
   } else if (type === "User") {
-    return `user ${object.name} <${object.email}>`
+    return `user @${object.id}  ${object.name} <${object.email}>`
   } else if (type === "Value") {
     let schema = await getObjectFromId(object.schemaId)
     let valueJson = await toSchemaValueJson(schema, object.value)
-    return `value ${JSON.stringify(valueJson)}`
+    return `value @${object.id} ${JSON.stringify(valueJson)}`
   } else {
-    return `object of unknown type ${type}`
+    return `object @${object.id} of unknown type ${type}`
   }
 }
 
