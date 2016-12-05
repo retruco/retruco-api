@@ -1918,6 +1918,57 @@ const SPEC = {
         },
       },
     },
+    "/uploads/images/json": {
+      post: {
+        tags: ["image", "upload"],
+        summary: "Upload images and get its path",
+        parameters: [
+          {
+            description: "The uploaded image encoded in base64 in JSON body",
+            in: "body",
+            name: "body",
+            required: true,
+            schema: {
+              type: "object",
+              properties: {
+                file: {
+                  type: "string",
+                },
+              },
+              required: [
+                "file",
+              ],
+            },
+          },
+        ],
+        responses: {
+          "201": {
+            description: "A wrapper containing the informations about the uploaded images",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  type: "object",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+      },
+    },
     "/users": {
       get: {
         tags: ["user"],

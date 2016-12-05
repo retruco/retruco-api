@@ -174,6 +174,7 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
     ballotsController.upsertBallot)
 
   app.post("/uploads/images", usersController.authenticate(true), uploadsController.uploadImage)
+  app.post("/uploads/images/json", usersController.authenticate(true), uploadsController.uploadImageJson)
 
   app.get("/users", usersController.listUsersUrlName)
   app.post("/users", usersController.createUser, activator.createActivateNext, usersController.createUserAfterActivator)

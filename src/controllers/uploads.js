@@ -19,6 +19,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import crypto from "crypto"
 import fs from "fs"
 import gm from "gm"
 import md5File from "md5-file"
@@ -38,7 +39,7 @@ if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir)
 
 async function convertAndCopyImage(sourcePath, targetPath) {
   return new Promise(function (resolve, reject) {
-    imageMagick(sourcePath).write(targetPath, function (err) {
+    imageMagick(sourcePath).strip().write(targetPath, function (err) {
       if (err) reject(err)
       else resolve()
     })
@@ -46,8 +47,7 @@ async function convertAndCopyImage(sourcePath, targetPath) {
 }
 
 
-export const uploadImage = wrapAsyncMiddleware(async function uploadImage(req, res) {
-  let file = req.files.file
+async function convertImageThenRespond(req, res, file) {
   let hash = md5File.sync(file.path)
   let tempFilePath = path.join(tempDir, `${hash}.png`)
   try {
@@ -77,5 +77,24 @@ export const uploadImage = wrapAsyncMiddleware(async function uploadImage(req, r
     data: {
       path: `/images/${imageDirName}/${imageName}`,
     },
+  })
+}
+
+
+export const uploadImage = wrapAsyncMiddleware(async function uploadImage(req, res) {
+  return await convertImageThenRespond(req, res, req.files.file)
+})
+
+
+export const uploadImageJson = wrapAsyncMiddleware(async function uploadImageJson(req, res) {
+  let base64File = req.body.file
+  let uploadBuffer = Buffer.from(base64File, "base64")
+  let hash = crypto.createHash("md5").update(uploadBuffer).digest("hex")
+  let uploadFilename = `${hash}-upload`
+  let uploadFilePath = path.join(tempDir, uploadFilename)
+  fs.writeFileSync(uploadFilePath, uploadBuffer)
+  return await convertImageThenRespond(req, res, {
+    originalname: uploadFilename,
+    path: uploadFilePath,
   })
 })
