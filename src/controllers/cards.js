@@ -180,12 +180,12 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         }
 
         if (valueType === "boolean") {
-          if (!schema.type) schema = {type: "boolean"}
+          if (!schema.$ref && !schema.type) schema = {type: "boolean"}
           if (schema.type === "boolean") {
             if (widget.tag !== "input" || widget.type !== "checkbox") widget = {tag: "input", type: "checkbox"}
           }
         } else if (valueType === "number") {
-          if (!schema.type || schema.type === "boolean") schema = {type: "number"}
+          if (!schema.$ref && !schema.type || schema.type === "boolean") schema = {type: "number"}
           if (schema.type === "number") {
             if (widget.tag !== "input" || widget.type !== "number") widget = {tag: "input", type: "number"}
           }
