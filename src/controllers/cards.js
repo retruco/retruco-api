@@ -372,11 +372,11 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   }
 
   // Remove obsolete user ratings.
-  console.log("inactiveStatementIds:", inactiveStatementIds.size)
   for (let statementId of inactiveStatementIds) {
-    // console.log("Removing inactive statement:", await getObjectFromId(statementId))
+    // console.log("Removing inactive statement:", await describe(await getObjectFromId(statementId)))
     await unrateStatement(statementId, userId)
   }
+  console.log("Number of inactiveStatementIds:", inactiveStatementIds.size)
 
   let result = {
     apiVersion: "1",
