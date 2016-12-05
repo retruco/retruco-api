@@ -154,8 +154,8 @@ export async function describe(object) {
   } else if (type === "User") {
     return `user @${object.id}  ${object.name} <${object.email}>`
   } else if (type === "Value") {
-    let schema = await getObjectFromId(object.schemaId)
-    let valueJson = await toSchemaValueJson(schema, object.value)
+    let typedSchema = await getObjectFromId(object.schemaId)
+    let valueJson = await toSchemaValueJson(typedSchema.value, object.value)
     return `value @${object.id} ${JSON.stringify(valueJson)}`
   } else {
     return `object @${object.id} of unknown type ${type}`
