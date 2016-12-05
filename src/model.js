@@ -1130,6 +1130,8 @@ export async function toSchemaValueJson(schema, value) {
       stringByLanguage[language] = typedString.value
     }
     return stringByLanguage
+  } else if (schema.$ref === "/schemas/value-id") {
+    return getIdOrSymbolFromId(value)
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       let valueJson = []
