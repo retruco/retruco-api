@@ -860,6 +860,10 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   for (let {tagId} of popularity) {
     valueByIdOrSymbol[getIdOrSymbolFromId(tagId)] = await toObjectJson(await getObjectFromId(tagId))
   }
+  // Add requested tags, in order for client to have their informations.
+  for (let tagId of tagIds) {
+    valueByIdOrSymbol[getIdOrSymbolFromId(tagId)] = await toObjectJson(await getObjectFromId(tagId))
+  }
 
   res.json({
     apiVersion: "1",
