@@ -20,6 +20,7 @@
 
 
 import crypto from "crypto"
+import dataUriToBuffer from "data-uri-to-buffer"
 import fs from "fs"
 import gm from "gm"
 import md5File from "md5-file"
@@ -87,8 +88,7 @@ export const uploadImage = wrapAsyncMiddleware(async function uploadImage(req, r
 
 
 export const uploadImageJson = wrapAsyncMiddleware(async function uploadImageJson(req, res) {
-  let base64File = req.body.file
-  let uploadBuffer = Buffer.from(base64File, "base64")
+  let uploadBuffer = dataUriToBuffer(req.body.file)
   let hash = crypto.createHash("md5").update(uploadBuffer).digest("hex")
   let uploadFilename = `${hash}-upload`
   let uploadFilePath = path.join(tempDir, uploadFilename)
