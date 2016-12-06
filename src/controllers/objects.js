@@ -73,7 +73,7 @@ export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function li
       LEFT JOIN symbols ON properties.id = symbols.id
       WHERE properties.object_id = $<objectId>
       AND properties.key_id = $<keyId>
-      ORDER BY rating DESC, created_at DESC
+      ORDER BY rating_sum DESC, created_at DESC
     `,
     {
       keyId,

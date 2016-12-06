@@ -370,7 +370,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           AND statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)
         )
         AND statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)
-        ORDER BY rating DESC, cards.id
+        ORDER BY rating_sum DESC, cards.id
         LIMIT 1
       `,
       {
@@ -396,7 +396,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             WHERE key_id = $<keyNameId>
             AND value_id = $<keyValueId>
           )
-          ORDER BY rating DESC, cards.id
+          ORDER BY rating_sum DESC, cards.id
           LIMIT 1
         `,
         {
@@ -833,7 +833,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       INNER JOIN cards on statements.id = cards.id
       LEFT JOIN symbols ON objects.id = symbols.id
       ${whereClause}
-      ORDER BY rating_count DESC, created_at DESC
+      ORDER BY rating_sum DESC, created_at DESC
       LIMIT $<limit>
       OFFSET $<offset>
     `,

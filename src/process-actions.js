@@ -181,8 +181,8 @@ async function handlePropertyChange(objectId, keyId) {
 
   // Sort properties by decreasing rating and id.
   sameKeyDescriptions.sort(function (a, b) {
-    if (a.rating > b.rating) return -1
-    else if (a.rating < b.rating) return 1
+    if (a.ratingSum > b.ratingSum) return -1
+    else if (a.ratingSum < b.ratingSum) return 1
     else {
       let aId = parseInt(a.id)
       let bId = parseInt(b.id)

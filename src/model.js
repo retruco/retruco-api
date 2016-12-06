@@ -221,9 +221,9 @@ export function entryToObject(entry) {
 
 export function entryToStatement(entry) {
   return entry === null ? null : Object.assign({}, entryToObject(entry), {
-    rating: entry.rating,
-    ratingCount: entry.rating_count,
-    ratingSum: entry.rating_sum,
+    rating: parseFloat(entry.rating),
+    ratingCount: parseInt(entry.rating_count),
+    ratingSum: parseInt(entry.rating_sum),
   })
 }
 
