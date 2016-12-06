@@ -36,6 +36,7 @@ import * as argumentsController from "./controllers/arguments"
 import * as ballotsController from "./controllers/ballots"
 import * as cardsController from "./controllers/cards"
 import * as objectsController from "./controllers/objects"
+import * as propertiesController from "./controllers/properties"
 import * as statementsController from "./controllers/statements"
 import * as tagsController from "./controllers/tags"
 import * as uploadsController from "./controllers/uploads"
@@ -126,6 +127,8 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
     objectsController.requireObject, objectsController.nextProperties)
   app.get("/objects/:idOrSymbol/properties/:keyIdOrSymbol", usersController.authenticate(false),
     objectsController.requireObject, objectsController.listObjectSameKeyProperties)
+
+  app.post("/properties", usersController.authenticate(true), propertiesController.createProperty)
 
   app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
   app.post("/statements", usersController.authenticate(true), statementsController.createStatement)

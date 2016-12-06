@@ -626,6 +626,57 @@ const SPEC = {
         // security: {},
       },
     },
+    "/properties": {
+      post: {
+        tags: ["property"],
+        summary: "Create a new property or retrieve the existing one and return it",
+        // description: "",
+        // externalDocs: {},
+        operationId: "properties.createProperty",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/propertyBodyParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "201": {
+            description: "A wrapper containing the created property and eventual warnings",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+                warnings: {
+                  type: "object",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+    },
     "/statements": {
       get: {
         tags: ["statement"],
@@ -2444,7 +2495,7 @@ const SPEC = {
         summary: "Create a new value or retrieve the existing one and return it, giving its initial schema & widget",
         // description: "",
         // externalDocs: {},
-        operationId: "statements.createCard",
+        operationId: "values.createValue",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [
@@ -2457,7 +2508,7 @@ const SPEC = {
         ],
         responses: {
           "201": {
-            description: "A wrapper containing the created card and eventual warnings",
+            description: "A wrapper containing the created value and eventual warnings",
             schema: {
               type: "object",
               properties: {
@@ -3147,6 +3198,31 @@ const SPEC = {
       minimum: 0,
       name: "offset",
       type: "integer",
+    },
+    propertyBodyParam: {
+      // description: "",
+      in: "body",
+      name: "valueInfos",
+      required: true,
+      schema: {
+        type: "object",
+        properties: {
+          keyId: {
+            $ref: "#/definitions/IdOrSymbol",
+          },
+          objectId: {
+            $ref: "#/definitions/IdOrSymbol",
+          },
+          valueId: {
+            $ref: "#/definitions/IdOrSymbol",
+          },
+        },
+        required: [
+          "keyId",
+          "objectId",
+          "valueId",
+        ],
+      },
     },
     ratingDataParam: {
       // description: "",
