@@ -33,24 +33,24 @@ let languageByKeyId = null
 let localizationKeysId = null
 
 
-function addRatedValue(requestedSchema, values, schema, value) {
-  assert(requestedSchema.type !== "array")
-  if (schema.type === "array") {
-    if (Array.isArray(schema.items)) {
-      for (let [index, itemValue] of value.entries()) {
-        addRatedValue(requestedSchema, values, schema.items[index], itemValue)
-      }
-    } else {
-      for (let itemValue of value) {
-        addRatedValue(requestedSchema, values, schema.items, itemValue)
-      }
-    }
-  } else if (schema.$ref === requestedSchema.$ref && schema.type === requestedSchema.type) {
-    if (values.every(item => !deepEqual(item, value))) {
-      values.push(value)
-    }
-  }
-}
+// function addRatedValue(requestedSchema, values, schema, value) {
+//   assert(requestedSchema.type !== "array")
+//   if (schema.type === "array") {
+//     if (Array.isArray(schema.items)) {
+//       for (let [index, itemValue] of value.entries()) {
+//         addRatedValue(requestedSchema, values, schema.items[index], itemValue)
+//       }
+//     } else {
+//       for (let itemValue of value) {
+//         addRatedValue(requestedSchema, values, schema.items, itemValue)
+//       }
+//     }
+//   } else if (schema.$ref === requestedSchema.$ref && schema.type === requestedSchema.type) {
+//     if (values.every(item => !deepEqual(item, value))) {
+//       values.push(value)
+//     }
+//   }
+// }
 
 
 async function handlePropertyChange(objectId, keyId) {
@@ -200,41 +200,62 @@ async function handlePropertyChange(objectId, keyId) {
     let bestDescription = sameKeyDescriptions[0]
     let bestRating = bestDescription.rating
     if (bestRating > 0) {
-      // Sometimes the best property is not the oldest of the best rated properties.
-      for (let description of sameKeyDescriptions) {
-        if (description.rating < bestRating) break
-        if (description.widget && description.widget.tag === "RatedItemOrSet") {
-          let requestedSchema = description.schema
-          if (requestedSchema.type === "array") {
-            requestedSchema = (Array.isArray(requestedSchema.items)) ? requestedSchema.items[0] : requestedSchema.items
+      // // Sometimes the best property is not the oldest of the best rated properties.
+      // for (let description of sameKeyDescriptions) {
+      //   if (description.rating < bestRating) break
+      //   if (description.widget && description.widget.tag === "RatedItemOrSet") {
+      //     let requestedSchema = description.schema
+      //     if (requestedSchema.type === "array") {
+      //       requestedSchema = (Array.isArray(requestedSchema.items)) ? requestedSchema.items[0] :
+      //         requestedSchema.items
+      //     }
+      //     let ratedValues = []
+      //     for (let description1 of sameKeyDescriptions) {
+      //       if (description1.rating <= 0) break
+      //       addRatedValue(requestedSchema, ratedValues, description1.schema, description1.value)
+      //     }
+      //     if (ratedValues.length === 0) {
+      //       requestedSchema = {type: null}
+      //       ratedValues = null
+      //     } else if (ratedValues.length === 1) {
+      //       ratedValues = ratedValues[0]
+      //     } else {
+      //       requestedSchema = {
+      //         type: "array",
+      //         items: requestedSchema,
+      //       }
+      //     }
+      //     bestDescription = {
+      //       schema: requestedSchema,
+      //       schemaId: null,
+      //       value: ratedValues,
+      //       valueId: null,
+      //       widget: description.widget,
+      //       widgetId: description.widgetId,
+      //     }
+      //     break
+      //   }
+      // }
+
+      let validSameKeyDescriptions = sameKeyDescriptions.filter(description => description.rating > 0)
+      if (validSameKeyDescriptions.length > 1) {
+        let valueIds = []
+        for (let description of validSameKeyDescriptions) {
+          // TODO: handle revert bijective-card-references (=> they must have a non null valueId).
+          if (description.valueId !== null && !valueIds.includes(description.valueId)) {
+            valueIds.push(description.valueId)
           }
-          let ratedValues = []
-          for (let description1 of sameKeyDescriptions) {
-            if (description1.rating <= 0) break
-            addRatedValue(requestedSchema, ratedValues, description1.schema, description1.value)
-          }
-          if (ratedValues.length === 0) {
-            requestedSchema = {type: null}
-            ratedValues = null
-          } else if (ratedValues.length === 1) {
-            ratedValues = ratedValues[0]
-          } else {
-            requestedSchema = {
-              type: "array",
-              items: requestedSchema,
-            }
-          }
-          bestDescription = {
-            schema: requestedSchema,
-            schemaId: null,
-            value: ratedValues,
-            valueId: null,
-            widget: description.widget,
-            widgetId: description.widgetId,
-          }
-          break
+        }
+        bestDescription = {
+          schema: null,  // schemaId will be used instead
+          schemaId: getIdFromSymbol("schema:value-ids-array"),
+          value: valueIds,
+          valueId: null,
+          widget: bestDescription.widget,
+          widgetId: bestDescription.widgetId,
         }
       }
+
       // Now that bestDescription is found, lets ensure that it matchs a typed value in database.
       if (bestDescription.valueId === null) {
         if (bestDescription.schemaId === null) {

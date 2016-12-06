@@ -544,6 +544,18 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
   assert.strictEqual(typeof keyId, "string")
   assert.strictEqual(typeof valueId, "string")
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
+
+  // TODO: Remove ? Split arrays into atomic properties.
+  let typedValue = await getObjectFromId(valueId)
+  if (typedValue.schemaId === getIdFromSymbol("schema:value-ids-array")) {
+    assert(properties === null)
+    let splitProperties = []
+    for (let itemId of typedValue.value) {
+      splitProperties.push(await getOrNewProperty(objectId, keyId, itemId, {inactiveStatementIds, properties, userId}))
+    }
+    return splitProperties
+  }
+
   let property = entryToProperty(await db.oneOrNone(
     `
       SELECT objects.*, statements.*, properties.*, symbol FROM objects
