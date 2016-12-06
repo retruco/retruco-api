@@ -22,8 +22,7 @@
 import config from "../config"
 import {db, entryToStatement, entryToUser, hashStatement} from "../database"
 import {generateObjectTextSearch, getObjectFromId, languageConfigurationNameByCode, ownsUser,
-  propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData, toStatementJson, types,
-  wrapAsyncMiddleware} from "../model"
+  rateStatement, toStatementData, toStatementsData, toStatementJson, types, wrapAsyncMiddleware} from "../model"
 import {getIdFromIdOrSymbol} from "../symbols"
 
 
@@ -143,7 +142,7 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
   } else {
     statement = existingStatement
   }
-  let [oldBallot, ballot] = await rateStatement(statement, req.authenticatedUser.id, 1)
+  await rateStatement(statement, req.authenticatedUser.id, 1)
 
   // // Optimistic optimizations
   const statements = []

@@ -20,8 +20,7 @@
 
 
 import {db} from "../database"
-import {entryToBallot, propagateOptimisticOptimization, rateStatement, toBallotData, unrateStatement,
-  wrapAsyncMiddleware} from "../model"
+import {entryToBallot, rateStatement, toBallotData, unrateStatement, wrapAsyncMiddleware} from "../model"
 
 
 export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res) {
@@ -97,7 +96,7 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
 
   res.json({
     apiVersion: "1",
-    data: await toBallotData(ballot, statements, req.authenticatedUser, {
+    data: await toBallotData(ballot, [statement], req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),
