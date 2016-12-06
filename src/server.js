@@ -158,11 +158,11 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
     usersController.authenticate(true), statementsController.requireStatement, argumentsController.requireArgument,
     ballotsController.upsertBallot)
 
-  app.delete("/statements/:statementId/rating", usersController.authenticate(true),
+  app.delete("/statements/:idOrSymbol/rating", usersController.authenticate(true),
     statementsController.requireStatement, ballotsController.deleteBallot)
-  app.get("/statements/:statementId/rating", usersController.authenticate(true),
+  app.get("/statements/:idOrSymbol/rating", usersController.authenticate(true),
     statementsController.requireStatement, ballotsController.getBallot)
-  app.post("/statements/:statementId/rating", usersController.authenticate(true),
+  app.post("/statements/:idOrSymbol/rating", usersController.authenticate(true),
     statementsController.requireStatement, ballotsController.upsertBallot)
 
   app.get("/statements/:statementId/tags", usersController.authenticate(false),

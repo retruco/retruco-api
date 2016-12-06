@@ -21,8 +21,10 @@
 
 import config from "../config"
 import {db, entryToStatement, entryToUser, hashStatement} from "../database"
-import {generateObjectTextSearch, languageConfigurationNameByCode, ownsUser, propagateOptimisticOptimization,
-  rateStatement, toStatementData, toStatementsData, toStatementJson, types, wrapAsyncMiddleware} from "../model"
+import {generateObjectTextSearch, getObjectFromId, languageConfigurationNameByCode, ownsUser,
+  propagateOptimisticOptimization, rateStatement, toStatementData, toStatementsData, toStatementJson, types,
+  wrapAsyncMiddleware} from "../model"
+import {getIdFromIdOrSymbol} from "../symbols"
 
 
 export const autocompleteStatements = wrapAsyncMiddleware(async function autocompleteStatements(req, res) {
@@ -348,11 +350,10 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
 
   let statements = (await db.any(
     `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC LIMIT $<limit> OFFSET $<offset>`,
-    {
-      ...coreArguments,
+    Object.assign({}, coreArguments, {
       limit,
       offset,
-    },
+    }),
   )).map(entryToStatement)
 
   res.json({
@@ -375,17 +376,36 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
 
 
 export const requireStatement = wrapAsyncMiddleware(async function requireStatement(req, res, next) {
-  let id = req.params.statementId
-  let statement = entryToStatement(await db.oneOrNone("SELECT * FROM statements WHERE id = $1", id))
+  let id = getIdFromIdOrSymbol(req.params.idOrSymbol)
+  if (!id) {
+    res.status(404)
+    res.json({
+      apiVersion: "1",
+      code: 404,
+      message: `No statement with symbol "${req.params.idOrSymbol}".`,
+    })
+    return
+  }
+  let statement = await getObjectFromId(id)
   if (statement === null) {
     res.status(404)
     res.json({
       apiVersion: "1",
       code: 404,
-      message: `No statement with ID "${id}".`,
+      message: `No statement with ID or symbol "${req.params.idOrSymbol}".`,
     })
     return
   }
+  if (statement.ratingCount === undefined) {
+    res.status(404)
+    res.json({
+      apiVersion: "1",
+      code: 404,
+      message: `Object "${req.params.idOrSymbol}" is not a rated object.`,
+    })
+    return
+  }
+
   req.statement = statement
 
   return next()

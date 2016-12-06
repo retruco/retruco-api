@@ -807,49 +807,49 @@ export function ownsUser(user, otherUser) {
 
 export {propagateOptimisticOptimization}
 async function propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum) {
-  const newRatingCount = statement.ratingCount !== undefined ? statement.ratingCount : 0
-  const newRating = newRatingCount > 0 ? statement.rating : 0
-  const newRatingSum = newRatingCount > 0 ? statement.ratingSum : 0
-  if (oldRating === undefined) oldRating = 0
-  if (oldRatingSum === undefined) oldRatingSum = 0
+  // const newRatingCount = statement.ratingCount !== undefined ? statement.ratingCount : 0
+  // const newRating = newRatingCount > 0 ? statement.rating : 0
+  // const newRatingSum = newRatingCount > 0 ? statement.ratingSum : 0
+  // if (oldRating === undefined) oldRating = 0
+  // if (oldRatingSum === undefined) oldRatingSum = 0
 
-  if (statement.type === "Abuse") {
-    if (oldRatingSum <= 0 && newRatingSum > 0 || oldRatingSum > 0 && newRatingSum <= 0) {
-      let flaggedStatement = entryToStatement(await db.oneOrNone(
-          `SELECT * FROM statements
-            WHERE id = $<statementId>`,
-          statement,
-        ))
-      if (flaggedStatement !== null) {
-        if (newRatingSum > 0) flaggedStatement.isAbuse = true
-        else delete flaggedStatement.isAbuse
-        statements.push(flaggedStatement)
-      }
-    }
-  } else if (statement.type === "Argument") {
-    if (!statement.isAbuse && ["because", "but"].includes(statement.argumentType)) {
-      if ((oldRating > 0) !== (newRating > 0)) {
-        let claim = entryToStatement(await db.oneOrNone(
-          `SELECT * FROM statements
-            WHERE id = $<claimId>`,
-          statement,
-        ))
-        let ground = entryToStatement(await db.oneOrNone(
-          `SELECT * FROM statements
-            WHERE id = $<groundId>`,
-          statement,
-        ))
-        if (claim !== null && claim.ratingCount && ground !== null && !ground.isAbuse) {
-          claim.ratingSum = (claim.ratingSum || 0) +
-            ((newRating > 0) - (oldRating > 0)) * (statement.argumentType === "because" ? 1 : -1)
-            * (ground.ratingSum || 0)
-          claim.ratingSum = Math.max(-claim.ratingCount, Math.min(claim.ratingCount, claim.ratingSum))
-          claim.rating = claim.ratingSum / claim.ratingCount
-          statements.push(claim)
-        }
-      }
-    }
-  }
+  // if (statement.type === "Abuse") {
+  //   if (oldRatingSum <= 0 && newRatingSum > 0 || oldRatingSum > 0 && newRatingSum <= 0) {
+  //     let flaggedStatement = entryToStatement(await db.oneOrNone(
+  //         `SELECT * FROM statements
+  //           WHERE id = $<statementId>`,
+  //         statement,
+  //       ))
+  //     if (flaggedStatement !== null) {
+  //       if (newRatingSum > 0) flaggedStatement.isAbuse = true
+  //       else delete flaggedStatement.isAbuse
+  //       statements.push(flaggedStatement)
+  //     }
+  //   }
+  // } else if (statement.type === "Argument") {
+  //   if (!statement.isAbuse && ["because", "but"].includes(statement.argumentType)) {
+  //     if ((oldRating > 0) !== (newRating > 0)) {
+  //       let claim = entryToStatement(await db.oneOrNone(
+  //         `SELECT * FROM statements
+  //           WHERE id = $<claimId>`,
+  //         statement,
+  //       ))
+  //       let ground = entryToStatement(await db.oneOrNone(
+  //         `SELECT * FROM statements
+  //           WHERE id = $<groundId>`,
+  //         statement,
+  //       ))
+  //       if (claim !== null && claim.ratingCount && ground !== null && !ground.isAbuse) {
+  //         claim.ratingSum = (claim.ratingSum || 0) +
+  //           ((newRating > 0) - (oldRating > 0)) * (statement.argumentType === "because" ? 1 : -1)
+  //           * (ground.ratingSum || 0)
+  //         claim.ratingSum = Math.max(-claim.ratingCount, Math.min(claim.ratingCount, claim.ratingSum))
+  //         claim.rating = claim.ratingSum / claim.ratingCount
+  //         statements.push(claim)
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 
@@ -890,30 +890,49 @@ export async function rateStatement(statementId, voterId, rating) {
 }
 
 
-// export {toBallotData}
-// async function toBallotData(ballot, statements, user, {depth = 0, showAbuse = false, showAuthor = false,
-//   showBallot = false, showGrounds = false, showProperties = false, showReferences = false, showTags = false} = {}) {
-//   let data = {
-//     ballots: {[ballot.id]: toBallotJson(ballot)},
-//     id: ballot.id,
-//     statements: {},
-//     users: {},
-//   }
-//   let statementsCache = {}
-//   for (let statement of statements) {
-//     statementsCache[statement.id] = statement
-//   }
+export {toBallotData}
+async function toBallotData(ballot, statementOrStatements, user, {
+  depth = 0,
+  objectsCache = null,
+  showBallots = false,
+  showProperties = false,
+  showReferences = false,
+  showValues = false,
+} = {}) {
+  objectsCache = objectsCache ? Object.assign({}, objectsCache) : {}
+  let data = {
+    ballots: {[ballot.id]: toBallotJson(ballot)},
+    cards: {},
+    concepts: {},
+    id: ballot.id,
+    properties: {},
+    users: {},
+    values: {},
+    visitedIds: new Set(),
+  }
 
-//   for (let statement of statements) {
-//     await toStatementData1(data, statement, statementsCache, user,
-//       {depth, showAbuse, showAuthor, showBallot, showGrounds, showProperties, showReferences, showTags})
-//   }
+  if (statementOrStatements !== null) {
+    if (Array.isArray(statementOrStatements)) {
+      for (let object of statementOrStatements) {
+        await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showReferences,
+          showValues})
+      }
+    } else {
+      assert.ok(statementOrStatements)
+      await toDataJson1(statementOrStatements, data, objectsCache, user, {depth, showBallots, showProperties,
+        showReferences, showValues})
+    }
+  }
 
-//   if (Object.keys(data.ballots).length === 0) delete data.ballots
-//   if (Object.keys(data.statements).length === 0) delete data.statements
-//   if (Object.keys(data.users).length === 0) delete data.users
-//   return data
-// }
+  if (Object.keys(data.ballots).length === 0) delete data.ballots
+  if (Object.keys(data.cards).length === 0) delete data.cards
+  if (Object.keys(data.concepts).length === 0) delete data.concepts
+  if (Object.keys(data.properties).length === 0) delete data.properties
+  if (Object.keys(data.users).length === 0) delete data.users
+  if (Object.keys(data.values).length === 0) delete data.values
+  delete data.visitedIds
+  return data
+}
 
 
 function toBallotJson(ballot) {
@@ -947,7 +966,8 @@ export async function toDataJson(objectOrObjects, user, {
     if (Array.isArray(objectOrObjects)) {
       data.ids = objectOrObjects.map(object => object.symbol || object.id)
       for (let object of objectOrObjects) {
-        await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showReferences, showValues})
+        await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showReferences,
+          showValues})
       }
     } else {
       assert.ok(objectOrObjects)

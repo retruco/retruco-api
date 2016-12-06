@@ -19,9 +19,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {db, entryToBallot} from "../database"
-import {propagateOptimisticOptimization, rateStatement, toBallotData, unrateStatement,
-    wrapAsyncMiddleware} from "../model"
+import {db} from "../database"
+import {entryToBallot, propagateOptimisticOptimization, rateStatement, toBallotData, unrateStatement,
+  wrapAsyncMiddleware} from "../model"
 
 
 export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res) {
@@ -44,7 +44,7 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
     if (statement.ratingCount) {
       const oldRating = statement.rating
       const oldRatingSum = statement.ratingSum
-      statement = {...statement}
+      statement = Object.assign({}, statement)
       statements.push(statement)
       statement.ratingCount -= 1
       if (statement.ratingCount === 0) {
@@ -65,13 +65,10 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
 
   const data = await toBallotData(ballot, statements, req.authenticatedUser, {
     depth: req.query.depth || 0,
-    showAbuse: show.includes("abuse"),
-    showAuthor: show.includes("author"),
-    showBallot: show.includes("ballot"),
-    showGrounds: show.includes("grounds"),
+    showBallots: show.includes("ballots"),
     showProperties: show.includes("properties"),
     showReferences: show.includes("references"),
-    showTags: show.includes("tags"),
+    showValues: show.includes("values"),
   })
   res.json({
     apiVersion: "1",
@@ -99,13 +96,10 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) 
     apiVersion: "1",
     data: await toBallotData(ballot, [statement], req.authenticatedUser, {
       depth: req.query.depth || 0,
-      showAbuse: show.includes("abuse"),
-      showAuthor: show.includes("author"),
-      showBallot: show.includes("ballot"),
-      showGrounds: show.includes("grounds"),
+      showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
-      showTags: show.includes("tags"),
+      showValues: show.includes("values"),
     }),
   })
 })
@@ -140,13 +134,10 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
     apiVersion: "1",
     data: await toBallotData(ballot, statements, req.authenticatedUser, {
       depth: req.query.depth || 0,
-      showAbuse: show.includes("abuse"),
-      showAuthor: show.includes("author"),
-      showBallot: show.includes("ballot"),
-      showGrounds: show.includes("grounds"),
+      showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
-      showTags: show.includes("tags"),
+      showValues: show.includes("values"),
     }),
   })
 })
