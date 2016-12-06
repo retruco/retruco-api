@@ -143,18 +143,18 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
   } else {
     statement = existingStatement
   }
-  let [oldBallot, ballot] = await rateStatement(statement.id, req.authenticatedUser.id, 1)
+  let [oldBallot, ballot] = await rateStatement(statement, req.authenticatedUser.id, 1)
 
-  // Optimistic optimizations
+  // // Optimistic optimizations
   const statements = []
-  const oldRating = statement.rating
-  const oldRatingSum = statement.ratingSum
-  statements.push(statement)
-  if (oldBallot === null) statement.ratingCount += 1
-  statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
-  statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
-  statement.rating = statement.ratingSum / statement.ratingCount
-  await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
+  // const oldRating = statement.rating
+  // const oldRatingSum = statement.ratingSum
+  // statements.push(statement)
+  // if (oldBallot === null) statement.ratingCount += 1
+  // statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
+  // statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
+  // statement.rating = statement.ratingSum / statement.ratingCount
+  // await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
 
   if (existingStatement === null) res.status(201)  // Created
   res.json({

@@ -29,7 +29,7 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
   let show = req.query.show || []
   let statement = req.statement
 
-  let ballot = unrateStatement(statement.id, req.authenticatedUser.id)
+  let ballot = unrateStatement(statement, req.authenticatedUser.id)
   const statements = []
   if (ballot === null) {
     ballot = {
@@ -38,30 +38,11 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
       // updatedAt: ...,
       voterId: req.authenticatedUser.id,
     }
-    statements.push(statement)
   } else {
-    // Optimistic optimization
-    if (statement.ratingCount) {
-      const oldRating = statement.rating
-      const oldRatingSum = statement.ratingSum
-      statement = Object.assign({}, statement)
-      statements.push(statement)
-      statement.ratingCount -= 1
-      if (statement.ratingCount === 0) {
-        statement.rating = 0
-        statement.ratingSum = 0
-      } else {
-        statement.ratingSum -= ballot.rating
-        statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
-        statement.rating = statement.ratingSum / statement.ratingCount
-      }
-      await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
-    } else {
-      statements.push(statement)
-    }
     delete ballot.rating
     delete ballot.updatedAt
   }
+  statements.push(statement)
 
   const data = await toBallotData(ballot, statements, req.authenticatedUser, {
     depth: req.query.depth || 0,
@@ -111,24 +92,8 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
   let statement = req.statement
   let ratingData = req.body
 
-  let [oldBallot, ballot] = await rateStatement(statement.id, req.authenticatedUser.id, ratingData.rating)
+  let [oldBallot, ballot] = await rateStatement(statement, req.authenticatedUser.id, ratingData.rating)
   if (oldBallot === null) res.status(201)  // Created
-
-  // Optimistic optimizations
-  const statements = []
-  const oldRating = statement.rating
-  const oldRatingSum = statement.ratingSum
-  statements.push(statement)
-  if (!statement.ratingCount) {
-    statement.rating = 0
-    statement.ratingCount = 0
-    statement.ratingSum = 0
-  }
-  if (oldBallot === null) statement.ratingCount += 1
-  statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
-  statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
-  statement.rating = statement.ratingSum / statement.ratingCount
-  await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
 
   res.json({
     apiVersion: "1",

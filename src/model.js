@@ -618,7 +618,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
   }
   await generateObjectTextSearch(property)
   if (userId) {
-    await rateStatement(property.id, userId, 1)
+    await rateStatement(property, userId, 1)
     if (inactiveStatementIds) inactiveStatementIds.delete(property.id)
   }
   if (properties) {
@@ -834,7 +834,7 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
   )
   await generateObjectTextSearch(card)
   if (userId) {
-    await rateStatement(card.id, userId, 1)
+    await rateStatement(card, userId, 1)
   }
   if (properties) {
     card.propertyByKeyId = {}
@@ -904,7 +904,26 @@ async function propagateOptimisticOptimization(statements, statement, oldRating,
 }
 
 
-export async function rateStatement(statementId, voterId, rating) {
+export async function rateStatement(statement, voterId, rating) {
+  assert.ok(statement)
+  assert.notStrictEqual(typeof statement, "string")
+  let [oldBallot, ballot] = await rateStatementId(statement.id, voterId, rating)
+  // Optimistic optimizations
+  // const statements = []  // TODO: statements should be a parameter of rateStatement.
+  // const oldRating = statement.rating
+  // const oldRatingSum = statement.ratingSum
+  // statements.push(statement)
+  if (oldBallot === null) statement.ratingCount += 1
+  statement.ratingSum += ballot.rating - (oldBallot === null ? 0 : oldBallot.rating)
+  statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
+  statement.rating = statement.ratingSum / statement.ratingCount
+  // await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
+  return [oldBallot, ballot]
+}
+
+
+export async function rateStatementId(statementId, voterId, rating) {
+  assert.strictEqual(typeof statementId, "string")
   let ballot = {
     id: `${statementId}/${voterId}`,
     rating,
@@ -1546,7 +1565,32 @@ function toUserJson(user, {showApiKey = false, showEmail = false} = {}) {
 }
 
 
-export async function unrateStatement(statementId, voterId) {
+export async function unrateStatement(statement, voterId) {
+  assert.ok(statement)
+  assert.notStrictEqual(typeof statement, "string")
+  let oldBallot = await unrateStatementId(statement.id, voterId)
+  // Optimistic optimizations
+  if (statement.ratingCount > 0) {
+    // const oldRating = statement.rating
+    // const oldRatingSum = statement.ratingSum
+    // statements.push(statement)
+    statement.ratingCount -= 1
+    if (statement.ratingCount === 0) {
+      statement.rating = 0
+      statement.ratingSum = 0
+    } else {
+      statement.ratingSum -= oldBallot.rating
+      statement.ratingSum = Math.max(-statement.ratingCount, Math.min(statement.ratingCount, statement.ratingSum))
+      statement.rating = statement.ratingSum / statement.ratingCount
+    }
+    // await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
+  }
+  return oldBallot
+}
+
+
+export async function unrateStatementId(statementId, voterId) {
+  assert.strictEqual(typeof statementId, "string")
   let ballot = {
     statementId,
     voterId,

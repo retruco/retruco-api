@@ -26,7 +26,7 @@ import config from "../config"
 import {db} from "../database"
 import {convertValidJsonToTypedValue, entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString,
   getOrNewProperty, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, toObjectJson,
-  unrateStatement, wrapAsyncMiddleware} from "../model"
+  unrateStatementId, wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
 import {getIdFromIdOrSymbol, getIdOrSymbolFromId} from "../symbols"
 
@@ -413,7 +413,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         userId,
       })
     } else {
-      await rateStatement(card.id, userId, 1)
+      await rateStatement(card, userId, 1)
       inactiveStatementIds.delete(card.id)
     }
     cardIdByKeyValue[keyValue] = card.id
@@ -440,7 +440,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   // Remove obsolete user ratings.
   for (let statementId of inactiveStatementIds) {
     // console.log("Removing inactive statement:", await describe(await getObjectFromId(statementId)))
-    await unrateStatement(statementId, userId)
+    await unrateStatementId(statementId, userId)
   }
   console.log("Number of inactiveStatementIds:", inactiveStatementIds.size)
 
