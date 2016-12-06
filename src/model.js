@@ -253,7 +253,8 @@ export function entryToValue(entry) {
 
 export async function generateObjectTextSearch(object) {
   if (object === null) return
-  let autocomplete = null
+  let autocompleteByLanguage = {}
+  let englishId = getIdFromSymbol("en")
   let languages = []
   let searchableTextsByWeightByLanguage = {}
   let table = null
@@ -262,25 +263,33 @@ export async function generateObjectTextSearch(object) {
     languages = config.languages
     let valueIdByKeyId = object.properties
     if (valueIdByKeyId) {
-      for (let keySymbol of ["name", "title"]) {
-        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-        if (valueId !== undefined) {
-          let value = await getObjectFromId(valueId)
-          assert.ok(value, `Missing value at ID ${valueId}`)
-          autocomplete = String(value.value)
-          break
+      for (let language of languages) {
+        let autocomplete = null
+        let languageId = getIdFromSymbol(language)
+        for (let keySymbol of ["name", "title"]) {
+          let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+          if (valueId !== undefined) {
+            let value = await getObjectFromId(valueId)
+            assert.ok(value, `Missing value at ID ${valueId}`)
+            let text = await getLanguageText(languageId, englishId, value)
+            if (text === null) continue
+            autocomplete = text
+            break
+          }
         }
-      }
-      for (let keySymbol of ["twitter-name"]) {
-        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-        if (valueId !== undefined) {
-          let value = await getObjectFromId(valueId)
-          assert.ok(value, `Missing value at ID ${valueId}`)
-          autocomplete = autocomplete ? `${autocomplete} (${value.value})` : `(${value.value})`
-          break
+        for (let keySymbol of ["twitter-name"]) {
+          let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+          if (valueId !== undefined) {
+            let value = await getObjectFromId(valueId)
+            assert.ok(value, `Missing value at ID ${valueId}`)
+            let text = await getLanguageText(languageId, englishId, value)
+            if (text === null) continue
+            autocomplete = autocomplete ? `${autocomplete} (${text})` : `(${text})`
+            break
+          }
         }
+        autocompleteByLanguage[language] = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
       }
-      autocomplete = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
       for (let [keySymbol, weight] of [
           ["description", "B"],
           ["name", "A"],
@@ -292,37 +301,42 @@ export async function generateObjectTextSearch(object) {
         let value = await getObjectFromId(valueId)
         assert.ok(value, `Missing value at ID ${valueId}`)
         if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
-          for (let [languageId, textId] of Object.entries(value.value)) {
-            let language = getIdOrSymbolFromId(languageId)
-            assert.notStrictEqual(languageId, language)
-            let typedText = await getObjectFromId(textId)
-            if (typedText === null) continue
+          for (let language of languages) {
+            let languageId = getIdFromSymbol(language)
+            let text = await getLanguageText(languageId, englishId, value)
+            if (text === null) continue
             let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
             if (searchableTextsByWeight === undefined) {
               searchableTextsByWeightByLanguage[language] = searchableTextsByWeight = {}
             }
             let searchableTexts = searchableTextsByWeight[weight]
             if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
-            searchableTexts.push(typedText.value)
+            searchableTexts.push(text)
           }
         }
       }
     }
   } else if (object.type === "Concept") {
     table = "concepts"
-    autocomplete = String(object.value)
+    for (let language of languages) {
+      autocompleteByLanguage[language] = String(object.value)
+    }
     // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
     languages = config.languages
     // TODO: searchableTextsByLanguage
   } else if (object.type === "Value") {
     table = "values"
-    autocomplete = String(object.value)
+    for (let language of languages) {
+      autocompleteByLanguage[language] = String(object.value)
+    }
     // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
     languages = config.languages
     // TODO: searchableTextsByLanguage
   } else if (object.type === "User") {
     table = "users"
-    autocomplete = `${object.name} <${object.email}>`
+    for (let language of languages) {
+      autocompleteByLanguage[language] = `${object.name} <${object.email}>`
+    }
     // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
     languages = config.languages
     for (let language of languages) {
@@ -344,17 +358,26 @@ export async function generateObjectTextSearch(object) {
   }
 
   if (table) {
-    if (!autocomplete) {
+    if (Object.keys(autocompleteByLanguage).length === 0) {
       await db.none(`DELETE FROM ${table}_autocomplete WHERE id = $1`, object.id)
     } else {
+      for (let [language, autocomplete] of Object.entries(autocompleteByLanguage)) {
+        let languageConfigurationName = languageConfigurationNameByCode[language]
+        assert.ok(languageConfigurationName, language)
+        await db.none(
+          `INSERT INTO ${table}_autocomplete(id, configuration_name, autocomplete)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (id, configuration_name)
+            DO UPDATE SET autocomplete = $3
+          `,
+          [object.id, languageConfigurationName, autocomplete],
+        )
+      }
+      let languageConfigurationNames = Object.keys(autocompleteByLanguage).map(
+        language => languageConfigurationNameByCode[language])
       await db.none(
-        `
-          INSERT INTO ${table}_autocomplete(id, autocomplete)
-          VALUES ($1, $2)
-          ON CONFLICT (id)
-          DO UPDATE SET autocomplete = $2
-        `,
-        [object.id, autocomplete],
+        `DELETE FROM ${table}_autocomplete WHERE id = $1 AND configuration_name NOT IN ($2:csv)`,
+        [object.id, languageConfigurationNames],
       )
     }
 
@@ -387,6 +410,22 @@ export async function generateObjectTextSearch(object) {
   }
 }
 
+
+async function getLanguageText(languageId, defaultLanguageId, typedValue) {
+  if (typedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
+    let textId = typedValue.value[languageId]
+    if (textId === undefined) textId = typedValue.value[defaultLanguageId]
+    if (textId === undefined) textId = Object.values(typedValue.value)[0]
+    if (textId === undefined) return null
+    let typedText = await getObjectFromId(textId)
+    if (typedText === null) return null
+    return typedText.value
+  } else if (typedValue.schemaId === getIdFromSymbol("schema:string")) {
+    return typedValue.value
+  } else {
+    return String(typedValue.value)
+  }
+}
 
 export async function getObjectFromId(id) {
   assert.ok(id)

@@ -78,6 +78,72 @@ for (let [path, schema] of Object.entries(bundleSchemaByPath)) {
 }
 
 
+export const autocompleteCards = wrapAsyncMiddleware(async function autocompleteCards(req, res) {
+  let language = req.query.language
+  let limit = req.query.limit || 20
+  let subTypes = req.query.type || []
+  let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
+  let tags = req.query.tag || []
+  let tagIds = tags.map(getIdFromIdOrSymbol).filter(tag => tag)
+  let term = req.query.term
+
+  let whereClauses = []
+
+  if (language) {
+    whereClauses.push(`configuration_name = '${languageConfigurationNameByCode[language]}'`)
+  }
+
+  if (subTypeIds.length > 0) {
+    whereClauses.push("sub_types && $<subTypeIds>")
+  }
+
+  if (tagIds.length > 0) {
+    whereClauses.push("tags && $<tagIds>")
+  }
+
+  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
+
+  let entries = await db.any(
+    `
+      SELECT objects.*, statements.*, cards.*, cards_autocomplete.autocomplete,
+        cards_autocomplete.autocomplete <-> $<term> AS distance
+      FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN cards ON statements.id = cards.id
+      INNER JOIN cards_autocomplete ON cards.id = cards_autocomplete.id
+      ${whereClause}
+      ORDER BY distance
+      LIMIT $<limit>
+    `,
+    {
+      // language,
+      limit,
+      subTypeIds,
+      tagIds,
+      term: term || "",
+    }
+  )
+
+  let autocompletions = []
+  for (let entry of entries) {
+    let autocomplete = entry.autocomplete
+    delete entry.autocomplete
+    let distance = entry.distance
+    delete entry.distance
+    autocompletions.push({
+      autocomplete,
+      card: await toObjectJson(await entryToCard(entry)),
+      distance,
+    })
+  }
+
+  res.json({
+    apiVersion: "1",
+    data: autocompletions,
+  })
+})
+
+
 export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, res) {
   let user = req.authenticatedUser
   let userId = user ? user.id : null

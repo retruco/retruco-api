@@ -101,6 +101,10 @@ async function configureDatabase() {
   }
   if (version.number < 18) {
     await db.none("DROP INDEX IF EXISTS values_schema_id_widget_id_value_idx")
+    await db.none("DROP TABLE IF EXISTS cards_autocomplete")
+    await db.none("DROP TABLE IF EXISTS concepts_autocomplete")
+    await db.none("DROP TABLE IF EXISTS users_autocomplete")
+    await db.none("DROP TABLE IF EXISTS values_autocomplete")
   }
 
   // Objects
@@ -176,7 +180,9 @@ async function configureDatabase() {
   await db.none(`
     CREATE TABLE IF NOT EXISTS users_autocomplete(
       autocomplete text NOT NULL,
-      id bigint NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+      configuration_name text NOT NULL,
+      id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (id, configuration_name)
     )
   `)
   await db.none(`
@@ -222,7 +228,9 @@ async function configureDatabase() {
   await db.none(`
     CREATE TABLE IF NOT EXISTS values_autocomplete(
       autocomplete text NOT NULL,
-      id bigint NOT NULL PRIMARY KEY REFERENCES values(id) ON DELETE CASCADE
+      configuration_name text NOT NULL,
+      id bigint NOT NULL REFERENCES values(id) ON DELETE CASCADE,
+      PRIMARY KEY (id, configuration_name)
     )
   `)
   await db.none(`
@@ -277,7 +285,9 @@ async function configureDatabase() {
   await db.none(`
     CREATE TABLE IF NOT EXISTS cards_autocomplete(
       autocomplete text NOT NULL,
-      id bigint NOT NULL PRIMARY KEY REFERENCES cards(id) ON DELETE CASCADE
+      configuration_name text NOT NULL,
+      id bigint NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+      PRIMARY KEY (id, configuration_name)
     )
   `)
   await db.none(`
@@ -313,7 +323,9 @@ async function configureDatabase() {
   await db.none(`
     CREATE TABLE IF NOT EXISTS concepts_autocomplete(
       autocomplete text NOT NULL,
-      id bigint NOT NULL PRIMARY KEY REFERENCES concepts(id) ON DELETE CASCADE
+      configuration_name text NOT NULL,
+      id bigint NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
+      PRIMARY KEY (id, configuration_name)
     )
   `)
   await db.none(`

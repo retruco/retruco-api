@@ -111,6 +111,7 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   })
 
   app.get("/cards", usersController.authenticate(false), cardsController.listCards)
+  app.get("/cards/autocomplete", cardsController.autocompleteCards)
   app.post("/cards/bundle", usersController.authenticate(true), cardsController.bundleCards)
   app.post("/cards/easy", usersController.authenticate(true), cardsController.createCardEasy)
   app.get("/cards/tags-popularity", usersController.authenticate(false), cardsController.listTagsPopularity)

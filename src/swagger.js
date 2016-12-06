@@ -177,6 +177,60 @@ const SPEC = {
         // security: {},
       },
     },
+    "/cards/autocomplete": {
+      get: {
+        tags: ["autocompletion", "card"],
+        summary: "Autocomplete cards",
+        // description: "",
+        // externalDocs: {},
+        operationId: "cards.autocomplete",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/languageParam",
+          },
+          {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/termQueryParam",
+          },
+          {
+            $ref: "#/parameters/typesQueryParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing cards and their autocompletion",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/CardsAutocompletionList",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/cards/bundle": {
       post: {
         tags: ["card", "statement"],
@@ -2733,6 +2787,29 @@ const SPEC = {
           // required: [],
         },
       ],
+    },
+    CardsAutocompletionList: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          autocomplete: {
+            type: "string",
+          },
+          card: {
+            $ref: "#/definitions/Card",
+          },
+          distance: {
+            maximum: 1,
+            minimum: 0,
+            type: "number",
+          },
+        },
+        required: [
+          "autocomplete",
+          "statement",
+        ],
+      },
     },
     DataId: {
       type: "object",
