@@ -75,6 +75,7 @@ export const activatorUser =  {
   },
 }
 
+
 export function authenticate(require) {
   return wrapAsyncMiddleware(async function authenticate(req, res, next) {
     let credentials = basicAuth(req)
@@ -174,9 +175,27 @@ export function authenticate(require) {
 export function completeActivateAfterActivator(req, res) {
   res.status(req.activator.code)
   if (req.activator.code === 200) {
-    res.json({
-      apiVersion: "1",
-      data: req.activator.message,
+    db.oneOrNone(
+      `
+        SELECT * FROM objects
+        INNER JOIN users ON objects.id = users.id
+        WHERE objects.id = $1
+      `,
+      req.params.user,
+    )
+    .then(function (user) {
+      res.json({
+        apiVersion: "1",
+        data: toUserJson(entryToUser(user), {showApiKey: true, showEmail: true}),
+      })
+    })
+    .catch(function (error) {
+      console.log("Exception in completeActivateAfterActivator:", error.stack || error)
+      res.status(500)
+      res.json({
+        apiVersion: "1",
+        message: `An unexpected error occurred after completing user activation: ${req.activator.message}`,
+      })
     })
   } else {
     console.log("An error occurred while completing user activation:", req.activator.message)
