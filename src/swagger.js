@@ -2438,6 +2438,57 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/values": {
+      post: {
+        tags: ["value"],
+        summary: "Create a new value or retrieve the existing one and return it, giving its initial schema & widget",
+        // description: "",
+        // externalDocs: {},
+        operationId: "statements.createCard",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/valueBodyParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "201": {
+            description: "A wrapper containing the created card and eventual warnings",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+                warnings: {
+                  type: "object",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+    },
     // parameters: {},
   }),
   definitions: {
@@ -3200,6 +3251,29 @@ const SPEC = {
       required: true,
       schema: {
         $ref: "#/definitions/User",
+      },
+    },
+    valueBodyParam: {
+      // description: "",
+      in: "body",
+      name: "valueInfos",
+      required: true,
+      schema: {
+        type: "object",
+        // properties: {
+        //   schema: {
+        //     type: "object",
+        //   },
+        //   value: can be anything,
+        //   widget: {
+        //     type: "object",
+        //   },
+        // },
+        // required: [
+        //   "schema",
+        //   "value",
+        //   "widget",
+        // ],
       },
     },
   },

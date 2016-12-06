@@ -40,6 +40,7 @@ import * as statementsController from "./controllers/statements"
 import * as tagsController from "./controllers/tags"
 import * as uploadsController from "./controllers/uploads"
 import * as usersController from "./controllers/users"
+import * as valuesController from "./controllers/values"
 import {schemaByPath} from "./schemas"
 import swaggerSpecification from "./swagger"
 
@@ -191,6 +192,8 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
     usersController.completeResetPasswordAfterActivator)
   app.get("/users/:userName/send-activation", usersController.requireUser, usersController.authenticate(true),
     usersController.sendActivation, activator.createActivateNext, usersController.sendActivationAfterActivator)
+
+  app.post("/values", usersController.authenticate(true), valuesController.createValue)
 
   app.use(function (err, req, res) {
       // Error handling middleware (must be last use of app)

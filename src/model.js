@@ -943,16 +943,18 @@ export async function toDataJson(objectOrObjects, user, {
     visitedIds: new Set(),
   }
 
-  if (Array.isArray(objectOrObjects)) {
-    data.ids = objectOrObjects.map(object => object.symbol || object.id)
-    for (let object of objectOrObjects) {
-      await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showReferences, showValues})
+  if (objectOrObjects !== null) {
+    if (Array.isArray(objectOrObjects)) {
+      data.ids = objectOrObjects.map(object => object.symbol || object.id)
+      for (let object of objectOrObjects) {
+        await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showReferences, showValues})
+      }
+    } else {
+      assert.ok(objectOrObjects)
+      data.id = objectOrObjects.symbol || objectOrObjects.id
+      await toDataJson1(objectOrObjects, data, objectsCache, user, {depth, showBallots, showProperties, showReferences,
+        showValues})
     }
-  } else {
-    assert.ok(objectOrObjects)
-    data.id = objectOrObjects.symbol || objectOrObjects.id
-    await toDataJson1(objectOrObjects, data, objectsCache, user, {depth, showBallots, showProperties, showReferences,
-      showValues})
   }
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
