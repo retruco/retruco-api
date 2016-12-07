@@ -22,7 +22,7 @@
 import assert from "assert"
 
 import {db} from "../database"
-import {ownsUserId, toDataJson1, wrapAsyncMiddleware} from "../model"
+import {getObjectFromId, ownsUserId, toDataJson1, wrapAsyncMiddleware} from "../model"
 
 
 export const createCollection = wrapAsyncMiddleware(async function createCollection(req, res) {
@@ -33,11 +33,17 @@ export const createCollection = wrapAsyncMiddleware(async function createCollect
 
   let collection = collectionInfos
   collection.authorId = userId
-  if (collection.cardIds) {
-    collection.cardIds = collection.cardIds
-      .map(cardId => parseInt(cardId))
-      .filter(cardId => cardId)
+
+  let cardIds = []
+  for (let cardId of collection.cardIds || []) {
+    cardId = Number(cardId)
+    if (Number.isNaN(cardId)) continue
+    let card = await getObjectFromId(String(cardId))
+    if (card === null) continue
+    cardIds.push(cardId)
   }
+  collection.cardIds = cardIds.length === 0 ? null : cardIds
+
   let entry = await db.one(
     `
       INSERT INTO collections(author, cards, created_at, description, logo, name)
@@ -109,12 +115,16 @@ export const editCollection = wrapAsyncMiddleware(async function editCollection(
     return
   }
 
-  collection.cardIds = collectionInfos.cardIds
-  if (collection.cardIds) {
-    collection.cardIds = collection.cardIds
-      .map(cardId => parseInt(cardId))
-      .filter(cardId => cardId)
+  let cardIds = []
+  for (let cardId of collection.cardIds || []) {
+    cardId = Number(cardId)
+    if (Number.isNaN(cardId)) continue
+    let card = await getObjectFromId(String(cardId))
+    if (card === null) continue
+    cardIds.push(cardId)
   }
+  collection.cardIds = cardIds.length === 0 ? null : cardIds
+
   collection.description = collectionInfos.description
   collection.logo = collectionInfos.logo
   collection.name = collectionInfos.name
