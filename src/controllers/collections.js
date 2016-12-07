@@ -187,7 +187,7 @@ export const listCollections = wrapAsyncMiddleware(async function listCollection
   let collections = (await db.any(
     `
       SELECT * FROM collections
-      ORDER BY id DESC
+      ORDER BY id
       LIMIT $<limit>
       OFFSET $<offset>
     `,
@@ -235,7 +235,7 @@ export const listUserCollections = wrapAsyncMiddleware(async function listUserCo
   let collections = (await db.any(
     `
       SELECT * FROM collections WHERE author = $<authorId>
-      ORDER BY id DESC
+      ORDER BY id
       LIMIT $<limit>
       OFFSET $<offset>
     `,
