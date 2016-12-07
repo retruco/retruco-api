@@ -170,6 +170,14 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
+    symbol: "schema:value-id",
+    schemaSymbol: "schema:object",
+    value: {
+      $ref: "/schemas/value-id",
+    },
+    widgetSymbol: null,
+  },
+  {
     symbol: "schema:value-ids-array",
     schemaSymbol: "schema:object",
     value: {
