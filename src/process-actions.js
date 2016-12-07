@@ -482,6 +482,16 @@ async function processAction(action) {
         object,
       )).count
       ogpToolboxScore *= Math.max(referencesCount, 0.5)
+      let locationsCount = 0
+      let locationsId = (object.properties || {})[getIdFromSymbol("location")]
+      if (locationsId) {
+        let typedLocation = await getObjectFromId(locationsId)
+        if (typedLocation !== null && typedLocation.schemaId === getIdFromSymbol("schema:value-ids-array")) {
+          locationsCount = typedLocation.value.length
+        }
+      }
+      ogpToolboxScore *= Math.max(locationsCount, 1)
+
       // if ((object.subTypeIds || []).includes(getIdFromSymbol("software"))) {}
 
       ogpToolboxScore = Math.round(ogpToolboxScore)
