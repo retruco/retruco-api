@@ -424,6 +424,273 @@ const SPEC = {
         // security: {},
       },
     },
+    "/collections": {
+      get: {
+        tags: ["collections"],
+        summary: "List collections",
+        // description: "",
+        // externalDocs: {},
+        operationId: "collections.list",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/offsetQueryParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing cards",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataIdsList",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+      post: {
+        tags: ["collection"],
+        summary: "Create a new collection",
+        // description: "",
+        // externalDocs: {},
+        operationId: "collections.create",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/collectionBodyParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "201": {
+            description: "A wrapper containing the created collection",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+                warnings: {
+                  type: "object",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+    },
+    "/collections/{id}": {
+      delete: {
+        tags: ["collections"],
+        summary: "Delete collection",
+        // description: "",
+        // externalDocs: {},
+        operationId: "collections.delete",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/idPathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing cards",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+      get: {
+        tags: ["collections"],
+        summary: "Get collection",
+        // description: "",
+        // externalDocs: {},
+        operationId: "collections.get",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/idPathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing cards",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+      post: {
+        tags: ["collections"],
+        summary: "Edit collection",
+        // description: "",
+        // externalDocs: {},
+        operationId: "collections.delete",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/idPathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/collectionBodyParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing cards",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/login": {
       post: {
         tags: ["user"],
@@ -2419,6 +2686,66 @@ const SPEC = {
         // security: {},
       },
     },
+    "/users/{userName}/collections": {
+      get: {
+        tags: ["collections"],
+        summary: "List user collections",
+        // description: "",
+        // externalDocs: {},
+        operationId: "collections.listUser",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/userNamePathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/offsetQueryParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing collections",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataIdsList",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/users/{user}/reset-password": {
       post: {
         tags: ["password", "user"],
@@ -2811,6 +3138,40 @@ const SPEC = {
         ],
       },
     },
+    Collection: {
+      type: "object",
+      properties: {
+        authorId: {
+          $ref: "#/definitions/Id",
+        },
+        cardIds: {
+          type: "array",
+          items: {
+            $ref: "#/definitions/Id",
+          },
+        },
+        createddAt: {
+          type: "string",
+          format: "date-time",
+        },
+        description: {
+          type: "string",
+        },
+        id: {
+          $ref: "#/definitions/Id",
+        },
+        logo: {
+          type: "string",
+        },
+        name: {
+          type: "string",
+        },
+      },
+      required: [
+        // "authorId",
+        "name",
+      ],
+    },
     DataId: {
       type: "object",
       properties: {
@@ -2818,6 +3179,12 @@ const SPEC = {
           type: "object",
           additionalProperties: {
             $ref: "#/definitions/Ballot",
+          },
+        },
+        collections: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/Collection",
           },
         },
         id: {
@@ -2847,6 +3214,12 @@ const SPEC = {
           type: "object",
           additionalProperties: {
             $ref: "#/definitions/Ballot",
+          },
+        },
+        collections: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/Collection",
           },
         },
         ids: {
@@ -3200,6 +3573,15 @@ const SPEC = {
         ],
       },
     },
+    collectionBodyParam: {
+      // description: "",
+      in: "body",
+      name: "collectionInfos",
+      required: true,
+      schema: {
+        $ref: "#/definitions/Collection",
+      },
+    },
     createdAtParam: {
       // description: "",
       in: "path",
@@ -3234,7 +3616,7 @@ const SPEC = {
       required: true,
       type: "string",
     },
-    idParam: {
+    idPathParam: {
       // description: "",
       in: "path",
       name: "id",

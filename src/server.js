@@ -35,6 +35,7 @@ import * as abusesController from "./controllers/abuses"
 import * as argumentsController from "./controllers/arguments"
 import * as ballotsController from "./controllers/ballots"
 import * as cardsController from "./controllers/cards"
+import * as collectionsController from "./controllers/collections"
 import * as objectsController from "./controllers/objects"
 import * as propertiesController from "./controllers/properties"
 import * as statementsController from "./controllers/statements"
@@ -116,6 +117,15 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   app.post("/cards/easy", usersController.authenticate(true), cardsController.createCardEasy)
   app.get("/cards/tags-popularity", usersController.authenticate(false), cardsController.listTagsPopularity)
 
+  app.get("/collections", usersController.authenticate(false), collectionsController.listCollections)
+  app.post("/collections", usersController.authenticate(true), collectionsController.createCollection)
+  app.delete("/collections/:id", usersController.authenticate(true), collectionsController.requireCollection,
+    collectionsController.deleteCollection)
+  app.get("/collections/:id", usersController.authenticate(false), collectionsController.requireCollection,
+    collectionsController.getCollection)
+  app.post("/collections/:id", usersController.authenticate(true), collectionsController.requireCollection,
+    collectionsController.editCollection)
+
   app.post("/login", usersController.login)
 
   for (let [path, schema] of Object.entries(schemaByPath)) {
@@ -192,6 +202,8 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
     usersController.getUser)
   // app.patch("/users/:userName", usersController.requireUser, usersController.patchUser)
   app.get("/users/:user/activate", activator.completeActivateNext, usersController.completeActivateAfterActivator)
+  app.get("/users/:userName/collections", usersController.requireUser, usersController.authenticate(false),
+    collectionsController.listUserCollections)
   app.post("/users/:user/reset-password", activator.completePasswordResetNext,
     usersController.completeResetPasswordAfterActivator)
   app.get("/users/:userName/send-activation", usersController.requireUser, usersController.authenticate(true),

@@ -414,6 +414,20 @@ async function configureDatabase() {
   // await db.none("CREATE INDEX IF NOT EXISTS ballots_updated_at_idx ON ballots(updated_at)")
   await db.none("CREATE INDEX IF NOT EXISTS ballots_voter_id_idx ON ballots(voter_id)")
 
+  // Table: collections
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS collections(
+      author bigint NOT NULL REFERENCES users(id),
+      cards bigint[],
+      created_at timestamp without time zone NOT NULL,
+      description text,
+      id bigserial NOT NULL PRIMARY KEY,
+      logo text,
+      name text NOT NULL
+    )
+  `)
+  await db.none("CREATE INDEX IF NOT EXISTS collections_author_idx ON collections(author)")
+
   // Table: keys
   // Contains the prefered schemas and widgets for each key of properties
   await db.none(`

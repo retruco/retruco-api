@@ -856,6 +856,13 @@ export function ownsUser(user, otherUser) {
 }
 
 
+export function ownsUserId(user, otherUserId) {
+  if (!user) return false
+  if (user.isAdmin) return true
+  return user.id === otherUserId
+}
+
+
 export {propagateOptimisticOptimization}
 async function propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum) {
   // const newRatingCount = statement.ratingCount !== undefined ? statement.ratingCount : 0
@@ -1058,7 +1065,7 @@ export async function toDataJson(objectOrObjects, user, {
 }
 
 
-async function toDataJson1(idOrObject, data, objectsCache, user, {
+export async function toDataJson1(idOrObject, data, objectsCache, user, {
   depth = 0,
   showBallots = false,
   showProperties = false,
@@ -1066,6 +1073,7 @@ async function toDataJson1(idOrObject, data, objectsCache, user, {
   showValues = false,
 } = {}) {
   let object
+  if (typeof idOrObject === "number") idOrObject = String(idOrObject)
   if (typeof idOrObject === "string") {
     if (data.visitedIds.has(idOrObject)) return
     object = await getObjectFromId(idOrObject)
