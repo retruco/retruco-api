@@ -714,7 +714,7 @@ export async function getOrNewValueWithSymbol(schemaId, widgetId, value, {symbol
       `,
       typedValue,
     )
-    await generateObjectTextSearch(typedValue)
+    // await generateObjectTextSearch(typedValue)
   }
   if (symbol) {
     typedValue.symbol = symbol
