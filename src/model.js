@@ -59,19 +59,27 @@ export async function addAction(objectId, type) {
 }
 
 
-export function addReferences(referencedIds, schema, value) {
+export async function addReferences(referencedIds, schema, value) {
   if (schema.$ref === "/schemas/bijective-card-reference") {
     referencedIds.add(value.targetId)
-  } else if (["/schemas/card-id", "/schemas/value-id"].includes(schema.$ref)) {
+  } else if (schema.$ref === "/schemas/card-id") {
     referencedIds.add(value)
+  } else if (schema.$ref === "/schemas/value-id") {
+    let typedReference = await getObjectFromId(value)
+    if (typedReference.schemaId === getIdFromSymbol("schema:card-id")) {
+      referencedIds.add(typedReference.value)
+    } else {
+      assert.notStrictEqual(typedReference.schemaId, getIdFromSymbol("schema:value-id"))
+      referencedIds.add(value)
+    }
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       for (let [index, itemSchema] of schema.items.entries()) {
-        addReferences(referencedIds, itemSchema, value[index])
+        await addReferences(referencedIds, itemSchema, value[index])
       }
     } else {
       for (let itemValue of value) {
-        addReferences(referencedIds, schema.items, itemValue)
+        await addReferences(referencedIds, schema.items, itemValue)
       }
     }
   }
@@ -1466,7 +1474,7 @@ export async function toObjectJson(object, {showApiKey = false, showEmail = fals
 //   if (showReferences && depth > 0 && statement.type === "Card") {
 //     let referencedIds = new Set()
 //     for (let [name, schema] of Object.entries(statement.schemas)) {
-//       addReferences(referencedIds, schema, statement.values[name])
+//       await addReferences(referencedIds, schema, statement.values[name])
 //     }
 //     if (referencedIds.size > 0) {
 //       const references = (await db.any(

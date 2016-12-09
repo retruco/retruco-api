@@ -322,7 +322,7 @@ async function processAction(action) {
       console.log("Skipping property value without schema:", typedValue)
       continue
     }
-    addReferences(referencedIds, schema, typedValue.value)
+    await addReferences(referencedIds, schema, typedValue.value)
   }
   referencedIds.delete(object.id)  // Remove reference to itself.
 
