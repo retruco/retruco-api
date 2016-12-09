@@ -437,28 +437,6 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "used-by",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Used by",
-    },
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
-    ],
-  },
-  {
-    symbol: "used-for",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Used for",
-    },
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
-    ],
-  },
-  {
     symbol: "website",
     schemaSymbol: "schema:localized-string",
     value: {
@@ -539,6 +517,50 @@ export const symbolizedTypedValues = [
       "logo",
       "screenshot",
       "tags",
+    ],
+  },
+  {
+    symbol: "use-cases",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Use Cases",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
+    ],
+  },
+  {
+    symbol: "used-by",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Used by",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
+    ],
+  },
+  {
+    symbol: "used-for",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Used for",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
+    ],
+  },
+  {
+    symbol: "uses",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Uses",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
     ],
   },
 ]
