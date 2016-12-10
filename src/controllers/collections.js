@@ -116,7 +116,7 @@ export const editCollection = wrapAsyncMiddleware(async function editCollection(
   }
 
   let cardIds = []
-  for (let cardId of collection.cardIds || []) {
+  for (let cardId of collectionInfos.cardIds || []) {
     cardId = Number(cardId)
     if (Number.isNaN(cardId)) continue
     let card = await getObjectFromId(String(cardId))
