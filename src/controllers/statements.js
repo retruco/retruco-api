@@ -345,7 +345,7 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
       term,
       userId: user === null ? null : user.id,
     }
-  let count = (await db.one(`SELECT count(*) as count FROM statements ${whereClause}`, coreArguments)).count
+  let count = Number((await db.one(`SELECT count(*) as count FROM statements ${whereClause}`, coreArguments)).count)
 
   let statements = (await db.any(
     `SELECT * FROM statements ${whereClause} ORDER BY created_at DESC LIMIT $<limit> OFFSET $<offset>`,

@@ -186,13 +186,13 @@ export const listCollections = wrapAsyncMiddleware(async function listCollection
   let authenticatedUser = req.authenticatedUser
 
   let coreArguments = {}
-  let count = (await db.one(
+  let count = Number((await db.one(
     `
       SELECT count(*) as count
       FROM collections
     `,
     coreArguments,
-  )).count
+  )).count)
 
   let collections = (await db.any(
     `
@@ -233,14 +233,14 @@ export const listUserCollections = wrapAsyncMiddleware(async function listUserCo
   let coreArguments = {
     authorId: user.id,
   }
-  let count = (await db.one(
+  let count = Number((await db.one(
     `
       SELECT count(*) as count
       FROM collections
       WHERE author = $<authorId>
     `,
     coreArguments,
-  )).count
+  )).count)
 
   let collections = (await db.any(
     `

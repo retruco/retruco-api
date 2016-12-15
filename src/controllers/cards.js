@@ -814,7 +814,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     term,
     userId: user === null ? null : user.id,
   }
-  let count = (await db.one(
+  let count = Number((await db.one(
     `
       SELECT count(*) as count
       FROM objects
@@ -823,7 +823,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       ${whereClause}
     `,
     coreArguments,
-  )).count
+  )).count)
 
   let cards = (await db.any(
     `
@@ -891,7 +891,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
     subTypeIds,
     tagIds,
   }
-  let count = (await db.one(
+  let count = Number((await db.one(
     `
       SELECT count(*)
       FROM (
@@ -901,7 +901,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       ) AS distinct_tags
     `,
     coreArguments,
-  )).count
+  )).count)
 
   let popularity = (await db.any(
     `
@@ -919,7 +919,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
     }),
   )).filter(entry => !tagIds.includes(entry.tag)).map(entry => ({
     tagId: entry.tag,
-    count: entry.count,
+    count: Number(entry.count),
   }))
 
   let valueByIdOrSymbol = {}

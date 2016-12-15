@@ -477,10 +477,10 @@ async function processAction(action) {
         || keyIds.includes(getIdFromSymbol("screenshot"))) {
         ogpToolboxScore *= 10
       }
-      let referencesCount = (await db.one(
+      let referencesCount = Number((await db.one(
         "SELECT count(*) AS count FROM objects_references WHERE target_id = $<id>",
         object,
-      )).count
+      )).count)
       ogpToolboxScore *= Math.max(referencesCount, 0.5)
       let locationsCount = 0
       let locationsId = (object.properties || {})[getIdFromSymbol("location")]
