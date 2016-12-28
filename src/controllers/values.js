@@ -21,7 +21,10 @@
 
 import Ajv from "ajv"
 
-import {convertValidJsonToTypedValue, getObjectFromId, toDataJson, wrapAsyncMiddleware} from "../model"
+import config from "../config"
+import {db} from "../database"
+import {convertValidJsonToTypedValue, entryToValue, getObjectFromId, languageConfigurationNameByCode, toDataJson,
+  wrapAsyncMiddleware} from "../model"
 import {schemaByPath} from "../schemas"
 import {getIdFromIdOrSymbol} from "../symbols"
 
@@ -133,4 +136,84 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
   if (warning !== null) result.warnings = {value: warning}
   res.status(201)  // Created
   res.json(result)
+})
+
+
+export const listValues = wrapAsyncMiddleware(async function listValues(req, res) {
+  let authenticatedUser = req.authenticatedUser
+  let language = req.query.language
+  let limit = req.query.limit || 20
+  let offset = req.query.offset || 0
+  let show = req.query.show || []
+  let term = req.query.term
+
+  let whereClauses = []
+
+  if (term) {
+    term = term.trim()
+    if (term) {
+      let languages = language ? [language] : config.languages
+      let termClauses = languages.map( language =>
+        `values.id IN (
+          SELECT id
+          FROM values_text_search
+          WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
+          AND configuration_name = '${languageConfigurationNameByCode[language]}'
+        )`
+      )
+      if (termClauses.length === 1) {
+        whereClauses.push(termClauses[0])
+      } else if (termClauses.length > 1) {
+        let termClause = termClauses.join(" OR ")
+        whereClauses.push(`(${termClause})`)
+      }
+    }
+  }
+
+  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
+
+  let coreArguments = {
+    term,
+  }
+  let count = Number((await db.one(
+    `
+      SELECT count(*) as count
+      FROM objects
+      INNER JOIN values ON objects.id = values.id
+      ${whereClause}
+    `,
+    coreArguments,
+  )).count)
+
+  let values = (await db.any(
+    `
+      SELECT
+        objects.*, values.*, symbol
+      FROM objects
+      INNER JOIN values ON objects.id = values.id
+      LEFT JOIN symbols ON objects.id = symbols.id
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $<limit>
+      OFFSET $<offset>
+    `,
+    Object.assign({}, coreArguments, {
+      limit,
+      offset,
+    }),
+  )).map(entryToValue)
+
+  res.json({
+    apiVersion: "1",
+    count: count,
+    data: await toDataJson(values, authenticatedUser, {
+      depth: req.query.depth || 0,
+      showBallots: show.includes("ballots"),
+      showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
+      showValues: show.includes("values"),
+    }),
+    limit: limit,
+    offset: offset,
+  })
 })

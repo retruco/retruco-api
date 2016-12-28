@@ -209,6 +209,7 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   app.get("/users/:userName/send-activation", usersController.requireUser, usersController.authenticate(true),
     usersController.sendActivation, activator.createActivateNext, usersController.sendActivationAfterActivator)
 
+  app.get("/values", usersController.authenticate(false), valuesController.listValues)
   app.post("/values", usersController.authenticate(true), valuesController.createValue)
 
   app.use(function (err, req, res) {
