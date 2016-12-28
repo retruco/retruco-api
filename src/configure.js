@@ -21,8 +21,8 @@
 
 import assert from "assert"
 
-import {db, entryToStatement, versionNumber} from "./database"
-import {entryToValue, generateObjectTextSearch, getOrNewProperty, getValue, types} from "./model"
+import {db, versionNumber} from "./database"
+import {entryToValue, getOrNewProperty, getValue, types} from "./model"
 import {getIdFromSymbol, symbolizedTypedValues, idBySymbol, symbolById} from "./symbols"
 
 
@@ -465,12 +465,6 @@ async function configureDatabase() {
         ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation';
         ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'Event';
     `)
-  }
-  if (version.number < 4) {
-    let statements = (await db.any("SELECT * FROM statements")).map(entryToStatement)
-    for (let statement of statements) {
-      await generateObjectTextSearch(statement)
-    }
   }
   if (version.number < 8) {
     console.log(`
