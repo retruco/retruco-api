@@ -107,7 +107,7 @@ const SPEC = {
     },
     "/cards": {
       get: {
-        tags: ["cards"],
+        tags: ["card"],
         summary: "List cards",
         // description: "",
         // externalDocs: {},
@@ -331,7 +331,7 @@ const SPEC = {
     },
     "/cards/tags-popularity": {
       get: {
-        tags: ["cards", "tags"],
+        tags: ["card", "tag"],
         summary: "List popularity of tags given to cards",
         // description: "",
         // externalDocs: {},
@@ -426,7 +426,7 @@ const SPEC = {
     },
     "/collections": {
       get: {
-        tags: ["collections"],
+        tags: ["collection"],
         summary: "List collections",
         // description: "",
         // externalDocs: {},
@@ -532,7 +532,7 @@ const SPEC = {
     },
     "/collections/{id}": {
       delete: {
-        tags: ["collections"],
+        tags: ["collection"],
         summary: "Delete collection",
         // description: "",
         // externalDocs: {},
@@ -584,7 +584,7 @@ const SPEC = {
         // security: {},
       },
       get: {
-        tags: ["collections"],
+        tags: ["collection"],
         summary: "Get collection",
         // description: "",
         // externalDocs: {},
@@ -636,7 +636,7 @@ const SPEC = {
         // security: {},
       },
       post: {
-        tags: ["collections"],
+        tags: ["collection"],
         summary: "Edit collection",
         // description: "",
         // externalDocs: {},
@@ -2688,7 +2688,7 @@ const SPEC = {
     },
     "/users/{userName}/collections": {
       get: {
-        tags: ["collections"],
+        tags: ["collection", "user"],
         summary: "List user collections",
         // description: "",
         // externalDocs: {},
