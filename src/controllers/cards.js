@@ -103,9 +103,10 @@ export const autocompleteCards = wrapAsyncMiddleware(async function autocomplete
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
+  // The DISTINCT below is needed when language is not specified (=> several cards_autocomplete for the same object).
   let entries = await db.any(
     `
-      SELECT objects.*, statements.*, cards.*, cards_autocomplete.autocomplete,
+      SELECT DISTINCT objects.*, statements.*, cards.*, cards_autocomplete.autocomplete,
         cards_autocomplete.autocomplete <-> $<term> AS distance
       FROM objects
       INNER JOIN statements ON objects.id = statements.id
