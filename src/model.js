@@ -66,7 +66,9 @@ export async function addReferences(referencedIds, schema, value) {
     referencedIds.add(value)
   } else if (schema.$ref === "/schemas/value-id") {
     let typedReference = await getObjectFromId(value)
-    if (typedReference.schemaId === getIdFromSymbol("schema:card-id")) {
+    if (typedReference.schemaId === getIdFromSymbol("schema:bijective-card-reference")) {
+      referencedIds.add(typedReference.value.targetId)
+    } else if (typedReference.schemaId === getIdFromSymbol("schema:card-id")) {
       referencedIds.add(typedReference.value)
     } else {
       assert.notStrictEqual(typedReference.schemaId, getIdFromSymbol("schema:value-id"))
