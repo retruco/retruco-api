@@ -328,27 +328,18 @@ export async function generateObjectTextSearch(object) {
     }
   } else if (object.type === "Concept") {
     table = "concepts"
-    for (let language of languages) {
-      autocompleteByLanguage[language] = String(object.value)
-    }
-    // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
     languages = config.languages
-    // TODO: searchableTextsByLanguage
-  } else if (object.type === "Value") {
-    table = "values"
-    for (let language of languages) {
-      autocompleteByLanguage[language] = String(object.value)
-    }
-    // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
-    languages = config.languages
+    // for (let language of languages) {
+    //   autocompleteByLanguage[language] = String(object.value)
+    // }
     // TODO: searchableTextsByLanguage
   } else if (object.type === "User") {
     table = "users"
-    for (let language of languages) {
-      autocompleteByLanguage[language] = `${object.name} <${object.email}>`
-    }
     // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
     languages = config.languages
+    // for (let language of languages) {
+    //   autocompleteByLanguage[language] = `${object.name} <${object.email}>`
+    // }
     for (let language of languages) {
       for (let text of [
         object.name,
@@ -365,6 +356,16 @@ export async function generateObjectTextSearch(object) {
         }
       }
     }
+  } else if (object.type === "Value") {
+    table = "values"
+    languages = config.languages
+    for (let language of languages) {
+      let languageId = getIdFromSymbol(language)
+      let text = await getLanguageText(languageId, englishId, object)
+      if (text === null) continue
+      autocompleteByLanguage[language] = text
+    }
+    // TODO: searchableTextsByLanguage
   }
 
   if (table) {
