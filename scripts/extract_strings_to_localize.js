@@ -18,12 +18,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+/*jshint esversion: 6 */
+import json2csv from "json2csv";
 
-import json2csv from "json2csv"
-
-import {checkDatabase, db} from "../src/database"
-import {getIdFromSymbol} from "../src/symbols"
-
+import {checkDatabase, db} from "../src/database";
+import {getIdFromSymbol} from "../src/symbols";
 
 const fields = [
   {
@@ -35,18 +34,102 @@ const fields = [
     value: "symbol",
   },
   {
-    label: "en",
-    value: "en",
+    label: "bg",
+    value: "bg"
   },
   {
-    label: "es",
-    value: "es",
+    label: "hr",
+    value: "hr"
+  },
+  {
+    label: "cs",
+    value: "cs"
+  },
+  {
+    label: "da",
+    value: "da"
+  },
+  {
+    label: "nl",
+    value: "nl"
+  },
+  {
+    label: "en",
+    value: "en"
+  },
+  {
+    label: "et",
+    value: "et"
+  },
+  {
+    label: "fi",
+    value: "fi"
   },
   {
     label: "fr",
-    value: "fr",
+    value: "fr"
   },
-]
+  {
+    label: "de",
+    value: "de"
+  },
+  {
+    label: "el",
+    value: "el"
+  },
+  {
+    label: "hu",
+    value: "hu"
+  },
+  {
+    label: "ga",
+    value: "ga"
+  },
+  {
+    label: "it",
+    value: "it"
+  },
+  {
+    label: "lv",
+    value: "lv"
+  },
+  {
+    label: "lt",
+    value: "lt"
+  },
+  {
+    label: "mt",
+    value: "mt"
+  },
+  {
+    label: "pl",
+    value: "pl"
+  },
+  {
+    label: "pt",
+    value: "pt"
+  },
+  {
+    label: "ro",
+    value: "ro"
+  },
+  {
+    label: "sk",
+    value: "sk"
+  },
+  {
+    label: "sl",
+    value: "sl"
+  },
+  {
+    label: "es",
+    value: "es"
+  },
+  {
+    label: "sv",
+    value: "sv"
+  }
+];
 
 
 async function extractLocalizedStrings() {
@@ -55,9 +138,30 @@ async function extractLocalizedStrings() {
       SELECT
         objects.id,
         symbol,
-        value->>'en' AS en,
-        value->>'es' AS es,
-        value->>'fr' AS fr
+        value->>'bg' as bg,
+        value->>'hr' as hr,
+        value->>'cs' as cs,
+        value->>'da' as da,
+        value->>'nl' as nl,
+        value->>'en' as en,
+        value->>'et' as et,
+        value->>'fi' as fi,
+        value->>'fr' as fr,
+        value->>'de' as de,
+        value->>'el' as el,
+        value->>'hu' as hu,
+        value->>'ga' as ga,
+        value->>'it' as it,
+        value->>'lv' as lv,
+        value->>'lt' as lt,
+        value->>'mt' as mt,
+        value->>'pl' as pl,
+        value->>'pt' as pt,
+        value->>'ro' as ro,
+        value->>'sk' as sk,
+        value->>'sl' as sl,
+        value->>'es' as es,
+        value->>'sv' as sv
       FROM objects
       INNER JOIN values on objects.id = values.id
       LEFT JOIN symbols ON objects.id = symbols.id
@@ -71,22 +175,22 @@ async function extractLocalizedStrings() {
     `,
     {
       nameId: getIdFromSymbol("name"),
-      schemaId: getIdFromSymbol("schema:localized-string"),
-    },
-  )
+      schemaId: getIdFromSymbol("schema:localized-string")
+    }
+  );
   const csvString = json2csv({
     data: localizations,
     fields,
-  })
-  console.log(csvString)
+  });
+  console.log(csvString);
 
-  process.exit(0)
+  process.exit(0);
 }
 
 
 checkDatabase()
   .then(extractLocalizedStrings)
   .catch(error => {
-    console.log(error.stack || error)
-    process.exit(1)
-  })
+    console.log(error.stack || error);
+    process.exit(1);
+  });

@@ -18,8 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import path from "path"
+/*jshint esversion: 6 */
+import path from "path";
 
 
 export default {
@@ -45,9 +45,30 @@ export default {
     "Retruco-API not very secret key, to override",
   ],
   languages: [
+    "bg",
+    "hr",
+    "cs",
+    "da",
+    "nl",
     "en",
-    "es",
+    "et",
+    "fi",
     "fr",
+    "de",
+    "el",
+    "hu",
+    "ga",
+    "it",
+    "lv",
+    "lt",
+    "mt",
+    "pl",
+    "pt",
+    "ro",
+    "sk",
+    "sl",
+    "es",
+    "sv"
   ],
   license: {
     // API license (not software license)
@@ -73,5 +94,5 @@ export default {
     },
   },
   title: "Retruco-API",
-  uploads: path.normalize(path.join(__dirname, "..", "uploads")),
-}
+  uploads: path.normalize(path.join(__dirname, "..", "uploads"))
+};
