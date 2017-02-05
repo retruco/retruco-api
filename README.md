@@ -67,6 +67,7 @@ cat <<'EOF' | curl -X POST --header "Content-Type: application/json" --header "A
 {
   "name": "Alice",
   "urlName": "alice",
+  "email": "alice@wonderland.fr",
   "password": "secret"
 }
 EOF
