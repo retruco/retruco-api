@@ -25,24 +25,24 @@ import path from "path";
 export default {
   contact: {
     // email:
-    name: "Retruco-API Team",
+    name: process.env.RTAPI_CONTACT || "Retruco-API Team",
     // url:
   },
   db: {
-    database: "retruco",
-    host: "localhost",
-    password: "password",
-    port: 5432,
-    user: "username",
+    database: process.env.RTAPI_DB_NAME || "retruco",
+    host: process.env.RTAPI_DB_HOST || "localhost",
+    password: process.env.RTAPI_DB_PASSWORD || "password",
+    port: process.env.RTAPI_DB_PORT || 5432,
+    user: process.env.RTAPI_DB_USER || "username",
   },
-  description: "Bring out shared positions from argumented statements",
-  email: "retruco@localhost",
-  emailSignKey: "Retruco sign key",
+  description: process.env.RTAPI_DESCRIPTION || "Bring out shared positions from argumented statements",
+  email: process.env.RTAPI_EMAIL || "retruco@localhost",
+  emailSignKey: process.env.RTAPI_EMAIL_KEY || "Retruco sign key",
   emailTemplates: path.normalize(path.join(__dirname, "..", "email-templates")),
-  host: "localhost",
+  host: process.env.RTAPI_HOST || "localhost",
   keys: [
     // Keys for Keygrip <https://github.com/crypto-utils/keygrip>, used by signed cookie keys, etc
-    "Retruco-API not very secret key, to override",
+    process.env.RTAPI_KEY || "Retruco-API not very secret key, to override",
   ],
   languages: [
     "bg",
@@ -79,20 +79,20 @@ export default {
     host: null,  // Listen to every IPv4 addresses.
     port: null,  // Listen to config.port by default
   },
-  port: 3000,
-  proxy: false,  // Is this application used behind a trusted proxy?
+  port: process.env.RTAPI_PORT || 3000,
+  proxy: process.env.RTAPI_PROXY || false,  // Is this application used behind a trusted proxy?
   smtp: {
-    host: "localhost",
-    port: 25,
-    secure: false,  // Use startTLS
+    host: process.env.SMTP_HOST || "localhost",
+    port: process.env.SMTP_PORT || 25,
+    secure: process.env.SMTP_SECURE || false,  // Use startTLS
     // auth: {
     //   user: "username",
     //   pass: "password",
     // },
     tls: {
-        rejectUnauthorized: false,  // Accept self-signed certificates.
+        rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED || false,  // Accept self-signed certificates.
     },
   },
-  title: "Retruco-API",
+  title: process.env.RTAPI_TITLE ||"Retruco-API",
   uploads: path.normalize(path.join(__dirname, "..", "uploads"))
 };
