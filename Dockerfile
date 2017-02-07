@@ -17,7 +17,7 @@ COPY regenerate-text-search.js /retruco-api/regenerate-text-search.js
 
 VOLUME /retruco-api/uploads
 # Variables
-ENV NODE_ENV production
+ENV NODE_ENV development
 ENV RTAPI_CONTACT "Retruco-API Team"
 ENV RTAPI_DB_NAME "retruco"
 ENV RTAPI_DB_HOST "localhost"
@@ -38,5 +38,4 @@ ENV SMTP_REJECT_UNAUTHORIZED false
 ENV RTAPI_TITLE "Retruco-API"
 
 RUN npm install .
-RUN npm run configure
 CMD ["node", "index.js"]
