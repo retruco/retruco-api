@@ -38,4 +38,5 @@ ENV SMTP_REJECT_UNAUTHORIZED false
 ENV RTAPI_TITLE "Retruco-API"
 
 RUN npm install .
+RUN npm run configure
 CMD ["node", "index.js"]
