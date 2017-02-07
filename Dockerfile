@@ -10,6 +10,7 @@ COPY ./forever /retruco-api/forever
 COPY ./scripts /retruco-api/scripts
 COPY configure.js /retruco-api/configure.js
 COPY index.js /retruco-api/index.js
+COPY .babelrc /retruco-api/.babelrc
 COPY package.json /retruco-api/package.json
 COPY process-actions.js /retruco-api/process-actions.js
 COPY regenerate-text-search.js /retruco-api/regenerate-text-search.js
