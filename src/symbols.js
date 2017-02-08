@@ -21,8 +21,9 @@
 
 // import {schemaByPath} from "./schemas"
 
+/*jshint esversion: 6 */
 
-export const idBySymbol = {}
+export const idBySymbol = {};
 
 export const symbolizedTypedValues = [
   // Basic schemas (aka types)
@@ -305,10 +306,76 @@ export const symbolizedTypedValues = [
     ],
   },
   {
-    symbol: "es",
+    symbol: "bg",
     schemaSymbol: "schema:localized-string",
     value: {
-      en: "Spanish Localization",
+      en: "Bulgarian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "hr",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Croatian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "cs",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Czech Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "da",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Danish Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "nl",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Dutch Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "et",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Estonian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "fi",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Finnish Localization",
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [
@@ -326,6 +393,172 @@ export const symbolizedTypedValues = [
       ["schema:string", ["widget:input-text", "widget:textarea"]],
     ],
   },
+  {
+    symbol: "de",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "German Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "el",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Greek Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "hu",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Hungarian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "ga",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Irish Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "it",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Italian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "lv",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Latvian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "lt",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Lithuanian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "mt",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Maltese Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "pl",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Ploish Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "pt",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Portugues Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "ro",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Romanian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "sk",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Slovak Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "sl",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Slovenian Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "es",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Spanish Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+  {
+    symbol: "sv",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Swedish Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:string", ["widget:input-text", "widget:textarea"]],
+    ],
+  },
+
   {
     symbol: "license",
     schemaSymbol: "schema:localized-string",

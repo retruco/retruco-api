@@ -18,19 +18,39 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+/*jshint esversion: 6 */
+import assert from "assert";
 
-import assert from "assert"
-
-import config from "./config"
-import {db} from "./database"
-import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol, idBySymbol} from "./symbols"
-
+import config from "./config";
+import {db} from "./database";
+import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol, idBySymbol} from "./symbols";
 
 export const languageConfigurationNameByCode = {
+  bg: "simple",
+  hr: "simple",
+  cs: "simple",
+  da: "danish",
+  nl: "dutch",
   en: "english",
+  et: "simple",
+  fi: "finnish",
   fr: "french",
+  de: "german",
+  el: "simple",
+  hu: "hungarian",
+  ga: "simple",
+  it: "italian",
+  lv: "simple",
+  lt: "simple",
+  mt: "simple",
+  pl: "simple",
+  pt: "portuguese",
+  ro: "romanian",
+  sk: "simple",
+  sl: "simple",
   es: "spanish",
-}
+  sv: "swedish"
+};
 
 
 export const types = [
@@ -39,7 +59,7 @@ export const types = [
   "Property",
   "User",
   "Value",
-]
+];
 
 
 export async function addAction(objectId, type) {
@@ -52,36 +72,36 @@ export async function addAction(objectId, type) {
     `,
     {
       objectId,
-      type,
-    },
-  )
-  return null
+      type
+    }
+  );
+  return null;
 }
 
 
 export async function addReferences(referencedIds, schema, value) {
   if (schema.$ref === "/schemas/bijective-card-reference") {
-    referencedIds.add(value.targetId)
+    referencedIds.add(value.targetId);
   } else if (schema.$ref === "/schemas/card-id") {
-    referencedIds.add(value)
+    referencedIds.add(value);
   } else if (schema.$ref === "/schemas/value-id") {
-    let typedReference = await getObjectFromId(value)
+    let typedReference = await getObjectFromId(value);
     if (typedReference.schemaId === getIdFromSymbol("schema:bijective-card-reference")) {
-      referencedIds.add(typedReference.value.targetId)
+      referencedIds.add(typedReference.value.targetId);
     } else if (typedReference.schemaId === getIdFromSymbol("schema:card-id")) {
-      referencedIds.add(typedReference.value)
+      referencedIds.add(typedReference.value);
     } else {
-      assert.notStrictEqual(typedReference.schemaId, getIdFromSymbol("schema:value-id"))
-      referencedIds.add(value)
+      assert.notStrictEqual(typedReference.schemaId, getIdFromSymbol("schema:value-id"));
+      referencedIds.add(value);
     }
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       for (let [index, itemSchema] of schema.items.entries()) {
-        await addReferences(referencedIds, itemSchema, value[index])
+        await addReferences(referencedIds, itemSchema, value[index]);
       }
     } else {
       for (let itemValue of value) {
-        await addReferences(referencedIds, schema.items, itemValue)
+        await addReferences(referencedIds, schema.items, itemValue);
       }
     }
   }
@@ -91,32 +111,32 @@ export async function addReferences(referencedIds, schema, value) {
 export async function convertValidJsonToTypedValue(schema, widget, value,
   {cache = null, inactiveStatementIds = null, userId = null} = {}) {
   // Convert symbols to IDs, etc.
-  let warning = null
+  let warning = null;
   if (schema.$ref === "/schemas/card-id") {
-    let id = getIdFromIdOrSymbol(value)
-    let object = await getObjectFromId(id)
-    if (object === null) return [null, `Unknown ID or symbol: ${value}`]
-    if (object.type !== "Card") return [null, `Object with ID or symbol "${value}" is not a card.`]
-    value = id
+    let id = getIdFromIdOrSymbol(value);
+    let object = await getObjectFromId(id);
+    if (object === null) return [null, `Unknown ID or symbol: ${value}`];
+    if (object.type !== "Card") return [null, `Object with ID or symbol "${value}" is not a card.`];
+    value = id;
   } else if (schema.$ref === "/schemas/localized-string") {
-    let stringIdByLanguageId = {}
-    let warnings = {}
+    let stringIdByLanguageId = {};
+    let warnings = {};
     let widgetId = widget === null ? null :
       (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
         {cache, inactiveStatementIds, userId})).id
     for (let [language, string] of Object.entries(value)) {
-      let languageId = idBySymbol[language]
+      let languageId = idBySymbol[language];
       if (languageId === undefined) {
-        warnings[language] = `Unknown language: ${language}`
-        continue
+        warnings[language] = `Unknown language: ${language}`;
+        continue;
       }
       let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string,
         {cache, inactiveStatementIds, userId})).id
-      stringIdByLanguageId[languageId] = stringId
+      stringIdByLanguageId[languageId] = stringId;
     }
-    value = stringIdByLanguageId
-    if (Object.keys(warnings).length > 0) warning = warnings
-    if (Object.keys(value).length === 0) return [null, warning]
+    value = stringIdByLanguageId;
+    if (Object.keys(warnings).length > 0) warning = warnings;
+    if (Object.keys(value).length === 0) return [null, warning];
   } else if (schema.$ref === "/schemas/value-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
