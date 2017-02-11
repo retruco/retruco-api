@@ -998,6 +998,63 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/properties/keys/autocomplete": {
+      get: {
+        tags: ["autocompletion", "key", "property"],
+        summary: "Autocomplete keys of properties",
+        // description: "",
+        // externalDocs: {},
+        operationId: "properties.autocompleteKeys",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/classQueryRequiredParam",
+          },
+          {
+            $ref: "#/parameters/languageParam",
+          },
+          {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/termQueryParam",
+          },
+          {
+            $ref: "#/parameters/typesQueryParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing keys of properties and their autocompletion",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/ValuesAutocompletionList",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/statements": {
       get: {
         tags: ["statement"],
@@ -3195,7 +3252,8 @@ const SPEC = {
         },
         required: [
           "autocomplete",
-          "statement",
+          "card",
+          "distance",
         ],
       },
     },
@@ -3457,6 +3515,7 @@ const SPEC = {
         },
         required: [
           "autocomplete",
+          "distance",
           "statement",
         ],
       },
@@ -3536,6 +3595,30 @@ const SPEC = {
         "schemaId",
         // "value",
       ],
+    },
+    ValuesAutocompletionList: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          autocomplete: {
+            type: "string",
+          },
+          distance: {
+            maximum: 1,
+            minimum: 0,
+            type: "number",
+          },
+          value: {
+            $ref: "#/definitions/Value",
+          },
+        },
+        required: [
+          "autocomplete",
+          "distance",
+          "value",
+        ],
+      },
     },
     Widget: {
       type: "object",
@@ -3633,6 +3716,14 @@ const SPEC = {
           "language",
         ],
       },
+    },
+    classQueryRequiredParam: {
+      // description: "",
+      in: "query",
+      name: "class",
+      required: true,
+      type: "string",
+      enum: types,
     },
     collectionBodyParam: {
       // description: "",

@@ -19,8 +19,81 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import {getObjectFromId, getOrNewProperty, toDataJson, wrapAsyncMiddleware} from "../model"
+import {db} from "../database"
+import {entryToValue, getObjectFromId, getOrNewProperty, toDataJson, toObjectJson, wrapAsyncMiddleware} from "../model"
 import {getIdFromIdOrSymbol} from "../symbols"
+
+
+export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function autocompletePropertiesKeys(req, res) {
+  let language = req.query.language
+  let limit = req.query.limit || 20
+  let objectType = req.query.class || []
+  let subTypes = req.query.type || []
+  let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
+  let tags = req.query.tag || []
+  let tagIds = tags.map(getIdFromIdOrSymbol).filter(tag => tag)
+  let term = req.query.term
+
+  let whereClauses = [
+    "parent_objects.type = $<objectType>",
+  ]
+
+  if (language) {
+    whereClauses.push("language = $<language>")
+  }
+
+  if (subTypeIds.length > 0) {
+    whereClauses.push("parent_objects.sub_types && $<subTypeIds>")
+  }
+
+  if (tagIds.length > 0) {
+    whereClauses.push("parent_objects.tags && $<tagIds>")
+  }
+
+  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
+
+  let entries = await db.any(
+    `
+      SELECT objects.*, values.*, values_autocomplete.autocomplete,
+        values_autocomplete.autocomplete <-> $<term> AS distance
+      FROM properties
+      INNER JOIN objects ON properties.key_id = objects.id
+      INNER JOIN values ON objects.id = values.id
+      INNER JOIN values_autocomplete ON values.id = values_autocomplete.id
+      INNER JOIN objects AS parent_objects ON properties.object_id = parent_objects.id
+      ${whereClause}
+      GROUP BY objects.id, values.id, values_autocomplete.autocomplete
+      ORDER BY distance ASC, count(objects.id) DESC
+      LIMIT $<limit>
+    `,
+    {
+      language,
+      limit,
+      objectType,
+      subTypeIds,
+      tagIds,
+      term: term || "",
+    }
+  )
+
+  let autocompletions = []
+  for (let entry of entries) {
+    let autocomplete = entry.autocomplete
+    delete entry.autocomplete
+    let distance = entry.distance
+    delete entry.distance
+    autocompletions.push({
+      autocomplete,
+      distance,
+      value: await toObjectJson(await entryToValue(entry)),
+    })
+  }
+
+  res.json({
+    apiVersion: "1",
+    data: autocompletions,
+  })
+})
 
 
 export const createProperty = wrapAsyncMiddleware(async function createProperty(req, res) {

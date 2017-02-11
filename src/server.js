@@ -140,6 +140,7 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
     objectsController.requireObject, objectsController.listObjectSameKeyProperties)
 
   app.post("/properties", usersController.authenticate(true), propertiesController.createProperty)
+  app.get("/properties/keys/autocomplete", propertiesController.autocompletePropertiesKeys)
 
   app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
   app.post("/statements", usersController.authenticate(true), statementsController.createStatement)
