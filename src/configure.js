@@ -158,6 +158,14 @@ async function configureDatabase() {
   await db.none("CREATE INDEX IF NOT EXISTS references_source_id_idx ON objects_references(source_id)")
   await db.none("CREATE INDEX IF NOT EXISTS references_target_id_idx ON objects_references(target_id)")
 
+  // Table: symbols
+  await db.none(`
+    CREATE TABLE IF NOT EXISTS symbols(
+      id bigint NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+      symbol text NOT NULL PRIMARY KEY
+    )
+  `)
+
   // Table: users
   await db.none(`
     CREATE TABLE IF NOT EXISTS users(
@@ -237,14 +245,6 @@ async function configureDatabase() {
     CREATE INDEX IF NOT EXISTS values_autocomplete_trigrams_idx
       ON values_autocomplete
       USING GIST (autocomplete gist_trgm_ops)
-  `)
-
-  // Table: symbols
-  await db.none(`
-    CREATE TABLE IF NOT EXISTS symbols(
-      id bigint NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
-      symbol text NOT NULL PRIMARY KEY
-    )
   `)
 
   // Table: values_text_search
