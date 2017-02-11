@@ -18,39 +18,40 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-/*jshint esversion: 6 */
-import assert from "assert";
 
-import config from "./config";
-import {db} from "./database";
-import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol, idBySymbol} from "./symbols";
+import assert from "assert"
+
+import config from "./config"
+import {db} from "./database"
+import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol, idBySymbol} from "./symbols"
+
 
 export const languageConfigurationNameByCode = {
   bg: "simple",
-  hr: "simple",
   cs: "simple",
   da: "danish",
-  nl: "dutch",
+  de: "german",
+  el: "simple",
   en: "english",
+  es: "spanish",
   et: "simple",
   fi: "finnish",
   fr: "french",
-  de: "german",
-  el: "simple",
-  hu: "hungarian",
   ga: "simple",
+  hr: "simple",
+  hu: "hungarian",
   it: "italian",
-  lv: "simple",
   lt: "simple",
+  lv: "simple",
   mt: "simple",
+  nl: "dutch",
   pl: "simple",
   pt: "portuguese",
   ro: "romanian",
   sk: "simple",
   sl: "simple",
-  es: "spanish",
-  sv: "swedish"
-};
+  sv: "swedish",
+}
 
 
 export const types = [
@@ -59,7 +60,7 @@ export const types = [
   "Property",
   "User",
   "Value",
-];
+]
 
 
 export async function addAction(objectId, type) {
@@ -72,36 +73,36 @@ export async function addAction(objectId, type) {
     `,
     {
       objectId,
-      type
+      type,
     }
-  );
-  return null;
+  )
+  return null
 }
 
 
 export async function addReferences(referencedIds, schema, value) {
   if (schema.$ref === "/schemas/bijective-card-reference") {
-    referencedIds.add(value.targetId);
+    referencedIds.add(value.targetId)
   } else if (schema.$ref === "/schemas/card-id") {
-    referencedIds.add(value);
+    referencedIds.add(value)
   } else if (schema.$ref === "/schemas/value-id") {
-    let typedReference = await getObjectFromId(value);
+    let typedReference = await getObjectFromId(value)
     if (typedReference.schemaId === getIdFromSymbol("schema:bijective-card-reference")) {
-      referencedIds.add(typedReference.value.targetId);
+      referencedIds.add(typedReference.value.targetId)
     } else if (typedReference.schemaId === getIdFromSymbol("schema:card-id")) {
-      referencedIds.add(typedReference.value);
+      referencedIds.add(typedReference.value)
     } else {
-      assert.notStrictEqual(typedReference.schemaId, getIdFromSymbol("schema:value-id"));
-      referencedIds.add(value);
+      assert.notStrictEqual(typedReference.schemaId, getIdFromSymbol("schema:value-id"))
+      referencedIds.add(value)
     }
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       for (let [index, itemSchema] of schema.items.entries()) {
-        await addReferences(referencedIds, itemSchema, value[index]);
+        await addReferences(referencedIds, itemSchema, value[index])
       }
     } else {
       for (let itemValue of value) {
-        await addReferences(referencedIds, schema.items, itemValue);
+        await addReferences(referencedIds, schema.items, itemValue)
       }
     }
   }
@@ -111,32 +112,32 @@ export async function addReferences(referencedIds, schema, value) {
 export async function convertValidJsonToTypedValue(schema, widget, value,
   {cache = null, inactiveStatementIds = null, userId = null} = {}) {
   // Convert symbols to IDs, etc.
-  let warning = null;
+  let warning = null
   if (schema.$ref === "/schemas/card-id") {
-    let id = getIdFromIdOrSymbol(value);
-    let object = await getObjectFromId(id);
-    if (object === null) return [null, `Unknown ID or symbol: ${value}`];
-    if (object.type !== "Card") return [null, `Object with ID or symbol "${value}" is not a card.`];
-    value = id;
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) return [null, `Unknown ID or symbol: ${value}`]
+    if (object.type !== "Card") return [null, `Object with ID or symbol "${value}" is not a card.`]
+    value = id
   } else if (schema.$ref === "/schemas/localized-string") {
-    let stringIdByLanguageId = {};
-    let warnings = {};
+    let stringIdByLanguageId = {}
+    let warnings = {}
     let widgetId = widget === null ? null :
       (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
         {cache, inactiveStatementIds, userId})).id
     for (let [language, string] of Object.entries(value)) {
-      let languageId = idBySymbol[language];
+      let languageId = idBySymbol[language]
       if (languageId === undefined) {
-        warnings[language] = `Unknown language: ${language}`;
-        continue;
+        warnings[language] = `Unknown language: ${language}`
+        continue
       }
       let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string,
         {cache, inactiveStatementIds, userId})).id
-      stringIdByLanguageId[languageId] = stringId;
+      stringIdByLanguageId[languageId] = stringId
     }
-    value = stringIdByLanguageId;
-    if (Object.keys(warnings).length > 0) warning = warnings;
-    if (Object.keys(value).length === 0) return [null, warning];
+    value = stringIdByLanguageId
+    if (Object.keys(warnings).length > 0) warning = warnings
+    if (Object.keys(value).length === 0) return [null, warning]
   } else if (schema.$ref === "/schemas/value-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
@@ -355,7 +356,7 @@ export async function generateObjectTextSearch(object) {
     // TODO: searchableTextsByLanguage
   } else if (object.type === "User") {
     table = "users"
-    // languageConfigurationNames = [languageConfigurationNameByCode[object.language]]
+    // languages = [object.language]
     languages = config.languages
     // for (let language of languages) {
     //   autocompleteByLanguage[language] = `${object.name} <${object.email}>`
@@ -393,22 +394,18 @@ export async function generateObjectTextSearch(object) {
       await db.none(`DELETE FROM ${table}_autocomplete WHERE id = $1`, object.id)
     } else {
       for (let [language, autocomplete] of Object.entries(autocompleteByLanguage)) {
-        let languageConfigurationName = languageConfigurationNameByCode[language]
-        assert.ok(languageConfigurationName, language)
         await db.none(
-          `INSERT INTO ${table}_autocomplete(id, configuration_name, autocomplete)
+          `INSERT INTO ${table}_autocomplete(id, language, autocomplete)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id, configuration_name)
+            ON CONFLICT (id, language)
             DO UPDATE SET autocomplete = $3
           `,
-          [object.id, languageConfigurationName, autocomplete],
+          [object.id, language, autocomplete],
         )
       }
-      let languageConfigurationNames = Object.keys(autocompleteByLanguage).map(
-        language => languageConfigurationNameByCode[language])
       await db.none(
-        `DELETE FROM ${table}_autocomplete WHERE id = $1 AND configuration_name NOT IN ($2:csv)`,
-        [object.id, languageConfigurationNames],
+        `DELETE FROM ${table}_autocomplete WHERE id = $1 AND language NOT IN ($2:csv)`,
+        [object.id, Object.keys(autocompleteByLanguage)],
       )
     }
 
@@ -423,19 +420,17 @@ export async function generateObjectTextSearch(object) {
           B: (searchableTextsByWeight["B"] || []).join(" "),
         }
         await db.none(
-          `INSERT INTO ${table}_text_search(id, configuration_name, text_search)
-            VALUES ($1, $2, setweight(to_tsvector($2, $3), 'A') || setweight(to_tsvector($2, $4), 'B'))
-            ON CONFLICT (id, configuration_name)
-            DO UPDATE SET text_search = setweight(to_tsvector($2, $3), 'A') || setweight(to_tsvector($2, $4), 'B')
+          `INSERT INTO ${table}_text_search(id, language, text_search)
+            VALUES ($1, $2, setweight(to_tsvector($3, $4), 'A') || setweight(to_tsvector($3, $5), 'B'))
+            ON CONFLICT (id, language)
+            DO UPDATE SET text_search = setweight(to_tsvector($3, $4), 'A') || setweight(to_tsvector($3, $5), 'B')
           `,
-          [object.id, languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
+          [object.id, language, languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
         )
       }
-      let languageConfigurationNames = Object.keys(searchableTextsByWeightByLanguage).map(
-        language => languageConfigurationNameByCode[language])
       await db.none(
-        `DELETE FROM ${table}_text_search WHERE id = $1 AND configuration_name NOT IN ($2:csv)`,
-        [object.id, languageConfigurationNames],
+        `DELETE FROM ${table}_text_search WHERE id = $1 AND language NOT IN ($2:csv)`,
+        [object.id, Object.keys(searchableTextsByWeightByLanguage)],
       )
     }
   }
@@ -895,7 +890,7 @@ export function ownsUserId(user, otherUserId) {
 
 
 export {propagateOptimisticOptimization}
-async function propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum) {
+async function propagateOptimisticOptimization(/* statements, statement, oldRating, oldRatingSum */) {
   // const newRatingCount = statement.ratingCount !== undefined ? statement.ratingCount : 0
   // const newRating = newRatingCount > 0 ? statement.rating : 0
   // const newRatingSum = newRatingCount > 0 ? statement.ratingSum : 0

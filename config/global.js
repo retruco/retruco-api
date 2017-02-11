@@ -18,8 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-/*jshint esversion: 6 */
-import path from "path";
+
+import path from "path"
 
 
 export default {
@@ -46,29 +46,29 @@ export default {
   ],
   languages: [
     "bg",
-    "hr",
     "cs",
     "da",
-    "nl",
+    "de",
+    "el",
     "en",
+    "es",
     "et",
     "fi",
     "fr",
-    "de",
-    "el",
-    "hu",
     "ga",
+    "hr",
+    "hu",
     "it",
-    "lv",
     "lt",
+    "lv",
     "mt",
+    "nl",
     "pl",
     "pt",
     "ro",
     "sk",
     "sl",
-    "es",
-    "sv"
+    "sv",
   ],
   license: {
     // API license (not software license)
@@ -94,5 +94,5 @@ export default {
     },
   },
   title: process.env.RTAPI_TITLE ||"Retruco-API",
-  uploads: path.normalize(path.join(__dirname, "..", "uploads"))
-};
+  uploads: path.normalize(path.join(__dirname, "..", "uploads")),
+}

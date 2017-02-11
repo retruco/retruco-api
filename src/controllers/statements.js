@@ -301,12 +301,12 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
     term = term.trim()
     if (term) {
       let languages = language ? [language] : config.languages
-      let termClauses = languages.map( language =>
+      let termClauses = languages.map(language =>
         `id IN (
           SELECT statement_id
             FROM statements_text_search
             WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
-            AND configuration_name = '${languageConfigurationNameByCode[language]}'
+            AND language = '${language}'
         )`
       )
       if (termClauses.length === 1) {

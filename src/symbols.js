@@ -21,9 +21,8 @@
 
 // import {schemaByPath} from "./schemas"
 
-/*jshint esversion: 6 */
 
-export const idBySymbol = {};
+export const idBySymbol = {}
 
 export const symbolizedTypedValues = [
   // Basic schemas (aka types)

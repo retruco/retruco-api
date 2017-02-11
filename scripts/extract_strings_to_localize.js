@@ -18,11 +18,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-/*jshint esversion: 6 */
-import json2csv from "json2csv";
 
-import {checkDatabase, db} from "../src/database";
-import {getIdFromSymbol} from "../src/symbols";
+import json2csv from "json2csv"
+
+import {checkDatabase, db} from "../src/database"
+import {getIdFromSymbol} from "../src/symbols"
+
 
 const fields = [
   {
@@ -35,101 +36,101 @@ const fields = [
   },
   {
     label: "bg",
-    value: "bg"
-  },
-  {
-    label: "hr",
-    value: "hr"
+    value: "bg",
   },
   {
     label: "cs",
-    value: "cs"
+    value: "cs",
   },
   {
     label: "da",
-    value: "da"
-  },
-  {
-    label: "nl",
-    value: "nl"
-  },
-  {
-    label: "en",
-    value: "en"
-  },
-  {
-    label: "et",
-    value: "et"
-  },
-  {
-    label: "fi",
-    value: "fi"
-  },
-  {
-    label: "fr",
-    value: "fr"
+    value: "da",
   },
   {
     label: "de",
-    value: "de"
+    value: "de",
   },
   {
     label: "el",
-    value: "el"
+    value: "el",
   },
   {
-    label: "hu",
-    value: "hu"
-  },
-  {
-    label: "ga",
-    value: "ga"
-  },
-  {
-    label: "it",
-    value: "it"
-  },
-  {
-    label: "lv",
-    value: "lv"
-  },
-  {
-    label: "lt",
-    value: "lt"
-  },
-  {
-    label: "mt",
-    value: "mt"
-  },
-  {
-    label: "pl",
-    value: "pl"
-  },
-  {
-    label: "pt",
-    value: "pt"
-  },
-  {
-    label: "ro",
-    value: "ro"
-  },
-  {
-    label: "sk",
-    value: "sk"
-  },
-  {
-    label: "sl",
-    value: "sl"
+    label: "en",
+    value: "en",
   },
   {
     label: "es",
-    value: "es"
+    value: "es",
+  },
+  {
+    label: "et",
+    value: "et",
+  },
+  {
+    label: "fi",
+    value: "fi",
+  },
+  {
+    label: "fr",
+    value: "fr",
+  },
+  {
+    label: "ga",
+    value: "ga",
+  },
+  {
+    label: "hr",
+    value: "hr",
+  },
+  {
+    label: "hu",
+    value: "hu",
+  },
+  {
+    label: "it",
+    value: "it",
+  },
+  {
+    label: "lt",
+    value: "lt",
+  },
+  {
+    label: "lv",
+    value: "lv",
+  },
+  {
+    label: "mt",
+    value: "mt",
+  },
+  {
+    label: "nl",
+    value: "nl",
+  },
+  {
+    label: "pl",
+    value: "pl",
+  },
+  {
+    label: "pt",
+    value: "pt",
+  },
+  {
+    label: "ro",
+    value: "ro",
+  },
+  {
+    label: "sk",
+    value: "sk",
+  },
+  {
+    label: "sl",
+    value: "sl",
   },
   {
     label: "sv",
-    value: "sv"
-  }
-];
+    value: "sv",
+  },
+]
 
 
 async function extractLocalizedStrings() {
@@ -139,28 +140,28 @@ async function extractLocalizedStrings() {
         objects.id,
         symbol,
         value->>'bg' as bg,
-        value->>'hr' as hr,
         value->>'cs' as cs,
         value->>'da' as da,
-        value->>'nl' as nl,
+        value->>'de' as de,
+        value->>'el' as el,
         value->>'en' as en,
+        value->>'es' as es,
         value->>'et' as et,
         value->>'fi' as fi,
         value->>'fr' as fr,
-        value->>'de' as de,
-        value->>'el' as el,
-        value->>'hu' as hu,
         value->>'ga' as ga,
+        value->>'hr' as hr,
+        value->>'hu' as hu,
         value->>'it' as it,
-        value->>'lv' as lv,
         value->>'lt' as lt,
+        value->>'lv' as lv,
         value->>'mt' as mt,
+        value->>'nl' as nl,
         value->>'pl' as pl,
         value->>'pt' as pt,
         value->>'ro' as ro,
         value->>'sk' as sk,
         value->>'sl' as sl,
-        value->>'es' as es,
         value->>'sv' as sv
       FROM objects
       INNER JOIN values on objects.id = values.id
@@ -175,22 +176,22 @@ async function extractLocalizedStrings() {
     `,
     {
       nameId: getIdFromSymbol("name"),
-      schemaId: getIdFromSymbol("schema:localized-string")
+      schemaId: getIdFromSymbol("schema:localized-string"),
     }
-  );
+  )
   const csvString = json2csv({
     data: localizations,
     fields,
-  });
-  console.log(csvString);
+  })
+  console.log(csvString)
 
-  process.exit(0);
+  process.exit(0)
 }
 
 
 checkDatabase()
   .then(extractLocalizedStrings)
   .catch(error => {
-    console.log(error.stack || error);
-    process.exit(1);
-  });
+    console.log(error.stack || error)
+    process.exit(1)
+  })

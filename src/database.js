@@ -36,8 +36,8 @@ export const db = pgPromise({
 })
 export let dbSharedConnectionObject = null
 
-export const versionNumber = 19
-export const versionTextSearchNumber = 2
+export const versionNumber = 20
+export const versionTextSearchNumber = 3
 
 
 export {checkDatabase}

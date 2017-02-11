@@ -180,9 +180,9 @@ async function configureDatabase() {
   await db.none(`
     CREATE TABLE IF NOT EXISTS users_autocomplete(
       autocomplete text NOT NULL,
-      configuration_name text NOT NULL,
       id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      PRIMARY KEY (id, configuration_name)
+      language text NOT NULL,
+      PRIMARY KEY (id, language)
     )
   `)
   await db.none(`
@@ -194,10 +194,10 @@ async function configureDatabase() {
   // Table: users_text_search
   await db.none(`
     CREATE TABLE IF NOT EXISTS users_text_search(
-      configuration_name text NOT NULL,
       id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      language text NOT NULL,
       text_search tsvector,
-      PRIMARY KEY (id, configuration_name)
+      PRIMARY KEY (id, language)
     )
   `)
   await db.none(`
@@ -228,9 +228,9 @@ async function configureDatabase() {
   await db.none(`
     CREATE TABLE IF NOT EXISTS values_autocomplete(
       autocomplete text NOT NULL,
-      configuration_name text NOT NULL,
       id bigint NOT NULL REFERENCES values(id) ON DELETE CASCADE,
-      PRIMARY KEY (id, configuration_name)
+      language text NOT NULL,
+      PRIMARY KEY (id, language)
     )
   `)
   await db.none(`
@@ -250,10 +250,10 @@ async function configureDatabase() {
   // Table: values_text_search
   await db.none(`
     CREATE TABLE IF NOT EXISTS values_text_search(
-      configuration_name text NOT NULL,
       id bigint NOT NULL REFERENCES values(id) ON DELETE CASCADE,
+      language text NOT NULL,
       text_search tsvector,
-      PRIMARY KEY (id, configuration_name)
+      PRIMARY KEY (id, language)
     )
   `)
   await db.none(`
@@ -285,9 +285,9 @@ async function configureDatabase() {
   await db.none(`
     CREATE TABLE IF NOT EXISTS cards_autocomplete(
       autocomplete text NOT NULL,
-      configuration_name text NOT NULL,
       id bigint NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
-      PRIMARY KEY (id, configuration_name)
+      language text NOT NULL,
+      PRIMARY KEY (id, language)
     )
   `)
   await db.none(`
@@ -299,10 +299,10 @@ async function configureDatabase() {
   // Table: cards_text_search
   await db.none(`
     CREATE TABLE IF NOT EXISTS cards_text_search(
-      configuration_name text NOT NULL,
       id bigint NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+      language text NOT NULL,
       text_search tsvector,
-      PRIMARY KEY (id, configuration_name)
+      PRIMARY KEY (id, language)
     )
   `)
   await db.none(`
@@ -323,9 +323,9 @@ async function configureDatabase() {
   await db.none(`
     CREATE TABLE IF NOT EXISTS concepts_autocomplete(
       autocomplete text NOT NULL,
-      configuration_name text NOT NULL,
       id bigint NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
-      PRIMARY KEY (id, configuration_name)
+      language text NOT NULL,
+      PRIMARY KEY (id, language)
     )
   `)
   await db.none(`
@@ -337,10 +337,10 @@ async function configureDatabase() {
   // Table: concepts_text_search
   await db.none(`
     CREATE TABLE IF NOT EXISTS concepts_text_search(
-      configuration_name text NOT NULL,
       id bigint NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
+      language text NOT NULL,
       text_search tsvector,
-      PRIMARY KEY (id, configuration_name)
+      PRIMARY KEY (id, language)
     )
   `)
   await db.none(`
@@ -481,6 +481,47 @@ async function configureDatabase() {
     await db.none("ALTER TABLE users ADD UNIQUE USING INDEX users_api_key_idx")
     await db.none("ALTER TABLE users ADD UNIQUE USING INDEX users_email_idx")
     await db.none("ALTER TABLE users ADD UNIQUE USING INDEX users_url_name_idx")
+  }
+  if (version.number < 20) {
+    await db.none("ALTER TABLE cards_autocomplete RENAME COLUMN configuration_name TO language")
+    await db.none("ALTER TABLE cards_text_search RENAME COLUMN configuration_name TO language")
+    await db.none("ALTER TABLE concepts_autocomplete RENAME COLUMN configuration_name TO language")
+    await db.none("ALTER TABLE concepts_text_search RENAME COLUMN configuration_name TO language")
+    await db.none("ALTER TABLE users_autocomplete RENAME COLUMN configuration_name TO language")
+    await db.none("ALTER TABLE users_text_search RENAME COLUMN configuration_name TO language")
+    await db.none("ALTER TABLE values_autocomplete RENAME COLUMN configuration_name TO language")
+    await db.none("ALTER TABLE values_text_search RENAME COLUMN configuration_name TO language")
+    for (let tablePrefix of [
+      "cards",
+      "concepts",
+      "users",
+      "values",
+    ]) {
+      for (let tableSuffix of [
+        "autocomplete",
+        "text_search",
+      ]) {
+        let table = `${tablePrefix}_${tableSuffix}`
+        for (let [configurationName, language] of [
+          ["dutch", "nl"],
+          ["english", "en"],
+          ["french", "fr"],
+          ["spanish", "es"],
+        ]) {
+          await db.none(
+            `
+              UPDATE ${table}
+              SET language = $<language>
+              WHERE language = $<configurationName>
+            `,
+            {
+              configurationName,
+              language,
+            },
+          )
+        }
+      }
+    }
   }
 
   await configureSymbols()
