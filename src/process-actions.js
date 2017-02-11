@@ -441,6 +441,8 @@ async function processAction(action) {
   if (object.ratingSum !== undefined) {
     // object is a statement (aka a rated object)
     // Compute statement rating.
+    // Note: Don't forget to update https://forum.ogptoolbox.org/t/ogptoolbox-rating-algorithm/29 when the algorithm
+    // changes.
     let ratingCount = 0
     let ratingSum = 0
     let ballots = (await db.any(
@@ -471,7 +473,7 @@ async function processAction(action) {
 
     if (object.type === "Card") {
       let keyIds = Object.keys(object.properties || {})
-      // When there is at least 5 properties, score is multiplied up by two.
+      // When there is at least 5 properties, score is multiplied by up to two.
       let ogpToolboxScore = Math.atan(keyIds.length / 5) * 4 / Math.PI
       if (keyIds.includes(getIdFromSymbol("logo"))
         || keyIds.includes(getIdFromSymbol("screenshot"))) {
