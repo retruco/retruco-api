@@ -494,12 +494,7 @@ async function processAction(action) {
       }
       ogpToolboxScore *= Math.max(locationsCount, 1)
 
-      if ((object.subTypeIds || []).includes(getIdFromSymbol("software"))) {
-        let sourceCodeUrl = (object.properties || {})[getIdFromSymbol("source-code")]
-        if (!sourceCodeUrl) {
-          ogpToolboxScore = ogpToolboxScore / 2
-        }
-      }
+      // if ((object.subTypeIds || []).includes(getIdFromSymbol("software"))) {}
 
       ogpToolboxScore = Math.round(ogpToolboxScore)
       ratingCount += ogpToolboxScore
