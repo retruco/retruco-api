@@ -597,7 +597,6 @@ async function configureSymbols() {
   symbolById[typedValue.id] = symbol
 
   for (let {keysOrder, schemaSymbol, schemasWidgetsOrder, symbol, value, widgetSymbol} of symbolizedTypedValues) {
-    let initialValue = schemaSymbol === "schema:localized-string" ? "TO BE REPLACED LATER" : value
 
     let schemaId = getIdFromSymbol(schemaSymbol)
     let widgetId = getIdFromSymbol(widgetSymbol)
@@ -615,7 +614,9 @@ async function configureSymbols() {
       },
     ))
     if (typedValue === null) {
-      typedValue = await getOrNewValueWithSymbol(schemaId, widgetId, initialValue, {symbol})
+      if (schemaSymbol !== "schema:localized-string") {
+        typedValue = await getOrNewValueWithSymbol(schemaId, widgetId, value, {symbol})
+      }
     } else {
       idBySymbol[symbol] = typedValue.id
       symbolById[typedValue.id] = symbol
@@ -641,15 +642,20 @@ async function configureSymbols() {
         let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), widgetId, string)
         properties[getIdFromSymbol(language)] = typedString.id
       }
-      typedValue.value = value = properties
-      await db.none(
-        `
-          UPDATE values
-          SET value = $<value:json>
-          WHERE id = $<id>
-        `,
-        typedValue,
-      )
+      value = properties
+      if (typedValue === null) {
+        typedValue = await getOrNewValueWithSymbol(schemaId, widgetId, value, {symbol})
+      } else {
+        typedValue.value = value
+        await db.none(
+          `
+            UPDATE values
+            SET value = $<value:json>
+            WHERE id = $<id>
+          `,
+          typedValue,
+        )
+      }
 
       // Do an optimistic optimization.
       if (typedValue.properties === null) typedValue.properties = {}
