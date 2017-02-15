@@ -718,6 +718,17 @@ export const symbolizedTypedValues = [
     ],
   },
   {
+    symbol: "source-code",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "SourceCode",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:uri", ["widget:input-url"]],
+    ],
+  },
+  {
     symbol: "organization",
     schemaSymbol: "schema:localized-string",
     value: {
