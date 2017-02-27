@@ -21,6 +21,8 @@
 
 import assert from "assert"
 import deepEqual from "deep-equal"
+import fetch from "node-fetch"
+import https from "https"
 
 import config from "./config"
 import {checkDatabase, db, dbSharedConnectionObject} from "./database"
@@ -29,6 +31,7 @@ import {addAction, addReferences, describe, generateObjectTextSearch, getObjectF
 import {getIdFromSymbol, getValueFromSymbol, idBySymbol} from "./symbols"
 
 
+const matrixConfig = config.matrix
 let languageByKeyId = null
 let localizationKeysId = null
 
@@ -297,6 +300,27 @@ async function handlePropertyChange(objectId, keyId) {
     )
     await generateObjectTextSearch(object)
     await addAction(object.id, "properties")
+    if (matrixConfig !== null) {
+      fetch(
+        matrixConfig.serverUrl + "/_matrix/client/r0/rooms/" + encodeURIComponent(matrixConfig.roomId) +
+          "/send/m.room.message?access_token=" + matrixConfig.accessToken,
+        {
+          agent: new https.Agent({
+            rejectUnauthorized: matrixConfig.rejectUnauthorized === undefined ? true : matrixConfig.rejectUnauthorized,
+          }),
+          body: JSON.stringify({
+            "body": `${object.type} ${object.id} has been modified.`,
+            "msgtype":"m.text",
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        },
+      )
+        // .then(res => res.json())
+        // .then(json => console.log(json))
+    }
   }
 }
 

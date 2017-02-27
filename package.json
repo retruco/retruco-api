@@ -16,6 +16,7 @@
     "express-ws": "^2.0.0-rc.1",
     "gm": "^1.23.0",
     "md5-file": "^3.1.1",
+    "node-fetch": "^1.6.3",
     "nodemailer": "^2.6.4",
     "pg-promise": "^5.3.4",
     "quickthumb": "0.0.12",

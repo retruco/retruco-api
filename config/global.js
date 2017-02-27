@@ -79,6 +79,13 @@ export default {
     host: null,  // Listen to every IPv4 addresses.
     port: null,  // Listen to config.port by default
   },
+  // matrix: {
+  //   accessToken: "access_token",
+  //   rejectUnauthorized: true,
+  //   roomId: "!room_id:domain",
+  //   serverUrl: "https://localhost:8448",
+  // },
+  matrix: null,
   port: process.env.RTAPI_PORT || 3000,
   proxy: process.env.RTAPI_PROXY || false,  // Is this application used behind a trusted proxy?
   smtp: {
