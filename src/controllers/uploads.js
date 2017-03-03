@@ -25,13 +25,14 @@ import fs from "fs"
 import gm from "gm"
 import md5File from "md5-file"
 import path from "path"
+import os from "os"
 
 import config from "../config"
 import {wrapAsyncMiddleware} from "../model"
 
 
 const imageMagick = gm.subClass({imageMagick: true})
-const tempDir = fs.mkdtempSync("/tmp/retruco-api-uploads")
+const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "retruco-api-uploads-"))
 const uploadsDir = config.uploads
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir)
 const imagesDir = path.join(uploadsDir, "images")
