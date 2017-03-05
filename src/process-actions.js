@@ -196,7 +196,7 @@ async function handlePropertyChange(objectId, keyId) {
   })
 
   let objectPropertiesChanged = false
-  let removeAttribute = true
+  let removeProperty = true
   if (sameKeyDescriptions.length > 0) {
     // TODO: Improve search of best property. For example, if any of the best rated properties is of type
     // "RatedItemOrSet", it wins even when it is not the oldest (lowest id).
@@ -273,7 +273,7 @@ async function handlePropertyChange(objectId, keyId) {
         bestDescription.valueId = value.id
       }
 
-      removeAttribute = false
+      removeProperty = false
       if (!object.properties) object.properties = {}
       if (object.properties[keyId] != bestDescription.valueId) {
         object.properties[keyId] = bestDescription.valueId
@@ -281,7 +281,7 @@ async function handlePropertyChange(objectId, keyId) {
       }
     }
   }
-  if (removeAttribute) {
+  if (removeProperty) {
     if (object.properties && object.properties[keyId]) {
       delete object.properties[keyId]
       if (Object.keys(object.properties).length === 0) object.properties = null
