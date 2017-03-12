@@ -919,7 +919,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       offset,
     }),
   )).filter(entry => !tagIds.includes(entry.tag)).map(entry => ({
-    tagId: entry.tag,
+    tagId: getIdOrSymbolFromId(entry.tag),
     count: Number(entry.count),
   }))
 
