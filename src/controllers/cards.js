@@ -919,8 +919,8 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       offset,
     }),
   )).filter(entry => !tagIds.includes(entry.tag)).map(entry => ({
-    tagId: getIdOrSymbolFromId(entry.tag),
     count: Number(entry.count),
+    tagId: entry.tag,
   }))
 
   let valueByIdOrSymbol = {}
@@ -936,7 +936,10 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
     apiVersion: "1",
     count: count,
     data: {
-      popularity,
+      popularity: popularity.map(entry => ({
+        count: entry.count,
+        tagId: getIdOrSymbolFromId(entry.tagId),
+      })),
       values: valueByIdOrSymbol,
     },
     limit: limit,
