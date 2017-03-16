@@ -20,6 +20,7 @@
 
 
 import assert from "assert"
+import slugify from "slug"
 
 import {db, versionNumber} from "./database"
 import {entryToValue, getOrNewProperty, getValue, types} from "./model"
@@ -538,6 +539,11 @@ async function configureDatabase() {
 
 async function configureSymbols() {
   // Create missing symbols and their values.
+
+  for (let {symbol} of symbolizedTypedValues) {
+    assert.strictEqual(symbol, slugify(symbol, {mode: "rfc3986"}))
+  }
+
   let symbol = "schema:object"
   let value = {type: "object"}
   let typedValue = entryToValue(await db.oneOrNone(
