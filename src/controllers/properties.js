@@ -47,7 +47,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
   }
 
   if (tagIds.length > 0) {
-    whereClauses.push("parent_objects.tags && $<tagIds>")
+    whereClauses.push("parent_objects.tags @> $<tagIds>")
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")

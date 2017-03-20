@@ -98,7 +98,7 @@ export const autocompleteCards = wrapAsyncMiddleware(async function autocomplete
   }
 
   if (tagIds.length > 0) {
-    whereClauses.push("tags && $<tagIds>")
+    whereClauses.push("tags @> $<tagIds>")
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
@@ -778,7 +778,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   }
 
   if (tagIds.length > 0) {
-    whereClauses.push("tags && $<tagIds>")
+    whereClauses.push("tags @> $<tagIds>")
   }
 
   if (term) {
@@ -882,7 +882,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   }
 
   if (tagIds.length > 0) {
-    whereClauses.push("tags && $<tagIds>")
+    whereClauses.push("tags @> $<tagIds>")
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
