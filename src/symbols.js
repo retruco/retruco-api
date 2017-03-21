@@ -806,6 +806,436 @@ export const symbolizedTypedValues = [
       ["schema:bijective-card-references-array", ["widget:autocomplete"]],
     ],
   },
+
+  // OGP Explorer specific tags
+
+  // Public Integrity Measures
+  {
+    symbol: "public-integrity-measures",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Public Integrity Measures",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "anti-corruption",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Anti-corruption",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "conflicts-of-interest",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Conflicts of interest",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "asset-disclosure",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Asset disclosure",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "audits-control",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Audits & control",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "whistleblower-protections",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Whistleblower protections",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Fiscal Openness
+  {
+    symbol: "fiscal-openness",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Fiscal Openness",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "budget-transparency",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Budget Transparency",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "citizen-budgets",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Citizen Budgets",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "participatory-budgeting",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Participatory budgeting",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Citizen Engagement
+  {
+    symbol: "citizen-engagement",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Citizen Engagement",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "e-petitions",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "E-petitions",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "social-audits",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Social Audits",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "public-participation",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Public Participation",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Procurement
+  {
+    symbol: "procurement",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Procurement",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "public-procurement",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Public Procurement",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Access to Information Mechanisms
+  {
+    symbol: "access-to-information-mechanisms",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Access to Information Mechanisms",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "records-management",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Records Management",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "elections-political-finance",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Elections & Political Finance",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Justice
+  {
+    symbol: "justice",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Justice",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "law-enforcement-justice",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Law Enforcement & Justice",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Public Services
+  {
+    symbol: "public-services",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Public Services",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "public-service-delivery-improvement",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Public Service Delivery Improvement",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "e-government",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "E-government",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "open-data",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Open data",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "capacity-building",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Capacity-building",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "legislative-regulation",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Legislative & Regulation",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Sectors
+  {
+    symbol: "sectors",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Sectors",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "media-telecommunications",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Media & Telecommunications",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "education",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Education",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "health-nutrition",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Health and Nutrition",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "citizenship-immigration",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Citizenship & Immigration",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "welfare-social-security",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Welfare & Social Security",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "water-sanitation",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Water & Sanitation",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "infrastructure",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Infrastructure",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "public-safety",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Public safety",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "defense",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Defense",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "natural-resources",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Natural Resources",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "aid",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Aid",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "nonprofits",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Nonprofits",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Who is Affected
+  {
+    symbol: "who-is-affected",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Who is Affected",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "private-sector",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Private sector",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "legislature",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Legislature",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "sub-national-governance",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Sub-national governance",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "judiciary",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Judiciary",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+
+  // Mainstreaming Issues
+  {
+    symbol: "mainstreaming-issues",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Mainstreaming Issues",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "gender-sexuality",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Gender & sexuality",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "human-rights",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Human rights",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "ogp",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "OGP",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "marginalised-communities",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Marginalised communities",
+    },
+    widgetSymbol: "widget:input-text",
+  },
+  {
+    symbol: "labor",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Labor",
+    },
+    widgetSymbol: "widget:input-text",
+  },
 ]
 
 export const symbols = [
