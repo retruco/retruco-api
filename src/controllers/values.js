@@ -23,8 +23,8 @@ import Ajv from "ajv"
 
 import config from "../config"
 import {db} from "../database"
-import {convertValidJsonToTypedValue, entryToValue, getObjectFromId, languageConfigurationNameByCode, toDataJson,
-  wrapAsyncMiddleware} from "../model"
+import {convertValidJsonToExistingOrNewTypedValue, convertValidJsonToExistingTypedValue, entryToValue, getObjectFromId,
+  languageConfigurationNameByCode, toDataJson, wrapAsyncMiddleware} from "../model"
 import {schemaByPath} from "../schemas"
 import {getIdFromIdOrSymbol} from "../symbols"
 
@@ -121,7 +121,7 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
     return
   }
 
-  let [typedValue, warning] = await convertValidJsonToTypedValue(schema, widget, value, {userId})
+  let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value, {userId})
 
   let result = {
     apiVersion: "1",
@@ -133,8 +133,102 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
       showValues: show.includes("values"),
     }),
   }
-  if (warning !== null) result.warnings = {value: warning}
-  res.status(201)  // Created
+  if (warning !== null) result.warnings = warning
+  res.status(201)  // Created (even when typed value already existed)
+  res.json(result)
+})
+
+
+export const getExistingValue = wrapAsyncMiddleware(async function createValue(req, res) {
+  // Create a new card, giving its initial attributes, schemas & widgets.
+  let authenticatedUser = req.authenticatedUser
+  let valueInfos = req.body
+  let show = req.query.show || []
+
+  let errors = {}
+
+  // Validate given schema.
+  let schema = valueInfos.schema
+  if (schema === null || schema === undefined) {
+    errors["schema"] = "Missing schema."
+  } else {
+    if (typeof schema === "string") {
+      let schemaId = getIdFromIdOrSymbol(schema)
+      schema = (await getObjectFromId(schemaId)).value
+      if (schema === undefined) {
+        errors["schema"] = `Ùnknown schema: "${schemaId}".`
+      }
+    }
+    try {
+      ajvStrict.compile(schema)
+    } catch (e) {
+      errors["schema"] = e.message
+    }
+  }
+
+  // Validate given widget (if any).
+  let widget = valueInfos.widget
+  if (widget === null || widget === undefined) {
+    widget = null
+  } else {
+    if (typeof widget === "string") {
+      let widgetId = getIdFromIdOrSymbol(widget)
+      widget = (await getObjectFromId(widgetId)).value
+      if (widget === undefined) {
+        errors["widget"] = `Ùnknown widget: "${widgetId}".`
+      }
+    }
+    // TODO: Validate widget using something like a schema.
+  }
+
+  if (Object.keys(errors).length > 0) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      errors,
+      message: "Errors detected in schema and/or widget definitions.",
+    })
+    return
+  }
+
+  // Validate value using given schema.
+  let value = valueInfos.value
+  let schemaValidator = ajvWithCoercion.compile(schema)
+  if (!schemaValidator(value)) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      errors: {value: schemaValidator.errors},
+      message: "Errors detected in given value.",
+    })
+    return
+  }
+
+  let [typedValue, warning] = await convertValidJsonToExistingTypedValue(schema, widget, value)
+  if (typedValue === null) {
+    res.status(404)
+    res.json({
+      apiVersion: "1",
+      code: 404,
+      errors: warning,
+      message: `Value doesn't exist: "${JSON.stringify({schema, value, widget})}".`,
+    })
+    return
+  }
+
+  let result = {
+    apiVersion: "1",
+    data: await toDataJson(typedValue, authenticatedUser, {
+      depth: req.query.depth || 0,
+      showBallots: show.includes("ballots"),
+      showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
+      showValues: show.includes("values"),
+    }),
+  }
+  if (warning !== null) result.warnings = warning
   res.json(result)
 })
 

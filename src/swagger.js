@@ -3134,6 +3134,57 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/values/existing": {
+      post: {
+        tags: ["value"],
+        summary: "Retrieve an existing value and return it, giving its initial schema & widget",
+        // description: "",
+        // externalDocs: {},
+        operationId: "values.createValue",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/valueBodyParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the existing value and eventual warnings",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+                warnings: {
+                  type: "object",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
+    },
     // parameters: {},
   }),
   definitions: {

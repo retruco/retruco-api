@@ -24,7 +24,7 @@ import assert from "assert"
 
 import config from "../config"
 import {db} from "../database"
-import {convertValidJsonToTypedValue, entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString,
+import {convertValidJsonToExistingOrNewTypedValue, entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString,
   getOrNewProperty, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, toObjectJson,
   unrateStatementId, wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
@@ -543,7 +543,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
       {cache, inactiveStatementIds, userId})).id
     let schema = cardInfos.schemas[name]
     let widget = cardInfos.widgets[name] || null
-    let [typedValue, warning] = await convertValidJsonToTypedValue(schema, widget, value,
+    let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value,
       {cache, inactiveStatementIds, userId})
     if (warning !== null) {
       warnings[name] = warning
@@ -686,7 +686,7 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
     })
   }
 
-  let [typedValue, warning] = await convertValidJsonToTypedValue(schema, widget, value,
+  let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value,
     {inactiveStatementIds, userId})
   if (warning !== null) {
     let cardWarnings = cardWarningsByKeyValue[keyValue]
