@@ -109,26 +109,35 @@ export async function addReferences(referencedIds, schema, value) {
 }
 
 
-export async function convertValidJsonToTypedValue(schema, widget, value,
+export async function convertValidJsonToExistingOrNewTypedValue(schema, widget, value,
   {cache = null, inactiveStatementIds = null, userId = null} = {}) {
+  // The function tries to create typed value when it doesn't exist (it is not always possible, for example for type
+  // card-id).
+
   // Convert symbols to IDs, etc.
-  let warning = null
+  let warning = {}
   if (schema.$ref === "/schemas/card-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
-    if (object === null) return [null, `Unknown ID or symbol: ${value}`]
-    if (object.type !== "Card") return [null, `Object with ID or symbol "${value}" is not a card.`]
+    if (object === null) {
+      warning["value"] = `Unknown ID or symbol: ${value}`
+      return [null, warning]
+    }
+    if (object.type !== "Card") {
+      warning["value"] = `Object with ID or symbol "${value}" is not a card.`
+      return [null, warning]
+    }
     value = id
   } else if (schema.$ref === "/schemas/localized-string") {
     let stringIdByLanguageId = {}
-    let warnings = {}
+    let warningByLanguage = {}
     let widgetId = widget === null ? null :
       (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
         {cache, inactiveStatementIds, userId})).id
     for (let [language, string] of Object.entries(value)) {
       let languageId = idBySymbol[language]
       if (languageId === undefined) {
-        warnings[language] = `Unknown language: ${language}`
+        warningByLanguage[language] = `Unknown language: ${language}`
         continue
       }
       let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string,
@@ -136,28 +145,34 @@ export async function convertValidJsonToTypedValue(schema, widget, value,
       stringIdByLanguageId[languageId] = stringId
     }
     value = stringIdByLanguageId
-    if (Object.keys(warnings).length > 0) warning = warnings
+    if (Object.keys(warningByLanguage).length > 0) warning["value"] = warningByLanguage
     if (Object.keys(value).length === 0) return [null, warning]
   } else if (schema.$ref === "/schemas/value-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
-    if (object === null) return [null, `Unknown ID or symbol: ${value}`]
-    if (object.type !== "Value") return [null, `Object with ID or symbol "${value}" is not a value.`]
+    if (object === null) {
+      warning["value"] = `Unknown ID or symbol: ${value}`
+      return [null, warning]
+    }
+    if (object.type !== "Value") {
+      warning["value"] = `Object with ID or symbol "${value}" is not a value.`
+      return [null, warning]
+    }
     return [object, null]
   } else if (schema.type === "array") {
     let itemIds = []
-    let warnings = {}
+    let warningByItemIndex = {}
     for (let [index, item] of value.entries()) {
       let schemaItem = Array.isArray(schema.items) ? schema.items[index] : schema.items
-      let [typedItem, itemWarning] = (await convertValidJsonToTypedValue(schemaItem, widget, item,
-        {inactiveStatementIds, userId}))
+      let [typedItem, itemWarning] = (await convertValidJsonToExistingOrNewTypedValue(schemaItem, widget, item,
+        {cache, inactiveStatementIds, userId}))
       if (typedItem === null) continue
       itemIds.push(typedItem.id)
-      if (itemWarning !== null) warnings[String(index)] = itemWarning
+      if (itemWarning !== null) warningByItemIndex[String(index)] = itemWarning
     }
     schema = getValueFromSymbol("schema:value-ids-array")
     value = itemIds
-    if (Object.keys(warnings).length > 0) warning = warnings
+    if (Object.keys(warningByItemIndex).length > 0) warning["value"] = warningByItemIndex
   }
 
   let schemaId = (await getOrNewValue(getIdFromSymbol("schema:object"), null, schema,
@@ -165,7 +180,87 @@ export async function convertValidJsonToTypedValue(schema, widget, value,
   let widgetId = widget === null ? null : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
     {cache, inactiveStatementIds, userId})).id
   let typedValue = await getOrNewValue(schemaId, widgetId, value, {cache, inactiveStatementIds, userId})
-  return [typedValue, warning]
+  return [typedValue, (Object.keys(warning).length === 0) ? null : warning]
+}
+
+
+export async function convertValidJsonToExistingTypedValue(schema, widget, value) {
+  // Convert symbols to IDs, etc.
+  let warning = {}
+  let widgetId = null
+  let widgetWarning = null
+  if (schema.$ref === "/schemas/card-id") {
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) {
+      warning["value"] = `Unknown ID or symbol: ${value}`
+      return [null, warning]
+    }
+    if (object.type !== "Card") {
+      warning["value"] = `Object with ID or symbol "${value}" is not a card.`
+      return [null, warning]
+    }
+    value = id
+  } else if (schema.$ref === "/schemas/localized-string") {
+    let stringIdByLanguageId = {}
+    let warningByLanguage = {}
+    if (widget !== null) {
+       let typedWidget = await getValue(getIdFromSymbol("schema:object"), null, widget)
+       if (typedWidget === null) widgetWarning = `Unknown widget: ${widget}`
+       else widgetId = typedWidget.id
+    }
+    for (let [language, string] of Object.entries(value)) {
+      let languageId = idBySymbol[language]
+      if (languageId === undefined) {
+        warningByLanguage[language] = `Unknown language: ${language}`
+        continue
+      }
+      let typedString = await getValue(getIdFromSymbol("schema:string"), widgetId, string)
+      if (typedString === null) {
+        warningByLanguage[language] = `Unknown string: ${string}`
+        continue
+      }
+      stringIdByLanguageId[languageId] = typedString.id
+    }
+    value = stringIdByLanguageId
+    if (Object.keys(warningByLanguage).length > 0) warning["value"] = warningByLanguage
+    if (widgetWarning !== null) warning["value"] = widgetWarning
+    if (Object.keys(value).length === 0) return [null, warning]
+  } else if (schema.$ref === "/schemas/value-id") {
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) {
+      warning["value"] = `Unknown ID or symbol: ${value}`
+      return [null, warning]
+    }
+    if (object.type !== "Value") {
+      warning["value"] = `Object with ID or symbol "${value}" is not a value.`
+      return [null, warning]
+    }
+    return [object, null]
+  } else if (schema.type === "array") {
+    let itemIds = []
+    let warningByItemIndex = {}
+    for (let [index, item] of value.entries()) {
+      let schemaItem = Array.isArray(schema.items) ? schema.items[index] : schema.items
+      let [typedItem, itemWarning] = (await convertValidJsonToExistingTypedValue(schemaItem, widget, item))
+      if (typedItem === null) continue
+      itemIds.push(typedItem.id)
+      if (itemWarning !== null) warningByItemIndex[String(index)] = itemWarning
+    }
+    schema = getValueFromSymbol("schema:value-ids-array")
+    value = itemIds
+    if (Object.keys(warningByItemIndex).length > 0) warning["value"] = warningByItemIndex
+  }
+
+  let schemaId = (await getValue(getIdFromSymbol("schema:object"), null, schema)).id
+  if (widget !== null) {
+      let typedWidget = await getValue(getIdFromSymbol("schema:object"), null, widget)
+      if (typedWidget === null) widgetWarning = `Unknown widget: ${widget}`
+      else widgetId = typedWidget.id
+  }
+  let typedValue = await getValue(schemaId, widgetId, value)
+  return [typedValue, (Object.keys(warning).length === 0) ? null : warning]
 }
 
 

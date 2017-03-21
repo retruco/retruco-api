@@ -212,6 +212,7 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
 
   app.get("/values", usersController.authenticate(false), valuesController.listValues)
   app.post("/values", usersController.authenticate(true), valuesController.createValue)
+  app.post("/values/existing", usersController.authenticate(false), valuesController.getExistingValue)
 
   app.use(function (err, req, res) {
       // Error handling middleware (must be last use of app)
