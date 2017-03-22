@@ -174,7 +174,9 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       schemaErrorsByName[name] = e.message
       continue
     }
-    if (schema.type === "array" && Array.isArray(schema.items)) {
+    if (name === "id" && schema.$ref !== "/schemas/card-id") {
+      schemaErrorsByName[name] = "Invalid schema for an ID"
+    } else if (schema.type === "array" && Array.isArray(schema.items)) {
       schemaErrorsByName[name] = "In a bundle, a schema of type array must not use an array to define its items."
     }
   }
@@ -232,13 +234,13 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       let values = Array.isArray(value) ? value : [value]
       let {maxLength, schema, widget} = fieldByName[name] || {
         maxLength: 0,
-        schema: {},
+        schema: name === "id" ? {$ref: "/schemas/card-id"} : {},
         widget: {},
       }
       if (values.length > maxLength) maxLength = values.length
       for (value of values) {
         let valueType = typeof value
-        if (valueType == "string") {
+        if (valueType === "string") {
           let numberValue = Number(value)
           if (!Number.isNaN(numberValue)) {
             value = numberValue
@@ -252,31 +254,51 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             if (widget.tag !== "input" || widget.type !== "checkbox") widget = {tag: "input", type: "checkbox"}
           }
         } else if (valueType === "number") {
-          if (!schema.$ref && !schema.type || schema.type === "boolean") schema = {type: "number"}
-          if (schema.type === "number") {
-            if (widget.tag !== "input" || widget.type !== "number") widget = {tag: "input", type: "number"}
+          if (!["/schemas/card-id", "/schemas/value-id"].includes(schema.$ref)) {
+            if (!schema.$ref && !schema.type || schema.type === "boolean") schema = {type: "number"}
+            if (schema.type === "number") {
+              if (widget.tag !== "input" || widget.type !== "number") widget = {tag: "input", type: "number"}
+            }
           }
         } else if (valueType === "string") {
-          let strings$ref = [
-            "/schemas/card-id",
-            "/schemas/value-id",
-            "/schemas/localized-string",
-          ]
-          if (!strings$ref.includes(schema.$ref) && schema.type !== "string") {
-            schema = {$ref: "/schemas/localized-string"}
-          }
-          if (value.includes("\n")) {
-            if (widget.tag !== "textarea") widget = {tag: "textarea"}
-          } else {
-            if (widget.tag !== "textarea"
-              && (widget.tag !== "input" || !["email", "text", "url"].includes(widget.type))) {
-              widget = {tag: "input", type: "text"}
+          if (!["/schemas/card-id", "/schemas/value-id"].includes(schema.$ref)) {
+            if (schema.$ref !== "/schemas/localized-string" && schema.type !== "string") {
+              schema = {$ref: "/schemas/localized-string"}
+            }
+            if (value.includes("\n")) {
+              if (widget.tag !== "textarea") widget = {tag: "textarea"}
+            } else {
+              if (widget.tag !== "textarea"
+                && (widget.tag !== "input" || !["email", "text", "url"].includes(widget.type))) {
+                widget = {tag: "input", type: "text"}
+              }
             }
           }
         }
       }
       fieldByName[name] = {maxLength, schema, widget}
     }
+  }
+
+  if (fieldByName[keyName] === undefined) {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      message: `"key" value must be the name of an attribute of cards: Was: ${keyName}`,
+    })
+    return
+  }
+
+  let idField = fieldByName["id"]
+  if (idField !== undefined && idField.schema.$ref !== "/schemas/card-id") {
+    res.status(400)
+    res.json({
+      apiVersion: "1",
+      code: 400,  // Bad Request
+      message: `"id" attribute of cards must be of type "card-id". Was: ${JSON.stringify(idField.schema, null, 2)}`,
+    })
+    return
   }
 
   let schemaValidator = ajvWithCoercionForBundle.compile({
@@ -324,7 +346,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   )).map(entry => entry.id))
 
   //
-  // Convert input cards
+  // Convert input cards.
   //
 
   for (let field of Object.values(fieldByName)) {
@@ -344,44 +366,36 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let cache = {}
   let cardIdByKeyValue = {}
   let cardWarningsByKeyValue = {}
-  let keyNameId = (await getOrNewLocalizedString(language, keyName, "widget:input-text",
+  let keyNameId = keyName === "id" ? null : (await getOrNewLocalizedString(language, keyName, "widget:input-text",
     {cache, inactiveStatementIds, userId})).id
   for (let attributes of bundle.cards) {
     let keyValue = attributes[keyName]
-    let keyTypedValue = await getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsByKeyValue, language,
-      keyValue, keyName, fieldByName[keyName], attributes[keyName], {cache, inactiveStatementIds, userId})
-    if (keyTypedValue === null) continue
-    let keyValueId = keyTypedValue.id
-
-    // Try to retrieve a card rated by user and having key property rated by user.
-    let card = entryToCard(await db.oneOrNone(
-      `
-        SELECT objects.*, statements.*, cards.*, symbol
-        FROM objects
-        INNER JOIN statements ON objects.id = statements.id
-        INNER JOIN cards ON statements.id = cards.id
-        LEFT JOIN symbols ON objects.id = symbols.id
-        WHERE objects.id IN (
-          SELECT object_id
+    let card = null
+    if (keyName === "id") {
+      card = entryToCard(await db.oneOrNone(
+        `
+          SELECT objects.*, statements.*, cards.*, symbol
           FROM objects
           INNER JOIN statements ON objects.id = statements.id
-          INNER JOIN properties ON statements.id = properties.id
-          WHERE key_id = $<keyNameId>
-          AND value_id = $<keyValueId>
-          AND statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)
-        )
-        AND statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)
-        ORDER BY rating_sum DESC, cards.id
-        LIMIT 1
-      `,
-      {
-        keyNameId,
-        keyValueId,
-        userId,
-      },
-    ))
-    if (card === null) {
-      // Try to retrieve a card having key property.
+          INNER JOIN cards ON statements.id = cards.id
+          LEFT JOIN symbols ON objects.id = symbols.id
+          WHERE objects.id  = $<keyValue>
+          LIMIT 1
+        `,
+        {
+          keyValue,
+        },
+      ))
+      assert.notStrictEqual(card, null)
+      await rateStatement(card, userId, 1)
+      inactiveStatementIds.delete(card.id)
+    } else {
+      let keyTypedValue = await getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsByKeyValue, language,
+        keyValue, keyName, fieldByName[keyName], attributes[keyName], {cache, inactiveStatementIds, userId})
+      if (keyTypedValue === null) continue
+      let keyValueId = keyTypedValue.id
+
+      // Try to retrieve a card rated by user and having key property rated by user.
       card = entryToCard(await db.oneOrNone(
         `
           SELECT objects.*, statements.*, cards.*, symbol
@@ -396,7 +410,9 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             INNER JOIN properties ON statements.id = properties.id
             WHERE key_id = $<keyNameId>
             AND value_id = $<keyValueId>
+            AND statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)
           )
+          AND statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)
           ORDER BY rating_sum DESC, cards.id
           LIMIT 1
         `,
@@ -406,16 +422,43 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           userId,
         },
       ))
-    }
-    if (card === null) {
-      card = await newCard({
-        inactiveStatementIds,
-        properties: {[keyNameId]: keyValueId},
-        userId,
-      })
-    } else {
-      await rateStatement(card, userId, 1)
-      inactiveStatementIds.delete(card.id)
+      if (card === null) {
+        // Try to retrieve a card having key property.
+        card = entryToCard(await db.oneOrNone(
+          `
+            SELECT objects.*, statements.*, cards.*, symbol
+            FROM objects
+            INNER JOIN statements ON objects.id = statements.id
+            INNER JOIN cards ON statements.id = cards.id
+            LEFT JOIN symbols ON objects.id = symbols.id
+            WHERE objects.id IN (
+              SELECT object_id
+              FROM objects
+              INNER JOIN statements ON objects.id = statements.id
+              INNER JOIN properties ON statements.id = properties.id
+              WHERE key_id = $<keyNameId>
+              AND value_id = $<keyValueId>
+            )
+            ORDER BY rating_sum DESC, cards.id
+            LIMIT 1
+          `,
+          {
+            keyNameId,
+            keyValueId,
+            userId,
+          },
+        ))
+      }
+      if (card === null) {
+        card = await newCard({
+          inactiveStatementIds,
+          properties: {[keyNameId]: keyValueId},
+          userId,
+        })
+      } else {
+        await rateStatement(card, userId, 1)
+        inactiveStatementIds.delete(card.id)
+      }
     }
     cardIdByKeyValue[keyValue] = card.id
   }
@@ -426,6 +469,8 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     assert.notStrictEqual(cardId, undefined)
 
     for (let [name, value] of Object.entries(attributes)) {
+      if (name === "id") continue
+
       // Convert attribute name to a typed value.
       let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text",
         {cache, inactiveStatementIds, userId})).id
@@ -641,6 +686,9 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
     value = items
   } else if (schema.$ref === "/schemas/card-id") {
     let referencedCardId = cardIdByKeyValue[value]
+    if (referencedCardId === undefined && !Number.isNaN(Number(value))) {
+      referencedCardId = value  // Verification that card exists is done below.
+    }
     if (referencedCardId === undefined) {
       let cardWarnings = cardWarningsByKeyValue[keyValue]
       if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
@@ -655,6 +703,9 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
     let items = []
     for (let [index, item] of value.entries()) {
       let referencedCardId = cardIdByKeyValue[item]
+      if (referencedCardId === undefined && !Number.isNaN(Number(item))) {
+        referencedCardId = item  // Verification that card exists is done below.
+      }
       if (referencedCardId === undefined) {
         let cardWarnings = cardWarningsByKeyValue[keyValue]
         if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
