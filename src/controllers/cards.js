@@ -28,7 +28,7 @@ import {convertValidJsonToExistingOrNewTypedValue, entryToCard, entryToUser, get
   getOrNewProperty, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, toObjectJson,
   unrateStatementId, wrapAsyncMiddleware} from "../model"
 import {bundleSchemaByPath, schemaByPath} from "../schemas"
-import {getIdFromIdOrSymbol, getIdOrSymbolFromId} from "../symbols"
+import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId} from "../symbols"
 
 
 const ajvStrict = new Ajv({
@@ -970,6 +970,210 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       offset,
     }),
   )).filter(entry => !tagIds.includes(entry.tag)).map(entry => ({
+    count: Number(entry.count),
+    tagId: entry.tag,
+  }))
+
+  let valueByIdOrSymbol = {}
+  for (let {tagId} of popularity) {
+    valueByIdOrSymbol[getIdOrSymbolFromId(tagId)] = await toObjectJson(await getObjectFromId(tagId))
+  }
+  // Add requested tags, in order for client to have their informations.
+  for (let tagId of tagIds) {
+    valueByIdOrSymbol[getIdOrSymbolFromId(tagId)] = await toObjectJson(await getObjectFromId(tagId))
+  }
+
+  res.json({
+    apiVersion: "1",
+    count: count,
+    data: {
+      popularity: popularity.map(entry => ({
+        count: entry.count,
+        tagId: getIdOrSymbolFromId(entry.tagId),
+      })),
+      values: valueByIdOrSymbol,
+    },
+    limit: limit,
+    offset: offset,
+  })
+})
+
+
+export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTagsPopularityOgp(req, res) {
+  // let language = req.query.language
+  let limit = req.query.limit || 20
+  let offset = req.query.offset || 0
+  let subTypes = req.query.type || []
+  let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
+  let tags = req.query.tag || []
+  let tagIds = tags.map(getIdFromIdOrSymbol).filter(tagId => tagId)
+
+  const ogpRootSymbols = {
+    "public-integrity-measures": [
+      "anti-corruption",
+      "conflicts-of-interest",
+      "asset-disclosure",
+      "audits-control",
+      "whistleblower-protections",
+    ],
+    "fiscal-openness": [
+      "budget-transparency",
+      "citizen-budgets",
+      "participatory-budgeting",
+    ],
+    "citizen-engagement": [
+      "e-petitions",
+      "social-audits",
+      "public-participation",
+    ],
+    "procurement": [
+      "public-procurement",
+    ],
+    "access-to-information-mechanisms": [
+      "records-management",
+      "elections-political-finance",
+    ],
+    "justice": [
+      "law-enforcement-justice",
+    ],
+    "public-services": [
+      "public-service-delivery-improvement",
+      "e-government",
+      "open-data",
+      "capacity-building",
+      "legislative-regulation",
+    ],
+    "sectors": [
+      "media-telecommunications",
+      "education",
+      "health-nutrition",
+      "citizenship-immigration",
+      "welfare-social-security",
+      "water-sanitation",
+      "infrastructure",
+      "public-safety",
+      "defense",
+      "natural-resources",
+      "aid",
+      "nonprofits",
+    ],
+    "who-is-affected": [
+      "private-sector",
+      "legislature",
+      "sub-national-governance",
+      "judiciary",
+    ],
+    "mainstreaming-issues": [
+      "gender-sexuality",
+      "human-rights",
+      "ogp",
+      "marginalised-communities",
+      "labor",
+    ],
+  }
+
+  let whereClauses = [
+    "type = 'Card'",
+  ]
+
+  // if (language) {
+  //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
+  // }
+
+  if (subTypeIds.length > 0) {
+    whereClauses.push("sub_types && $<subTypeIds>")
+  }
+
+  let allowedTagIds = null
+  let coreArguments
+  let count
+  let popularity
+  let whereClause
+  if (tagIds.length === 0) {
+    allowedTagIds = Object.keys(ogpRootSymbols).map(getIdFromSymbol)
+  } else if (tagIds.length === 1) {
+    let tagSymbol = getIdOrSymbolFromId(tagIds[0])
+    let subTagsSymbols = ogpRootSymbols[tagSymbol]
+    if (subTagsSymbols !== undefined) {
+      allowedTagIds = subTagsSymbols.map(getIdFromSymbol)
+    }
+  }
+  if (allowedTagIds === null) {
+    coreArguments = {
+      // language,
+      subTypeIds,
+      tagIds,
+    }
+    whereClauses.push("tags @> $<tagIds>")
+    whereClause = "WHERE " + whereClauses.join(" AND ")
+    count = Number((await db.one(
+      `
+        SELECT count(*)
+        FROM (
+          SELECT DISTINCT unnest(tags) AS tag
+          FROM objects
+          ${whereClause}
+        ) AS distinct_tags
+      `,
+      coreArguments,
+    )).count)
+    popularity = await db.any(
+      `
+        SELECT unnest(tags) AS tag, count(id) AS count
+        FROM objects
+        ${whereClause}
+        GROUP BY tag
+        ORDER BY count DESC
+        LIMIT $<limit>
+        OFFSET $<offset>
+      `,
+      Object.assign({}, coreArguments, {
+        limit,
+        offset,
+      }),
+    )
+  } else {
+    coreArguments = {
+      allowedTagIds,
+      // language,
+      subTypeIds,
+    }
+    whereClauses.push("tags && $<allowedTagIds>")
+    whereClause = "WHERE " + whereClauses.join(" AND ")
+    count = Number((await db.one(
+      `
+        SELECT count(*)
+        FROM (
+          SELECT DISTINCT unnest(tags) AS tag
+          FROM objects
+          ${whereClause}
+        ) AS distinct_tags
+        WHERE distinct_tags.tag in ($<allowedTagIds:csv>)
+      `,
+      coreArguments,
+    )).count)
+    popularity = await db.any(
+      `
+        SELECT *
+        FROM (
+          SELECT unnest(tags) AS tag, count(id) AS count
+          FROM objects
+          ${whereClause}
+          GROUP BY tag
+        ) AS popularity
+        WHERE popularity.tag in ($<allowedTagIds:csv>)
+        ORDER BY count DESC
+        LIMIT $<limit>
+        OFFSET $<offset>
+      `,
+      Object.assign({}, coreArguments, {
+        limit,
+        offset,
+      }),
+    )
+  }
+
+  popularity = popularity.filter(entry => !tagIds.includes(entry.tag)).map(entry => ({
     count: Number(entry.count),
     tagId: entry.tag,
   }))

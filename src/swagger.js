@@ -424,6 +424,101 @@ const SPEC = {
         // security: {},
       },
     },
+    "/cards/tags-popularity-ogp": {
+      get: {
+        tags: ["card", "tag"],
+        summary: "List popularity of OGP-specific tags given to cards",
+        // description: "",
+        // externalDocs: {},
+        operationId: "cards.tagsPopularity",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/languageParam",
+          },
+          {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/offsetQueryParam",
+          },
+          {
+            $ref: "#/parameters/tagsQueryParam",
+          },
+          {
+            $ref: "#/parameters/typesQueryParam",
+          },
+          {
+            $ref: "#/parameters/userNameQueryParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing cards",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  type: "object",
+                  properties: {
+                    popularity: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          count: {
+                            minimum: 1,
+                            type: "integer",
+                          },
+                          tagId: {
+                            type: "string",
+                          },
+                        },
+                        required: [
+                          "count",
+                          "tag",
+                        ],
+                      },
+                      $ref: "#/definitions/DataIdsList",
+                    },
+                    values: {
+                      type: "object",
+                      additionalProperties: {
+                        $ref: "#/definitions/Value",
+                      },
+                    },
+                  },
+                  required: [
+                    "popularity",
+                    "values",
+                  ],
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/collections": {
       get: {
         tags: ["collection"],
