@@ -541,7 +541,7 @@ async function configureSymbols() {
   // Create missing symbols and their values.
 
   for (let {symbol} of symbolizedTypedValues) {
-    assert.strictEqual(symbol.replace(/:/g, ''), slugify(symbol, {mode: "rfc3986"}))
+    assert.strictEqual(symbol.replace(/:/g, ""), slugify(symbol, {mode: "rfc3986"}))
   }
 
   let symbol = "schema:object"
