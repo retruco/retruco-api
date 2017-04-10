@@ -217,8 +217,9 @@ swaggerMiddleware.init(swaggerSpecification, function (/* err */) {
   app.post("/values", usersController.authenticate(true), valuesController.createValue)
   app.post("/values/existing", usersController.authenticate(false), valuesController.getExistingValue)
 
-  app.use(function (err, req, res) {
+  app.use(function (err, req, res, next) {
       // Error handling middleware (must be last use of app)
+      // Don't remove the next parameter above: It is needed, otherwise it is called with (req, res, next) without err.
       const status = err.status || 500
       if (status === 500) console.error(err.stack)
       res
