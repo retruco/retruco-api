@@ -903,6 +903,60 @@ const SPEC = {
         // security: {},
       },
     },
+    "/objects/{idOrSymbol}/debate-properties": {
+      get: {
+        tags: ["debate", "object", "property"],
+        summary: "List all the debate-related properties of an existing object",
+        // description: "",
+        // externalDocs: {},
+        operationId: "objects.listObjectDebateProperties",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/idOrSymbolPathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested properties",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataIdsList",
+                },
+              },
+              required: [
+                "apiVersion",
+                "data",
+              ],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/objects/{idOrSymbol}/next-properties": {
       get: {
         tags: ["object", "property"],

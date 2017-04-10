@@ -268,6 +268,7 @@ async function configureDatabase() {
   // Table: statements
   await db.none(`
     CREATE TABLE IF NOT EXISTS statements(
+      arguments jsonb,
       id bigint NOT NULL PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
       rating double precision NOT NULL DEFAULT 0,
       rating_count integer NOT NULL DEFAULT 0,
@@ -523,6 +524,9 @@ async function configureDatabase() {
         }
       }
     }
+  }
+  if (version.number < 21) {
+    await db.none("ALTER TABLE statements ADD COLUMN IF NOT EXISTS arguments jsonb")
   }
 
   await configureSymbols()

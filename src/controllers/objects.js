@@ -21,7 +21,7 @@
 
 import {db} from "../database"
 import {entryToProperty, getObjectFromId, toDataJson, toObjectJson, wrapAsyncMiddleware} from "../model"
-import {getIdFromIdOrSymbol, getIdOrSymbolFromId} from "../symbols"
+import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId} from "../symbols"
 
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
@@ -29,6 +29,45 @@ export const getObject = wrapAsyncMiddleware(async function getObject(req, res) 
   res.json({
     apiVersion: "1",
     data: await toDataJson(req.object, req.authenticatedUser, {
+      depth: req.query.depth || 0,
+      showBallots: show.includes("ballots"),
+      showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
+      showValues: show.includes("values"),
+    }),
+  })
+})
+
+
+export const listObjectDebateProperties = wrapAsyncMiddleware(async function listObjectDebateProperties(req, res) {
+  let objectId = req.object.id
+  let show = req.query.show || []
+
+  const keyIds = [
+    "cons",
+    "pros",
+  ].map(getIdFromSymbol)
+
+  let sameKeyProperties = (await db.any(
+    `
+      SELECT objects.*, statements.*, properties.*, symbol
+      FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN properties ON statements.id = properties.id
+      LEFT JOIN symbols ON properties.id = symbols.id
+      WHERE properties.object_id = $<objectId>
+      AND properties.key_id IN ($<keyIds:csv>)
+      ORDER BY rating_sum DESC, created_at DESC
+    `,
+    {
+      keyIds,
+      objectId,
+    },
+  )).map(entryToProperty)
+
+  res.json({
+    apiVersion: "1",
+    data: await toDataJson(sameKeyProperties, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),

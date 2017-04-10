@@ -282,17 +282,17 @@ export const symbolizedTypedValues = [
       ["schema:string", ["widget:input-text", "widget:textarea"]],
     ],
   },
-  // {
-  //   symbol: "cons",  // pros & cons
-  //   schemaSymbol: "schema:localized-string",
-  //   value: {
-  //     en: "Cons",  // Against
-  //   },
-  //   widgetSymbol: "widget:input-text",
-  //   schemasWidgetsOrder: [
-  //     ["schema:concept-ids-array", ["widget:rated-item-or-set"]],
-  //   ],
-  // },
+  {
+    symbol: "cons",  // pros & cons
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Cons",  // Against
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:value-ids-array", ["widget:rated-item-or-set"]],
+    ],
+  },
   {
     symbol: "description",
     schemaSymbol: "schema:localized-string",
@@ -602,17 +602,17 @@ export const symbolizedTypedValues = [
       ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
     ],
   },
-  // {
-  //   symbol: "pros",  // pros & cons
-  //   schemaSymbol: "schema:localized-string",
-  //   value: {
-  //     en: "Pros",  // For
-  //   },
-  //   widgetSymbol: "widget:input-text",
-  //   schemasWidgetsOrder: [
-  //     ["schema:concept-ids-array", ["widget:rated-item-or-set"]],
-  //   ],
-  // },
+  {
+    symbol: "pros",  // pros & cons
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Pros",  // For
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [
+      ["schema:value-ids-array", ["widget:rated-item-or-set"]],
+    ],
+  },
   {
     symbol: "screenshot",
     schemaSymbol: "schema:localized-string",

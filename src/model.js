@@ -347,6 +347,7 @@ export function entryToObject(entry) {
 
 export function entryToStatement(entry) {
   return entry === null ? null : Object.assign({}, entryToObject(entry), {
+    arguments: entry.arguments,
     rating: parseFloat(entry.rating),
     ratingCount: parseInt(entry.rating_count),
     ratingSum: parseInt(entry.rating_sum),
@@ -1309,6 +1310,13 @@ export async function toDataJson1(idOrObject, data, objectsCache, user, {
       }
     }
 
+    for (let {keyId, valueId} of object.arguments || []) {
+      await toDataJson1(keyId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
+      await toDataJson1(valueId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
+        showValues})
+    }
+
     for (let [keyId, valueId] of Object.entries(object.properties || {})) {
       await toDataJson1(keyId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
         showValues})
@@ -1374,6 +1382,13 @@ export async function toSchemaValueJson(schema, value) {
 
 export async function toObjectJson(object, {showApiKey = false, showEmail = false} = {}) {
   let objectJson = Object.assign({}, object)
+  if (objectJson.arguments) {
+    objectJson.arguments = objectJson.arguments.map(argument => ({
+      ...argument,
+      keyId: getIdOrSymbolFromId(argument["keyId"]),
+      valueId: getIdOrSymbolFromId(argument["valueId"]),
+    }))
+  }
   objectJson.createdAt = objectJson.createdAt.toISOString()
   if (objectJson.properties) {
     let properties = objectJson.properties = Object.assign({}, objectJson.properties)

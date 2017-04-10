@@ -31,9 +31,10 @@ import {addAction, addReferences, describe, generateObjectTextSearch, getObjectF
 import {getIdFromSymbol, getValueFromSymbol, idBySymbol} from "./symbols"
 
 
-const matrixConfig = config.matrix
+let argumentKeysId = null  // Set by processActions.
 let languageByKeyId = null
 let localizationKeysId = null
+const matrixConfig = config.matrix
 
 
 // function addRatedValue(requestedSchema, values, schema, value) {
@@ -54,6 +55,71 @@ let localizationKeysId = null
 //     }
 //   }
 // }
+
+
+async function handleArgumentChange(objectId) {
+  let object = await getObjectFromId(objectId)
+  assert.ok(object, `Missing objet at ID ${objectId}`)
+  if (object.ratingSum === undefined) {
+    // object is not a statement (aka not a rated object) => It has no argumentation.
+    return
+  }
+
+  // Retrieve all the argumentation-related valid properties of the rated object, sorting by decreasing rating and id.
+
+  let argumentation = (await db.any(
+    `
+      SELECT properties.key_id as key_id, rating, rating_count, rating_sum, values.id as value_id
+      FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN properties ON statements.id = properties.id
+      INNER JOIN values ON properties.value_id = values.id
+      WHERE properties.object_id = $<objectId>
+      AND properties.key_id IN ($<argumentKeysId:csv>)
+      AND rating_sum > 0
+      ORDER BY rating_sum DESC, objects.id DESC
+    `,
+    {
+      argumentKeysId,
+      objectId,
+    },
+  )).map(argument => {
+    argument.keyId = argument.key_id
+    delete argument.key_id
+    argument.ratingCount = argument.rating_count
+    delete argument.rating_count
+    argument.ratingSum = argument.rating_sum
+    delete argument.rating_sum
+    argument.valueId = argument.value_id
+    delete argument.value_id
+    return argument
+  })
+
+  let argumentsChanged = false
+  if (argumentation.length > 0) {
+    if (!deepEqual(argumentation, object.arguments)){
+      object.arguments = argumentation
+      argumentsChanged = true
+    }
+  } else if (object.arguments !== null) {
+    delete object.arguments
+    argumentsChanged = true
+  }
+
+  if (argumentsChanged) {
+    await db.none(
+      `
+        UPDATE statements
+        SET arguments = $<arguments:json>
+        WHERE id = $<id>
+      `,
+      object,
+    )
+    // Don't call the following functions, because handlePropertyChange has already called them.
+    // await generateObjectTextSearch(object)
+    // await addAction(object.id, "arguments")
+  }
+}
 
 
 async function handlePropertyChange(objectId, keyId) {
@@ -496,6 +562,7 @@ async function processAction(action) {
     // }
 
     if (object.type === "Card") {
+      // Compute card specific rating.
       let keyIds = Object.keys(object.properties || {})
       // When there is at least 5 properties, score is multiplied by up to two.
       let ogpToolboxScore = Math.atan(keyIds.length / 5) * 4 / Math.PI
@@ -595,6 +662,10 @@ async function processAction(action) {
             }
           }
         }
+
+        if (argumentKeysId.includes(object.keyId)) {
+          await handleArgumentChange(object.objectId)
+        }
       }
 
       // Propagate rating change to every reference of object.
@@ -681,6 +752,11 @@ async function processAction(action) {
 
 
 async function processActions () {
+  argumentKeysId = [
+    getIdFromSymbol("cons"),
+    getIdFromSymbol("pros"),
+  ]
+
   languageByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
     if (config.languages.includes(symbol)) d[id] = symbol
     return d
