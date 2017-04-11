@@ -543,23 +543,10 @@ async function processAction(action) {
       ratingCount += 1
       if (ballot.rating) ratingSum += ballot.rating
     }
-    // TODO: Replace ground arguments with "pros" and "cons" properties.
-    // let groundArguments = (await db.any(
-    //   "SELECT * FROM statements WHERE (data->>'claimId') = $<id>::text",
-    //   object,
-    // )).map(entryToStatement)
-    // for (let argument of groundArguments) {
-    //   if (!argument.isAbuse && (argument.rating || 0) > 0 && ["because", "but"].includes(argument.argumentType)) {
-    //     let ground = entryToStatement(await db.oneOrNone(
-    //       "SELECT * FROM statements WHERE id = $<groundId>",
-    //       argument,
-    //     ))
-    //     if (!ground.isAbuse && ground.ratingCount) {
-    //       ratingCount += ground.ratingCount
-    //       ratingSum += (argument.argumentType === "because" ? 1 : -1) * ground.ratingSum
-    //     }
-    //   }
-    // }
+    for (let argument of object.arguments || []) {
+        ratingCount += argument.ratingCount
+        ratingSum += (argument.keyId === consId ? -1 : argument.keyId === prosId ? 1 : 0) * argument.ratingSum
+    }
 
     if (object.type === "Card") {
       // Compute card specific rating.
@@ -752,9 +739,11 @@ async function processAction(action) {
 
 
 async function processActions () {
+  consId = getIdFromSymbol("cons")
+  prosId = getIdFromSymbol("pros")
   argumentKeysId = [
-    getIdFromSymbol("cons"),
-    getIdFromSymbol("pros"),
+    consId,
+    prosId,
   ]
 
   languageByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
