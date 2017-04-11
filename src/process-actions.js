@@ -32,8 +32,10 @@ import {getIdFromSymbol, getValueFromSymbol, idBySymbol} from "./symbols"
 
 
 let argumentKeysId = null  // Set by processActions.
+let consId = null  // Set by processActions.
 let languageByKeyId = null
 let localizationKeysId = null
+let prosId = null  // Set by processActions.
 const matrixConfig = config.matrix
 
 
