@@ -6,6 +6,8 @@ Retruco is a software fostering argumentative discussion around statements and a
 
 **_Retruco_** means _immediate, precise and firm response_ in spanish.
 
+[![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
+
 ## More informations
 
 * [**Pad**](https://annuel.framapad.org/p/retruco)
