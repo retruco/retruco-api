@@ -18,13 +18,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import config from "../config"
-import {db, entryToStatement, entryToUser, hashStatement} from "../database"
-import {generateObjectTextSearch, getObjectFromId, languageConfigurationNameByCode, ownsUser,
-  rateStatement, toStatementData, toStatementsData, toStatementJson, types, wrapAsyncMiddleware} from "../model"
-import {getIdFromIdOrSymbol} from "../symbols"
-
+import { db, entryToStatement, entryToUser, hashStatement } from "../database"
+import {
+  generateObjectTextSearch,
+  getObjectFromId,
+  languageConfigurationNameByCode,
+  ownsUser,
+  rateStatement,
+  toStatementData,
+  toStatementsData,
+  toStatementJson,
+  types,
+  wrapAsyncMiddleware,
+} from "../model"
+import { getIdFromIdOrSymbol } from "../symbols"
 
 export const autocompleteStatements = wrapAsyncMiddleware(async function autocompleteStatements(req, res) {
   // Respond a list of statements.
@@ -68,12 +76,12 @@ export const autocompleteStatements = wrapAsyncMiddleware(async function autocom
       limit,
       statementTypes,
       term: term || "",
-    }
+    },
   )
 
   res.json({
     apiVersion: "1",
-    data: statementsEntries.map(function (statementEntry) {
+    data: statementsEntries.map(function(statementEntry) {
       let autocomplete = statementEntry.autocomplete
       delete statementEntry.autocomplete
       let distance = statementEntry.distance
@@ -87,7 +95,6 @@ export const autocompleteStatements = wrapAsyncMiddleware(async function autocom
   })
 })
 
-
 export const createStatement = wrapAsyncMiddleware(async function createStatement(req, res) {
   // Create a new statement.
   let show = req.query.show || []
@@ -99,12 +106,12 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
     delete statement.isAbuse
   }
   if (["PlainStatement", "Tag"].includes(statementType)) {
-    statement.name = statement.name.replace(/[\n\r]+/g," ").replace(/\s+/g," ").trim()
+    statement.name = statement.name.replace(/[\n\r]+/g, " ").replace(/\s+/g, " ").trim()
     if (statement.name.length === 0) {
       res.status(400)
       res.json({
         apiVersion: "1",
-        code: 400,  // Bad Request
+        code: 400, // Bad Request
         message: "Missing or empty name in statement.",
       })
       return
@@ -155,7 +162,7 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
   // statement.rating = statement.ratingSum / statement.ratingCount
   // await propagateOptimisticOptimization(statements, statement, oldRating, oldRatingSum)
 
-  if (existingStatement === null) res.status(201)  // Created
+  if (existingStatement === null) res.status(201) // Created
   res.json({
     apiVersion: "1",
     data: await toStatementData(statement, req.authenticatedUser, {
@@ -171,7 +178,6 @@ export const createStatement = wrapAsyncMiddleware(async function createStatemen
     }),
   })
 })
-
 
 export const deleteStatement = wrapAsyncMiddleware(async function deleteStatement(req, res) {
   // Delete an existing statement.
@@ -199,14 +205,13 @@ export const deleteStatement = wrapAsyncMiddleware(async function deleteStatemen
   })
 })
 
-
 export const getStatement = wrapAsyncMiddleware(async function getStatement(req, res) {
   // Respond an existing statement.
 
   let show = req.query.show || []
   res.json({
     apiVersion: "1",
-    data: await toStatementData(req.statement,  req.authenticatedUser, {
+    data: await toStatementData(req.statement, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showAbuse: show.includes("abuse"),
       showAuthor: show.includes("author"),
@@ -219,7 +224,6 @@ export const getStatement = wrapAsyncMiddleware(async function getStatement(req,
   })
 })
 
-
 export const listStatements = wrapAsyncMiddleware(async function listStatements(req, res) {
   // Respond a list of statements.
   let authenticatedUser = req.authenticatedUser
@@ -230,26 +234,30 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
   let show = req.query.show || []
   let tagsName = req.query.tag || []
   let term = req.query.term
-  let userName = req.query.user  // email or urlName
+  let userName = req.query.user // email or urlName
 
   let user = null
   if (userName) {
     if (!authenticatedUser) {
-      res.status(401)  // Unauthorized
+      res.status(401) // Unauthorized
       res.json({
         apiVersion: "1",
-        code: 401,  // Unauthorized
+        code: 401, // Unauthorized
         message: "The statements of a user can only be retrieved by the user himself or an admin.",
       })
       return
     }
 
     if (userName.indexOf("@") >= 0) {
-      user = entryToUser(await db.oneOrNone(
-        `SELECT * FROM objects
+      user = entryToUser(
+        await db.oneOrNone(
+          `SELECT * FROM objects
           INNER JOIN users ON objects.id = users.id
           WHERE email = $1
-        `, userName))
+        `,
+          userName,
+        ),
+      )
       if (user === null) {
         res.status(404)
         res.json({
@@ -260,11 +268,15 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
         return
       }
     } else {
-      user = entryToUser(await db.oneOrNone(
-        `SELECT * FROM objects
+      user = entryToUser(
+        await db.oneOrNone(
+          `SELECT * FROM objects
           INNER JOIN users ON objects.id = users.id
           WHERE url_name = $1
-        `, userName))
+        `,
+          userName,
+        ),
+      )
       if (user === null) {
         res.status(404)
         res.json({
@@ -277,10 +289,10 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
     }
 
     if (!ownsUser(authenticatedUser, user)) {
-      res.status(403)  // Forbidden
+      res.status(403) // Forbidden
       res.json({
         apiVersion: "1",
-        code: 403,  // Forbidden
+        code: 403, // Forbidden
         message: "The statements of a user can only be retrieved by the user himself or an admin.",
       })
       return
@@ -301,13 +313,14 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
     term = term.trim()
     if (term) {
       let languages = language ? [language] : config.languages
-      let termClauses = languages.map(language =>
-        `id IN (
+      let termClauses = languages.map(
+        language =>
+          `id IN (
           SELECT statement_id
             FROM statements_text_search
             WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
             AND language = '${language}'
-        )`
+        )`,
       )
       if (termClauses.length === 1) {
         whereClauses.push(termClauses[0])
@@ -338,13 +351,13 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
   let coreArguments = {
-      cardTypes,
-      language,
-      statementTypes,
-      tagsName,
-      term,
-      userId: user === null ? null : user.id,
-    }
+    cardTypes,
+    language,
+    statementTypes,
+    tagsName,
+    term,
+    userId: user === null ? null : user.id,
+  }
   let count = Number((await db.one(`SELECT count(*) as count FROM statements ${whereClause}`, coreArguments)).count)
 
   let statements = (await db.any(
@@ -372,7 +385,6 @@ export const listStatements = wrapAsyncMiddleware(async function listStatements(
     offset: offset,
   })
 })
-
 
 export const requireStatement = wrapAsyncMiddleware(async function requireStatement(req, res, next) {
   let id = getIdFromIdOrSymbol(req.params.idOrSymbol)

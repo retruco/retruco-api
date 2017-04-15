@@ -18,18 +18,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import Ajv from "ajv"
 import assert from "assert"
 
 import config from "../config"
-import {db} from "../database"
-import {convertValidJsonToExistingOrNewTypedValue, entryToCard, entryToUser, getObjectFromId, getOrNewLocalizedString,
-  getOrNewProperty, languageConfigurationNameByCode, newCard, ownsUser, rateStatement, toDataJson, toObjectJson,
-  unrateStatementId, wrapAsyncMiddleware} from "../model"
-import {bundleSchemaByPath, schemaByPath} from "../schemas"
-import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId} from "../symbols"
-
+import { db } from "../database"
+import {
+  convertValidJsonToExistingOrNewTypedValue,
+  entryToCard,
+  entryToUser,
+  getObjectFromId,
+  getOrNewLocalizedString,
+  getOrNewProperty,
+  languageConfigurationNameByCode,
+  newCard,
+  ownsUser,
+  rateStatement,
+  toDataJson,
+  toObjectJson,
+  unrateStatementId,
+  wrapAsyncMiddleware,
+} from "../model"
+import { bundleSchemaByPath, schemaByPath } from "../schemas"
+import { getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId } from "../symbols"
 
 const ajvStrict = new Ajv({
   // See: https://github.com/epoberezkin/ajv#options
@@ -77,7 +88,6 @@ for (let [path, schema] of Object.entries(bundleSchemaByPath)) {
   ajvWithCoercionForBundle.addSchema(schema, path)
 }
 
-
 export const autocompleteCards = wrapAsyncMiddleware(async function autocompleteCards(req, res) {
   let language = req.query.language
   let limit = req.query.limit || 20
@@ -122,7 +132,7 @@ export const autocompleteCards = wrapAsyncMiddleware(async function autocomplete
       subTypeIds,
       tagIds,
       term: term || "",
-    }
+    },
   )
 
   let autocompletions = []
@@ -143,7 +153,6 @@ export const autocompleteCards = wrapAsyncMiddleware(async function autocomplete
     data: autocompletions,
   })
 })
-
 
 export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, res) {
   let user = req.authenticatedUser
@@ -184,7 +193,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
 
   // Validate given widgets (if any).
   let widgetErrorsByName = {}
-  for (let [name, widget] of (Object.entries(bundle.widgets || {}))) {
+  for (let [name, widget] of Object.entries(bundle.widgets || {})) {
     if (typeof widget === "string") {
       let widgetId = getIdFromIdOrSymbol(widget)
       widget = (await getObjectFromId(widgetId)).value
@@ -205,7 +214,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       errors: errorMessages,
       message: "Errors detected in schemas and/or widgets definitions.",
     })
@@ -232,9 +241,9 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   for (let attributes of bundle.cards) {
     for (let [name, value] of Object.entries(attributes)) {
       let values = Array.isArray(value) ? value : [value]
-      let {maxLength, schema, widget} = fieldByName[name] || {
+      let { maxLength, schema, widget } = fieldByName[name] || {
         maxLength: 0,
-        schema: name === "id" ? {$ref: "/schemas/card-id"} : {},
+        schema: name === "id" ? { $ref: "/schemas/card-id" } : {},
         widget: {},
       }
       if (values.length > maxLength) maxLength = values.length
@@ -249,34 +258,35 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         }
 
         if (valueType === "boolean") {
-          if (!schema.$ref && !schema.type) schema = {type: "boolean"}
+          if (!schema.$ref && !schema.type) schema = { type: "boolean" }
           if (schema.type === "boolean") {
-            if (widget.tag !== "input" || widget.type !== "checkbox") widget = {tag: "input", type: "checkbox"}
+            if (widget.tag !== "input" || widget.type !== "checkbox") widget = { tag: "input", type: "checkbox" }
           }
         } else if (valueType === "number") {
           if (!["/schemas/card-id", "/schemas/value-id"].includes(schema.$ref)) {
-            if (!schema.$ref && !schema.type || schema.type === "boolean") schema = {type: "number"}
+            if ((!schema.$ref && !schema.type) || schema.type === "boolean") schema = { type: "number" }
             if (schema.type === "number") {
-              if (widget.tag !== "input" || widget.type !== "number") widget = {tag: "input", type: "number"}
+              if (widget.tag !== "input" || widget.type !== "number") widget = { tag: "input", type: "number" }
             }
           }
         } else if (valueType === "string") {
           if (!["/schemas/card-id", "/schemas/value-id"].includes(schema.$ref)) {
             if (schema.$ref !== "/schemas/localized-string" && schema.type !== "string") {
-              schema = {$ref: "/schemas/localized-string"}
+              schema = { $ref: "/schemas/localized-string" }
             }
             if (value.includes("\n")) {
-              if (widget.tag !== "textarea") widget = {tag: "textarea"}
+              if (widget.tag !== "textarea") widget = { tag: "textarea" }
             } else {
-              if (widget.tag !== "textarea"
-                && (widget.tag !== "input" || !["email", "text", "url"].includes(widget.type))) {
-                widget = {tag: "input", type: "text"}
+              if (
+                widget.tag !== "textarea" && (widget.tag !== "input" || !["email", "text", "url"].includes(widget.type))
+              ) {
+                widget = { tag: "input", type: "text" }
               }
             }
           }
         }
       }
-      fieldByName[name] = {maxLength, schema, widget}
+      fieldByName[name] = { maxLength, schema, widget }
     }
   }
 
@@ -284,7 +294,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       message: `"key" value must be the name of an attribute of cards: Was: ${keyName}`,
     })
     return
@@ -295,7 +305,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       message: `"id" attribute of cards must be of type "card-id". Was: ${JSON.stringify(idField.schema, null, 2)}`,
     })
     return
@@ -303,7 +313,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
 
   let schemaValidator = ajvWithCoercionForBundle.compile({
     type: "object",
-    properties: Object.entries(fieldByName).reduce((schemaByName, [name, {schema}]) => {
+    properties: Object.entries(fieldByName).reduce((schemaByName, [name, { schema }]) => {
       schemaByName[name] = {
         anyOf: [
           schema,
@@ -325,7 +335,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       errors: errorMessages,
       message: "Errors detected in given cards.",
     })
@@ -336,14 +346,16 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   // Retrieve IDs of existing statements rated by user.
   //
 
-  let inactiveStatementIds = new Set((await db.any(
-    `
+  let inactiveStatementIds = new Set(
+    (await db.any(
+      `
       SELECT objects.id FROM objects
       INNER JOIN statements ON objects.id = statements.id
       WHERE statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $1)
     `,
-    userId,
-  )).map(entry => entry.id))
+      userId,
+    )).map(entry => entry.id),
+  )
 
   //
   // Convert input cards.
@@ -366,14 +378,17 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let cache = {}
   let cardIdByKeyValue = {}
   let cardWarningsByKeyValue = {}
-  let keyNameId = keyName === "id" ? null : (await getOrNewLocalizedString(language, keyName, "widget:input-text",
-    {cache, inactiveStatementIds, userId})).id
+  let keyNameId = keyName === "id"
+    ? null
+    : (await getOrNewLocalizedString(language, keyName, "widget:input-text", { cache, inactiveStatementIds, userId }))
+        .id
   for (let attributes of bundle.cards) {
     let keyValue = attributes[keyName]
     let card = null
     if (keyName === "id") {
-      card = entryToCard(await db.oneOrNone(
-        `
+      card = entryToCard(
+        await db.oneOrNone(
+          `
           SELECT objects.*, statements.*, cards.*, symbol
           FROM objects
           INNER JOIN statements ON objects.id = statements.id
@@ -382,22 +397,32 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           WHERE objects.id  = $<keyValue>
           LIMIT 1
         `,
-        {
-          keyValue,
-        },
-      ))
+          {
+            keyValue,
+          },
+        ),
+      )
       assert.notStrictEqual(card, null)
       await rateStatement(card, userId, 1)
       inactiveStatementIds.delete(card.id)
     } else {
-      let keyTypedValue = await getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsByKeyValue, language,
-        keyValue, keyName, fieldByName[keyName], attributes[keyName], {cache, inactiveStatementIds, userId})
+      let keyTypedValue = await getOrNewTypedValueFromBundleField(
+        cardIdByKeyValue,
+        cardWarningsByKeyValue,
+        language,
+        keyValue,
+        keyName,
+        fieldByName[keyName],
+        attributes[keyName],
+        { cache, inactiveStatementIds, userId },
+      )
       if (keyTypedValue === null) continue
       let keyValueId = keyTypedValue.id
 
       // Try to retrieve a card rated by user and having key property rated by user.
-      card = entryToCard(await db.oneOrNone(
-        `
+      card = entryToCard(
+        await db.oneOrNone(
+          `
           SELECT objects.*, statements.*, cards.*, symbol
           FROM objects
           INNER JOIN statements ON objects.id = statements.id
@@ -416,16 +441,18 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           ORDER BY rating_sum DESC, cards.id
           LIMIT 1
         `,
-        {
-          keyNameId,
-          keyValueId,
-          userId,
-        },
-      ))
+          {
+            keyNameId,
+            keyValueId,
+            userId,
+          },
+        ),
+      )
       if (card === null) {
         // Try to retrieve a card having key property.
-        card = entryToCard(await db.oneOrNone(
-          `
+        card = entryToCard(
+          await db.oneOrNone(
+            `
             SELECT objects.*, statements.*, cards.*, symbol
             FROM objects
             INNER JOIN statements ON objects.id = statements.id
@@ -442,17 +469,18 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             ORDER BY rating_sum DESC, cards.id
             LIMIT 1
           `,
-          {
-            keyNameId,
-            keyValueId,
-            userId,
-          },
-        ))
+            {
+              keyNameId,
+              keyValueId,
+              userId,
+            },
+          ),
+        )
       }
       if (card === null) {
         card = await newCard({
           inactiveStatementIds,
-          properties: {[keyNameId]: keyValueId},
+          properties: { [keyNameId]: keyValueId },
           userId,
         })
       } else {
@@ -472,14 +500,25 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       if (name === "id") continue
 
       // Convert attribute name to a typed value.
-      let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text",
-        {cache, inactiveStatementIds, userId})).id
+      let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text", {
+        cache,
+        inactiveStatementIds,
+        userId,
+      })).id
 
       // Convert attribute value to a typed value, after simplifying it and replacing names with IDs.
-      let typedValue = await getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsByKeyValue, language,
-        keyValue, name, fieldByName[name], value, {cache, inactiveStatementIds, userId})
+      let typedValue = await getOrNewTypedValueFromBundleField(
+        cardIdByKeyValue,
+        cardWarningsByKeyValue,
+        language,
+        keyValue,
+        name,
+        fieldByName[name],
+        value,
+        { cache, inactiveStatementIds, userId },
+      )
       if (typedValue === null) continue
-      await getOrNewProperty(cardId, nameId, typedValue.id, {inactiveStatementIds, userId})
+      await getOrNewProperty(cardId, nameId, typedValue.id, { inactiveStatementIds, userId })
     }
   }
 
@@ -498,7 +537,6 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   if (Object.keys(warningMessages).length > 0) result.warnings = warningMessages
   res.json(result)
 })
-
 
 export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(req, res) {
   // Create a new card, giving its initial attributes, schemas & widgets.
@@ -533,7 +571,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   // Validate given widgets.
   let widgetErrorsByName = {}
   let widgetIdByName = {}
-  for (let [name, widget] of (Object.entries(cardInfos.widgets || {}))) {
+  for (let [name, widget] of Object.entries(cardInfos.widgets || {})) {
     if (typeof widget === "string") {
       let widgetId = getIdFromIdOrSymbol(widget)
       widget = (await getObjectFromId(widgetId)).value
@@ -555,7 +593,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       errors: errorMessages,
       message: "Errors detected in schemas and/or widgets definitions.",
     })
@@ -570,8 +608,8 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
-      errors: {values: schemaValidator.errors},
+      code: 400, // Bad Request
+      errors: { values: schemaValidator.errors },
       message: "Errors detected in given values.",
     })
     return
@@ -579,17 +617,23 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
 
   // Create new card with its properties.
   let cache = {}
-  let inactiveStatementIds = null  // No existings objects to remove when creating a new card.
+  let inactiveStatementIds = null // No existings objects to remove when creating a new card.
   let properties = {}
   let warnings = {}
   for (let [name, value] of Object.entries(cardInfos.values)) {
     // Convert attribute name to a typed value.
-    let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text",
-      {cache, inactiveStatementIds, userId})).id
+    let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text", {
+      cache,
+      inactiveStatementIds,
+      userId,
+    })).id
     let schema = cardInfos.schemas[name]
     let widget = cardInfos.widgets[name] || null
-    let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value,
-      {cache, inactiveStatementIds, userId})
+    let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value, {
+      cache,
+      inactiveStatementIds,
+      userId,
+    })
     if (warning !== null) {
       warnings[name] = warning
     }
@@ -613,20 +657,27 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
     }),
   }
   if (Object.keys(warnings).length > 0) result.warnings = warnings
-  res.status(201)  // Created
+  res.status(201) // Created
   res.json(result)
 })
 
-
-async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsByKeyValue, language, keyValue, name,
-  field, value, {cache = null, inactiveStatementIds = null, userId = null} = {}) {
+async function getOrNewTypedValueFromBundleField(
+  cardIdByKeyValue,
+  cardWarningsByKeyValue,
+  language,
+  keyValue,
+  name,
+  field,
+  value,
+  { cache = null, inactiveStatementIds = null, userId = null } = {},
+) {
   // Simplify value and schema of attribute.
-  let {maxLength, schema, widget} = field
+  let { maxLength, schema, widget } = field
   if (maxLength > 1) {
     if (!Array.isArray(value)) {
       schema = schema.items
     } else if (value.length === 0) {
-      schema = {type: null}
+      schema = { type: null }
       value = null
     } else if (value.length === 1) {
       schema = schema.items
@@ -636,7 +687,7 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
     if (value.length > 0) {
       value = value[0]
     } else {
-      schema = {type: null}
+      schema = { type: null }
       value = null
     }
   }
@@ -648,13 +699,16 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
       cardWarnings[name] = `Unknown key "${value.targetId}" for referenced card.`
       value = value.targetId
 
-      schema = {type: "string"}
+      schema = { type: "string" }
       // TODO: Change widget.
     } else {
       value.targetId = referencedCardId
       let reverseName = value.reverseKeyId
-      let reverseNameId = (await getOrNewLocalizedString(language, reverseName, "widget:input-text",
-        {cache, inactiveStatementIds, userId})).id
+      let reverseNameId = (await getOrNewLocalizedString(language, reverseName, "widget:input-text", {
+        cache,
+        inactiveStatementIds,
+        userId,
+      })).id
       value.reverseKeyId = reverseNameId
     }
   } else if (schema.type === "array" && schema.items.$ref === "/schemas/bijective-card-reference") {
@@ -672,13 +726,16 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
         schema = Object.assign({}, schema)
         if (Array.isArray(schema.items)) schema.items = [...schema.items]
         else schema.items = value.map(() => Object.assign({}, schema.items))
-        schema.items[index] = {type: "string"}
+        schema.items[index] = { type: "string" }
         // TODO: Change widget.
       } else {
         item.targetId = referencedCardId
         let reverseName = item.reverseKeyId
-        let reverseNameId = (await getOrNewLocalizedString(language, reverseName, "widget:input-text",
-          {cache, inactiveStatementIds, userId})).id
+        let reverseNameId = (await getOrNewLocalizedString(language, reverseName, "widget:input-text", {
+          cache,
+          inactiveStatementIds,
+          userId,
+        })).id
         item.reverseKeyId = reverseNameId
       }
       items.push(item)
@@ -687,14 +744,14 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
   } else if (schema.$ref === "/schemas/card-id") {
     let referencedCardId = cardIdByKeyValue[value]
     if (referencedCardId === undefined && !Number.isNaN(Number(value))) {
-      referencedCardId = value  // Verification that card exists is done below.
+      referencedCardId = value // Verification that card exists is done below.
     }
     if (referencedCardId === undefined) {
       let cardWarnings = cardWarningsByKeyValue[keyValue]
       if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
       cardWarnings[name] = `Unknown key "${value}" for referenced card.`
 
-      schema = {type: "string"}
+      schema = { type: "string" }
       // TODO: Change widget.
     } else {
       value = referencedCardId
@@ -704,7 +761,7 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
     for (let [index, item] of value.entries()) {
       let referencedCardId = cardIdByKeyValue[item]
       if (referencedCardId === undefined && !Number.isNaN(Number(item))) {
-        referencedCardId = item  // Verification that card exists is done below.
+        referencedCardId = item // Verification that card exists is done below.
       }
       if (referencedCardId === undefined) {
         let cardWarnings = cardWarningsByKeyValue[keyValue]
@@ -716,7 +773,7 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
         schema = Object.assign({}, schema)
         if (Array.isArray(schema.items)) schema.items = [...schema.items]
         else schema.items = value.map(() => Object.assign({}, schema.items))
-        schema.items[index] = {type: "string"}
+        schema.items[index] = { type: "string" }
         // TODO: Change widget.
       } else {
         item = referencedCardId
@@ -726,19 +783,21 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
     value = items
   } else if (schema.$ref === "/schemas/localized-string") {
     if (typeof value === "string") {
-      value = {[language]: value}
+      value = { [language]: value }
     }
   } else if (schema.type === "array" && schema.items.$ref === "/schemas/localized-string") {
     value = value.map(item => {
       if (typeof item === "string") {
-        item = {[language]: item}
+        item = { [language]: item }
       }
       return item
     })
   }
 
-  let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value,
-    {inactiveStatementIds, userId})
+  let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value, {
+    inactiveStatementIds,
+    userId,
+  })
   if (warning !== null) {
     let cardWarnings = cardWarningsByKeyValue[keyValue]
     if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
@@ -747,7 +806,6 @@ async function getOrNewTypedValueFromBundleField(cardIdByKeyValue, cardWarningsB
 
   return typedValue
 }
-
 
 export const listCards = wrapAsyncMiddleware(async function listCards(req, res) {
   // Respond a list of statements.
@@ -761,26 +819,30 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let tags = req.query.tag || []
   let tagIds = tags.map(getIdFromIdOrSymbol).filter(tag => tag)
   let term = req.query.term
-  let userName = req.query.user  // email or urlName
+  let userName = req.query.user // email or urlName
 
   let user = null
   if (userName) {
     if (!authenticatedUser) {
-      res.status(401)  // Unauthorized
+      res.status(401) // Unauthorized
       res.json({
         apiVersion: "1",
-        code: 401,  // Unauthorized
+        code: 401, // Unauthorized
         message: "The statements of a user can only be retrieved by the user himself or an admin.",
       })
       return
     }
 
     if (userName.indexOf("@") >= 0) {
-      user = entryToUser(await db.oneOrNone(
-        `SELECT * FROM objects
+      user = entryToUser(
+        await db.oneOrNone(
+          `SELECT * FROM objects
           INNER JOIN users ON objects.id = users.id
           WHERE email = $1
-        `, userName))
+        `,
+          userName,
+        ),
+      )
       if (user === null) {
         res.status(404)
         res.json({
@@ -791,11 +853,15 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
         return
       }
     } else {
-      user = entryToUser(await db.oneOrNone(
-        `SELECT * FROM objects
+      user = entryToUser(
+        await db.oneOrNone(
+          `SELECT * FROM objects
           INNER JOIN users ON objects.id = users.id
           WHERE url_name = $1
-        `, userName))
+        `,
+          userName,
+        ),
+      )
       if (user === null) {
         res.status(404)
         res.json({
@@ -808,10 +874,10 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     }
 
     if (!ownsUser(authenticatedUser, user)) {
-      res.status(403)  // Forbidden
+      res.status(403) // Forbidden
       res.json({
         apiVersion: "1",
-        code: 403,  // Forbidden
+        code: 403, // Forbidden
         message: "The statements of a user can only be retrieved by the user himself or an admin.",
       })
       return
@@ -836,13 +902,14 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     term = term.trim()
     if (term) {
       let languages = language ? [language] : config.languages
-      let termClauses = languages.map(language =>
-        `objects.id IN (
+      let termClauses = languages.map(
+        language =>
+          `objects.id IN (
           SELECT id
           FROM cards_text_search
           WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
           AND language = '${language}'
-        )`
+        )`,
       )
       if (termClauses.length === 1) {
         whereClauses.push(termClauses[0])
@@ -866,16 +933,18 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     term,
     userId: user === null ? null : user.id,
   }
-  let count = Number((await db.one(
-    `
+  let count = Number(
+    (await db.one(
+      `
       SELECT count(*) as count
       FROM objects
       INNER JOIN statements on objects.id = statements.id
       INNER JOIN cards on statements.id = cards.id
       ${whereClause}
     `,
-    coreArguments,
-  )).count)
+      coreArguments,
+    )).count,
+  )
 
   let cards = (await db.any(
     `
@@ -910,7 +979,6 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   })
 })
 
-
 export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPopularity(req, res) {
   // let language = req.query.language
   let limit = req.query.limit || 20
@@ -920,9 +988,7 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   let tags = req.query.tag || []
   let tagIds = tags.map(getIdFromIdOrSymbol).filter(tagId => tagId)
 
-  let whereClauses = [
-    "type = 'Card'",
-  ]
+  let whereClauses = ["type = 'Card'"]
 
   // if (language) {
   //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
@@ -943,8 +1009,9 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
     subTypeIds,
     tagIds,
   }
-  let count = Number((await db.one(
-    `
+  let count = Number(
+    (await db.one(
+      `
       SELECT count(*)
       FROM (
         SELECT DISTINCT unnest(tags) AS tag
@@ -952,8 +1019,9 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
         ${whereClause}
       ) AS distinct_tags
     `,
-    coreArguments,
-  )).count)
+      coreArguments,
+    )).count,
+  )
 
   let popularity = (await db.any(
     `
@@ -969,13 +1037,15 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       limit,
       offset,
     }),
-  )).filter(entry => !tagIds.includes(entry.tag)).map(entry => ({
-    count: Number(entry.count),
-    tagId: entry.tag,
-  }))
+  ))
+    .filter(entry => !tagIds.includes(entry.tag))
+    .map(entry => ({
+      count: Number(entry.count),
+      tagId: entry.tag,
+    }))
 
   let valueByIdOrSymbol = {}
-  for (let {tagId} of popularity) {
+  for (let { tagId } of popularity) {
     valueByIdOrSymbol[getIdOrSymbolFromId(tagId)] = await toObjectJson(await getObjectFromId(tagId))
   }
   // Add requested tags, in order for client to have their informations.
@@ -998,7 +1068,6 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   })
 })
 
-
 export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTagsPopularityOgp(req, res) {
   // let language = req.query.language
   let limit = req.query.limit || 20
@@ -1016,26 +1085,11 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
       "audits-control",
       "whistleblower-protections",
     ],
-    "fiscal-openness": [
-      "budget-transparency",
-      "citizen-budgets",
-      "participatory-budgeting",
-    ],
-    "citizen-engagement": [
-      "e-petitions",
-      "social-audits",
-      "public-participation",
-    ],
-    "procurement": [
-      "public-procurement",
-    ],
-    "access-to-information-mechanisms": [
-      "records-management",
-      "elections-political-finance",
-    ],
-    "justice": [
-      "law-enforcement-justice",
-    ],
+    "fiscal-openness": ["budget-transparency", "citizen-budgets", "participatory-budgeting"],
+    "citizen-engagement": ["e-petitions", "social-audits", "public-participation"],
+    procurement: ["public-procurement"],
+    "access-to-information-mechanisms": ["records-management", "elections-political-finance"],
+    justice: ["law-enforcement-justice"],
     "public-services": [
       "public-service-delivery-improvement",
       "e-government",
@@ -1043,7 +1097,7 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
       "capacity-building",
       "legislative-regulation",
     ],
-    "sectors": [
+    sectors: [
       "media-telecommunications",
       "education",
       "health-nutrition",
@@ -1057,24 +1111,11 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
       "aid",
       "nonprofits",
     ],
-    "who-is-affected": [
-      "private-sector",
-      "legislature",
-      "sub-national-governance",
-      "judiciary",
-    ],
-    "mainstreaming-issues": [
-      "gender-sexuality",
-      "human-rights",
-      "ogp",
-      "marginalised-communities",
-      "labor",
-    ],
+    "who-is-affected": ["private-sector", "legislature", "sub-national-governance", "judiciary"],
+    "mainstreaming-issues": ["gender-sexuality", "human-rights", "ogp", "marginalised-communities", "labor"],
   }
 
-  let whereClauses = [
-    "type = 'Card'",
-  ]
+  let whereClauses = ["type = 'Card'"]
 
   // if (language) {
   //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
@@ -1106,8 +1147,9 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
     }
     whereClauses.push("tags @> $<tagIds>")
     whereClause = "WHERE " + whereClauses.join(" AND ")
-    count = Number((await db.one(
-      `
+    count = Number(
+      (await db.one(
+        `
         SELECT count(*)
         FROM (
           SELECT DISTINCT unnest(tags) AS tag
@@ -1115,8 +1157,9 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
           ${whereClause}
         ) AS distinct_tags
       `,
-      coreArguments,
-    )).count)
+        coreArguments,
+      )).count,
+    )
     popularity = await db.any(
       `
         SELECT unnest(tags) AS tag, count(id) AS count
@@ -1140,8 +1183,9 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
     }
     whereClauses.push("tags && $<allowedTagIds>")
     whereClause = "WHERE " + whereClauses.join(" AND ")
-    count = Number((await db.one(
-      `
+    count = Number(
+      (await db.one(
+        `
         SELECT count(*)
         FROM (
           SELECT DISTINCT unnest(tags) AS tag
@@ -1150,8 +1194,9 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
         ) AS distinct_tags
         WHERE distinct_tags.tag in ($<allowedTagIds:csv>)
       `,
-      coreArguments,
-    )).count)
+        coreArguments,
+      )).count,
+    )
     popularity = await db.any(
       `
         SELECT *
@@ -1179,7 +1224,7 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
   }))
 
   let valueByIdOrSymbol = {}
-  for (let {tagId} of popularity) {
+  for (let { tagId } of popularity) {
     valueByIdOrSymbol[getIdOrSymbolFromId(tagId)] = await toObjectJson(await getObjectFromId(tagId))
   }
   // Add requested tags, in order for client to have their informations.

@@ -18,11 +18,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import {db} from "../database"
-import {entryToProperty, getObjectFromId, toDataJson, toObjectJson, wrapAsyncMiddleware} from "../model"
-import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId} from "../symbols"
-
+import { db } from "../database"
+import { entryToProperty, getObjectFromId, toDataJson, toObjectJson, wrapAsyncMiddleware } from "../model"
+import { getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId } from "../symbols"
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
   let show = req.query.show || []
@@ -38,15 +36,11 @@ export const getObject = wrapAsyncMiddleware(async function getObject(req, res) 
   })
 })
 
-
 export const listObjectDebateProperties = wrapAsyncMiddleware(async function listObjectDebateProperties(req, res) {
   let objectId = req.object.id
   let show = req.query.show || []
 
-  const keyIds = [
-    "cons",
-    "pros",
-  ].map(getIdFromSymbol)
+  const keyIds = ["cons", "pros"].map(getIdFromSymbol)
 
   let sameKeyProperties = (await db.any(
     `
@@ -76,7 +70,6 @@ export const listObjectDebateProperties = wrapAsyncMiddleware(async function lis
     }),
   })
 })
-
 
 export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function listObjectSameKeyProperties(req, res) {
   let objectId = req.object.id
@@ -131,7 +124,6 @@ export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function li
     }),
   })
 })
-
 
 export const nextProperties = wrapAsyncMiddleware(async function nextProperties(req, res) {
   let object = req.object
@@ -212,7 +204,6 @@ export const nextProperties = wrapAsyncMiddleware(async function nextProperties(
     },
   })
 })
-
 
 export const requireObject = wrapAsyncMiddleware(async function requireObject(req, res, next) {
   let id = getIdFromIdOrSymbol(req.params.idOrSymbol)

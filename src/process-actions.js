@@ -18,26 +18,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import assert from "assert"
 import deepEqual from "deep-equal"
 import fetch from "node-fetch"
 import https from "https"
 
 import config from "./config"
-import {checkDatabase, db, dbSharedConnectionObject} from "./database"
-import {addAction, addReferences, describe, generateObjectTextSearch, getObjectFromId, getOrNewValue,
-  getSubTypeIdsFromProperties, getTagIdsFromProperties, entryToAction, entryToBallot} from "./model"
-import {getIdFromSymbol, getValueFromSymbol, idBySymbol} from "./symbols"
+import { checkDatabase, db, dbSharedConnectionObject } from "./database"
+import {
+  addAction,
+  addReferences,
+  describe,
+  generateObjectTextSearch,
+  getObjectFromId,
+  getOrNewValue,
+  getSubTypeIdsFromProperties,
+  getTagIdsFromProperties,
+  entryToAction,
+  entryToBallot,
+} from "./model"
+import { getIdFromSymbol, getValueFromSymbol, idBySymbol } from "./symbols"
 
-
-let argumentKeysId = null  // Set by processActions.
-let consId = null  // Set by processActions.
+let argumentKeysId = null // Set by processActions.
+let consId = null // Set by processActions.
 let languageByKeyId = null
 let localizationKeysId = null
-let prosId = null  // Set by processActions.
+let prosId = null // Set by processActions.
 const matrixConfig = config.matrix
-
 
 // function addRatedValue(requestedSchema, values, schema, value) {
 //   assert(requestedSchema.type !== "array")
@@ -57,7 +64,6 @@ const matrixConfig = config.matrix
 //     }
 //   }
 // }
-
 
 async function handleArgumentChange(objectId) {
   let object = await getObjectFromId(objectId)
@@ -99,7 +105,7 @@ async function handleArgumentChange(objectId) {
 
   let argumentsChanged = false
   if (argumentation.length > 0) {
-    if (!deepEqual(argumentation, object.arguments)){
+    if (!deepEqual(argumentation, object.arguments)) {
       object.arguments = argumentation
       argumentsChanged = true
     }
@@ -122,7 +128,6 @@ async function handleArgumentChange(objectId) {
     // await addAction(object.id, "arguments")
   }
 }
-
 
 async function handlePropertyChange(objectId, keyId) {
   let object = await getObjectFromId(objectId)
@@ -191,7 +196,7 @@ async function handlePropertyChange(objectId, keyId) {
   sameKeyDescriptions = sameKeyDescriptions.concat(inverseDescriptions)
 
   // Add inverse properties of arrays of bijective URI references.
-  let entries = (await db.any(
+  let entries = await db.any(
     `
       SELECT objects.id, object_id AS value, rating, rating_count, rating_sum, schemas.value AS schema,
         values.value AS values
@@ -208,7 +213,7 @@ async function handlePropertyChange(objectId, keyId) {
       keyId,
       objectId,
     },
-  ))
+  )
   for (let entry of entries) {
     let schemaItems = entry.schema.items
     if (Array.isArray(schemaItems)) {
@@ -230,7 +235,7 @@ async function handlePropertyChange(objectId, keyId) {
         }
       }
     } else {
-      let itemSchema =  schemaItems
+      let itemSchema = schemaItems
       if (itemSchema.$ref === "/schemas/bijective-card-reference") {
         for (let itemValue of entry.values) {
           sameKeyDescriptions.push({
@@ -251,7 +256,7 @@ async function handlePropertyChange(objectId, keyId) {
   }
 
   // Sort properties by decreasing rating and id.
-  sameKeyDescriptions.sort(function (a, b) {
+  sameKeyDescriptions.sort(function(a, b) {
     if (a.ratingSum > b.ratingSum) return -1
     else if (a.ratingSum < b.ratingSum) return 1
     else {
@@ -318,7 +323,7 @@ async function handlePropertyChange(objectId, keyId) {
           }
         }
         bestDescription = {
-          schema: null,  // schemaId will be used instead
+          schema: null, // schemaId will be used instead
           schemaId: getIdFromSymbol("schema:value-ids-array"),
           value: valueIds,
           valueId: null,
@@ -370,15 +375,18 @@ async function handlePropertyChange(objectId, keyId) {
     await addAction(object.id, "properties")
     if (matrixConfig !== null) {
       fetch(
-        matrixConfig.serverUrl + "/_matrix/client/r0/rooms/" + encodeURIComponent(matrixConfig.roomId) +
-          "/send/m.room.message?access_token=" + matrixConfig.accessToken,
+        matrixConfig.serverUrl +
+          "/_matrix/client/r0/rooms/" +
+          encodeURIComponent(matrixConfig.roomId) +
+          "/send/m.room.message?access_token=" +
+          matrixConfig.accessToken,
         {
           agent: new https.Agent({
             rejectUnauthorized: matrixConfig.rejectUnauthorized === undefined ? true : matrixConfig.rejectUnauthorized,
           }),
           body: JSON.stringify({
-            "body": `${object.type} ${object.id} has been modified.`,
-            "msgtype":"m.text",
+            body: `${object.type} ${object.id} has been modified.`,
+            msgtype: "m.text",
           }),
           headers: {
             "Content-Type": "application/json",
@@ -386,12 +394,11 @@ async function handlePropertyChange(objectId, keyId) {
           method: "POST",
         },
       )
-        // .then(res => res.json())
-        // .then(json => console.log(json))
+      // .then(res => res.json())
+      // .then(json => console.log(json))
     }
   }
 }
-
 
 async function processAction(action) {
   // TODO: action.type is not handled. It should be removed.
@@ -416,12 +423,14 @@ async function processAction(action) {
     }
     await addReferences(referencedIds, schema, typedValue.value)
   }
-  referencedIds.delete(object.id)  // Remove reference to itself.
+  referencedIds.delete(object.id) // Remove reference to itself.
 
   let newReferencedIds = new Set(referencedIds)
   let existingReferencedIds = new Set(
     (await db.any("SELECT target_id FROM objects_references WHERE source_id = $1", object.id)).map(
-      entry => entry.target_id))
+      entry => entry.target_id,
+    ),
+  )
   for (let referencedId of new Set(referencedIds)) {
     if (existingReferencedIds.has(referencedId)) {
       existingReferencedIds.delete(referencedId)
@@ -429,13 +438,10 @@ async function processAction(action) {
     }
   }
   if (existingReferencedIds.size > 0) {
-    await db.none(
-      "DELETE FROM objects_references WHERE source_id = $<sourceId> AND target_id in ($<targetIds:csv>)",
-      {
-        sourceId: object.id,
-        targetIds: [...existingReferencedIds],
-      },
-    )
+    await db.none("DELETE FROM objects_references WHERE source_id = $<sourceId> AND target_id in ($<targetIds:csv>)", {
+      sourceId: object.id,
+      targetIds: [...existingReferencedIds],
+    })
     contentChanged = true
   }
   if (newReferencedIds.size > 0) {
@@ -463,7 +469,9 @@ async function processAction(action) {
   // Compute object usage tags for OGP toolbox tools.
   let referencerIds = new Set(
     (await db.any("SELECT source_id FROM objects_references WHERE target_id = $1", object.id)).map(
-      entry => entry.source_id))
+      entry => entry.source_id,
+    ),
+  )
   let referenceIds = new Set([...referencedIds, ...referencerIds])
   let usageIds = null
   if (referenceIds.size > 0) {
@@ -475,7 +483,7 @@ async function processAction(action) {
         AND sub_types && $2
         ORDER BY tag
       `,
-      [[...referenceIds].sort(), [getIdFromSymbol("use-case")]]
+      [[...referenceIds].sort(), [getIdFromSymbol("use-case")]],
     )).map(entry => entry.tag)
     if (usageIds.length === 0) usageIds = null
   }
@@ -537,17 +545,14 @@ async function processAction(action) {
     // changes.
     let ratingCount = 0
     let ratingSum = 0
-    let ballots = (await db.any(
-      "SELECT * FROM ballots WHERE statement_id = $<id>",
-      object,
-    )).map(entryToBallot)
+    let ballots = (await db.any("SELECT * FROM ballots WHERE statement_id = $<id>", object)).map(entryToBallot)
     for (let ballot of ballots) {
       ratingCount += 1
       if (ballot.rating) ratingSum += ballot.rating
     }
     for (let argument of object.arguments || []) {
-        ratingCount += argument.ratingCount
-        ratingSum += (argument.keyId === consId ? -1 : argument.keyId === prosId ? 1 : 0) * argument.ratingSum
+      ratingCount += argument.ratingCount
+      ratingSum += (argument.keyId === consId ? -1 : argument.keyId === prosId ? 1 : 0) * argument.ratingSum
     }
 
     if (object.type === "Card") {
@@ -555,14 +560,12 @@ async function processAction(action) {
       let keyIds = Object.keys(object.properties || {})
       // When there is at least 5 properties, score is multiplied by up to two.
       let ogpToolboxScore = Math.atan(keyIds.length / 5) * 4 / Math.PI
-      if (keyIds.includes(getIdFromSymbol("logo"))
-        || keyIds.includes(getIdFromSymbol("screenshot"))) {
+      if (keyIds.includes(getIdFromSymbol("logo")) || keyIds.includes(getIdFromSymbol("screenshot"))) {
         ogpToolboxScore *= 10
       }
-      let referencesCount = Number((await db.one(
-        "SELECT count(*) AS count FROM objects_references WHERE target_id = $<id>",
-        object,
-      )).count)
+      let referencesCount = Number(
+        (await db.one("SELECT count(*) AS count FROM objects_references WHERE target_id = $<id>", object)).count,
+      )
       ogpToolboxScore *= Math.max(referencesCount, 0.5)
       let locationsCount = 0
       let locationsId = (object.properties || {})[getIdFromSymbol("location")]
@@ -739,14 +742,10 @@ async function processAction(action) {
   }
 }
 
-
-async function processActions () {
+async function processActions() {
   consId = getIdFromSymbol("cons")
   prosId = getIdFromSymbol("pros")
-  argumentKeysId = [
-    consId,
-    prosId,
-  ]
+  argumentKeysId = [consId, prosId]
 
   languageByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
     if (config.languages.includes(symbol)) d[id] = symbol
@@ -792,10 +791,7 @@ async function processActions () {
   db.none("NOTIFY new_action")
 }
 
-
-checkDatabase()
-  .then(processActions)
-  .catch(error => {
-    console.log(error.stack || error)
-    process.exit(1)
-  })
+checkDatabase().then(processActions).catch(error => {
+  console.log(error.stack || error)
+  process.exit(1)
+})

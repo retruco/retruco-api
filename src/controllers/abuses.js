@@ -18,15 +18,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import {db, entryToStatement, hashStatement} from "../database"
-import {generateObjectTextSearch, wrapAsyncMiddleware} from "../model"
-
+import { db, entryToStatement, hashStatement } from "../database"
+import { generateObjectTextSearch, wrapAsyncMiddleware } from "../model"
 
 export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req, res, next) {
   let statement = req.statement
-  if (!["Argument", "Card", "PlainStatement", "Property"].includes(
-    statement.type)) {
+  if (!["Argument", "Card", "PlainStatement", "Property"].includes(statement.type)) {
     res.status(404)
     res.json({
       apiVersion: "1",
@@ -35,11 +32,13 @@ export const requireAbuse = wrapAsyncMiddleware(async function requireAbuse(req,
     })
     return
   }
-  let abuse = entryToStatement(await db.oneOrNone(
-    `SELECT * FROM statements
+  let abuse = entryToStatement(
+    await db.oneOrNone(
+      `SELECT * FROM statements
       WHERE (data->>'statementId') = $<id>::text and type = 'Abuse'`,
-    statement,
-  ))
+      statement,
+    ),
+  )
   if (abuse === null) {
     abuse = {
       statementId: statement.id,

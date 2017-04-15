@@ -18,10 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import {db, entryToStatement, hashStatement} from "../database"
-import {generateObjectTextSearch, wrapAsyncMiddleware} from "../model"
-
+import { db, entryToStatement, hashStatement } from "../database"
+import { generateObjectTextSearch, wrapAsyncMiddleware } from "../model"
 
 export const requireArgument = wrapAsyncMiddleware(async function requireArgument(req, res, next) {
   let statement = req.statement
@@ -38,21 +36,23 @@ export const requireArgument = wrapAsyncMiddleware(async function requireArgumen
     return
   }
 
-  let argument = entryToStatement(await db.oneOrNone(
-    `SELECT * FROM statements
+  let argument = entryToStatement(
+    await db.oneOrNone(
+      `SELECT * FROM statements
       WHERE (data->>'claimId') = $<claimId>::text and (data->>'groundId') = $<groundId>::text`,
-    {
-      claimId: statement.id,
-      groundId: ground.id,
-    }
-  ))
+      {
+        claimId: statement.id,
+        groundId: ground.id,
+      },
+    ),
+  )
   if (argument === null) {
     // Create an argument when it is missing. Never return a 404.
     argument = {
       claimId: statement.id,
       groundId: ground.id,
     }
-    const argumentType = 'Argument'
+    const argumentType = "Argument"
     let hash = hashStatement(argumentType, argument)
     let result = await db.one(
       `INSERT INTO statements(created_at, hash, type, data)

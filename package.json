@@ -30,10 +30,12 @@
     "eslint": "^3.8.0",
     "eslint-plugin-babel": "^3.3.0",
     "json2csv": "^3.7.2",
-    "nodemon": "^1.11.0"
+    "nodemon": "^1.11.0",
+    "prettier": "^1.1.0"
   },
   "scripts": {
     "configure": "node configure.js",
+    "prettier": "./node_modules/.bin/prettier --no-semi --print-width 120 --trailing-comma all --write \"scripts/*.js\" \"src/*.js\" \"src/**/*.js\"",
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "nodemon index.js"

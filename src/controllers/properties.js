@@ -18,11 +18,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import {db} from "../database"
-import {entryToValue, getObjectFromId, getOrNewProperty, toDataJson, toObjectJson, wrapAsyncMiddleware} from "../model"
-import {getIdFromIdOrSymbol} from "../symbols"
-
+import { db } from "../database"
+import {
+  entryToValue,
+  getObjectFromId,
+  getOrNewProperty,
+  toDataJson,
+  toObjectJson,
+  wrapAsyncMiddleware,
+} from "../model"
+import { getIdFromIdOrSymbol } from "../symbols"
 
 export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function autocompletePropertiesKeys(req, res) {
   let language = req.query.language
@@ -34,9 +39,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
   let tagIds = tags.map(getIdFromIdOrSymbol).filter(tag => tag)
   let term = req.query.term
 
-  let whereClauses = [
-    "parent_objects.type = $<objectType>",
-  ]
+  let whereClauses = ["parent_objects.type = $<objectType>"]
 
   if (language) {
     whereClauses.push("language = $<language>")
@@ -73,7 +76,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
       subTypeIds,
       tagIds,
       term: term || "",
-    }
+    },
   )
 
   let autocompletions = []
@@ -95,7 +98,6 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
   })
 })
 
-
 export const createProperty = wrapAsyncMiddleware(async function createProperty(req, res) {
   // Create a new card, giving its initial attributes, schemas & widgets.
   let authenticatedUser = req.authenticatedUser
@@ -112,11 +114,11 @@ export const createProperty = wrapAsyncMiddleware(async function createProperty(
   } else {
     objectId = getIdFromIdOrSymbol(objectId)
     if (!objectId) {
-      errors["objectId"] =  `No object with symbol "${propertyInfos.objectId}".`
+      errors["objectId"] = `No object with symbol "${propertyInfos.objectId}".`
     } else {
       object = await getObjectFromId(objectId)
       if (object === null) {
-        errors["objectId"] =  `No object with ID or symbol "${propertyInfos.objectId}".`
+        errors["objectId"] = `No object with ID or symbol "${propertyInfos.objectId}".`
       }
     }
   }
@@ -128,13 +130,13 @@ export const createProperty = wrapAsyncMiddleware(async function createProperty(
   } else {
     keyId = getIdFromIdOrSymbol(keyId)
     if (!keyId) {
-      errors["keyId"] =  `No object with symbol "${propertyInfos.keyId}".`
+      errors["keyId"] = `No object with symbol "${propertyInfos.keyId}".`
     } else {
       typedKey = await getObjectFromId(keyId)
       if (typedKey === null) {
-        errors["keyId"] =  `No object with ID or symbol "${propertyInfos.keyId}".`
+        errors["keyId"] = `No object with ID or symbol "${propertyInfos.keyId}".`
       } else if (typedKey.type !== "Value") {
-        errors["valueId"] =  `Object "${propertyInfos.keyId}" is not a Value but a ${typedKey.type}.`
+        errors["valueId"] = `Object "${propertyInfos.keyId}" is not a Value but a ${typedKey.type}.`
       }
     }
   }
@@ -146,13 +148,13 @@ export const createProperty = wrapAsyncMiddleware(async function createProperty(
   } else {
     valueId = getIdFromIdOrSymbol(valueId)
     if (!valueId) {
-      errors["valueId"] =  `No object with symbol "${propertyInfos.valueId}".`
+      errors["valueId"] = `No object with symbol "${propertyInfos.valueId}".`
     } else {
       typedValue = await getObjectFromId(valueId)
       if (typedValue === null) {
-        errors["valueId"] =  `No object with ID or symbol "${propertyInfos.valueId}".`
+        errors["valueId"] = `No object with ID or symbol "${propertyInfos.valueId}".`
       } else if (typedValue.type !== "Value") {
-        errors["valueId"] =  `Object "${propertyInfos.valueId}" is not a Value but a ${typedValue.type}.`
+        errors["valueId"] = `Object "${propertyInfos.valueId}" is not a Value but a ${typedValue.type}.`
       }
     }
   }
@@ -161,16 +163,16 @@ export const createProperty = wrapAsyncMiddleware(async function createProperty(
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       errors,
       message: "Errors detected in schema and/or widget definitions.",
     })
     return
   }
 
-  let propertyOrProperties = await getOrNewProperty(object.id, typedKey.id, typedValue.id, {userId})
+  let propertyOrProperties = await getOrNewProperty(object.id, typedKey.id, typedValue.id, { userId })
 
-  res.status(201)  // Created
+  res.status(201) // Created
   res.json({
     apiVersion: "1",
     data: await toDataJson(propertyOrProperties, authenticatedUser, {

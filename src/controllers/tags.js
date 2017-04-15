@@ -18,10 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import {db, entryToStatement, hashStatement} from "../database"
-import {generateObjectTextSearch, toStatementsData, wrapAsyncMiddleware} from "../model"
-
+import { db, entryToStatement, hashStatement } from "../database"
+import { generateObjectTextSearch, toStatementsData, wrapAsyncMiddleware } from "../model"
 
 export const listStatementTags = wrapAsyncMiddleware(async function listStatementTags(req, res) {
   let show = req.query.show || []
@@ -47,19 +45,20 @@ export const listStatementTags = wrapAsyncMiddleware(async function listStatemen
   })
 })
 
-
 export const requireTag = wrapAsyncMiddleware(async function requireTag(req, res, next) {
   let statement = req.statement
   let tagName = req.params.tagName
 
-  let tag = entryToStatement(await db.oneOrNone(
-    `SELECT * FROM statements
+  let tag = entryToStatement(
+    await db.oneOrNone(
+      `SELECT * FROM statements
       WHERE (data->>'name') = $<tagName> and (data->>'statementId') = $<id>::text and type = 'Tag'`,
-    {
-      id: statement.id,
-      tagName,
-    },
-  ))
+      {
+        id: statement.id,
+        tagName,
+      },
+    ),
+  )
   if (tag === null) {
     tag = {
       name: tagName,

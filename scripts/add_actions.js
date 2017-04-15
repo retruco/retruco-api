@@ -18,18 +18,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import commandLineArgs from "command-line-args"
 
-import {checkDatabase, db} from "../src/database"
-import {addAction} from "../src/model"
+import { checkDatabase, db } from "../src/database"
+import { addAction } from "../src/model"
 
-
-const optionsDefinition = [
-  {alias:  "t", name: "type", type: String, multiple: true, defaultValue: []},
-]
+const optionsDefinition = [{ alias: "t", name: "type", type: String, multiple: true, defaultValue: [] }]
 const options = commandLineArgs(optionsDefinition)
-
 
 async function addActions() {
   let whereClause = options.type.length === 0 ? "" : "WHERE type IN ($<types:csv>)"
@@ -50,10 +45,7 @@ async function addActions() {
   process.exit(0)
 }
 
-
-checkDatabase()
-  .then(addActions)
-  .catch(error => {
-    console.log(error.stack || error)
-    process.exit(1)
-  })
+checkDatabase().then(addActions).catch(error => {
+  console.log(error.stack || error)
+  process.exit(1)
+})

@@ -18,11 +18,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import config from "./config"
-import {types} from "./model"
-import {schemaByPath} from "./schemas"
-
+import { types } from "./model"
+import { schemaByPath } from "./schemas"
 
 const schemaSpecificationByPath = {}
 for (let [path, schema] of Object.entries(schemaByPath)) {
@@ -40,7 +38,6 @@ for (let [path, schema] of Object.entries(schemaByPath)) {
     },
   }
 }
-
 
 const SPEC = {
   swagger: "2.0",
@@ -87,10 +84,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -159,10 +153,7 @@ const SPEC = {
                   $ref: "#/definitions/DataIdsList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -213,10 +204,7 @@ const SPEC = {
                   $ref: "#/definitions/CardsAutocompletionList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -261,9 +249,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-              ],
+              required: ["apiVersion"],
             },
           },
           default: {
@@ -311,10 +297,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -386,10 +369,7 @@ const SPEC = {
                             type: "string",
                           },
                         },
-                        required: [
-                          "count",
-                          "tag",
-                        ],
+                        required: ["count", "tag"],
                       },
                       $ref: "#/definitions/DataIdsList",
                     },
@@ -400,16 +380,10 @@ const SPEC = {
                       },
                     },
                   },
-                  required: [
-                    "popularity",
-                    "values",
-                  ],
+                  required: ["popularity", "values"],
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -481,10 +455,7 @@ const SPEC = {
                             type: "string",
                           },
                         },
-                        required: [
-                          "count",
-                          "tag",
-                        ],
+                        required: ["count", "tag"],
                       },
                       $ref: "#/definitions/DataIdsList",
                     },
@@ -495,16 +466,10 @@ const SPEC = {
                       },
                     },
                   },
-                  required: [
-                    "popularity",
-                    "values",
-                  ],
+                  required: ["popularity", "values"],
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -558,10 +523,7 @@ const SPEC = {
                   $ref: "#/definitions/DataIdsList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -607,10 +569,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -661,10 +620,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -713,10 +669,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -768,10 +721,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -811,10 +761,7 @@ const SPEC = {
                   type: "string",
                 },
               },
-              required: [
-                "password",
-                "userName",
-              ],
+              required: ["password", "userName"],
             },
           },
         ],
@@ -831,10 +778,7 @@ const SPEC = {
                   $ref: "#/definitions/User",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -885,10 +829,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -939,10 +880,7 @@ const SPEC = {
                   $ref: "#/definitions/DataIdsList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -989,19 +927,22 @@ const SPEC = {
                     order: {
                       type: "array",
                       items: [
-                        {  // key ID or symbol
-                            $ref: "#/definitions/IdOrSymbol",
+                        {
+                          // key ID or symbol
+                          $ref: "#/definitions/IdOrSymbol",
                         },
                         {
                           type: "array",
                           items: [
-                            {  // schema ID or symbol
-                                $ref: "#/definitions/IdOrSymbol",
+                            {
+                              // schema ID or symbol
+                              $ref: "#/definitions/IdOrSymbol",
                             },
                             {
                               type: "array",
-                              items: {  // widget ID or symbol
-                                  $ref: "#/definitions/IdOrSymbol",
+                              items: {
+                                // widget ID or symbol
+                                $ref: "#/definitions/IdOrSymbol",
                               },
                             },
                           ],
@@ -1015,16 +956,10 @@ const SPEC = {
                       },
                     },
                   },
-                  required: [
-                    "order",
-                    "values",
-                  ],
+                  required: ["order", "values"],
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1078,10 +1013,7 @@ const SPEC = {
                   $ref: "#/definitions/DataIdsList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1129,10 +1061,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1186,10 +1115,7 @@ const SPEC = {
                   $ref: "#/definitions/ValuesAutocompletionList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1258,10 +1184,7 @@ const SPEC = {
                   $ref: "#/definitions/DataIdsList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1310,10 +1233,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1364,10 +1284,7 @@ const SPEC = {
                   $ref: "#/definitions/StatementsAutocompletionList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1418,10 +1335,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1470,10 +1384,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1524,10 +1435,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1578,10 +1486,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1630,10 +1535,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1685,10 +1587,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           "201": {
@@ -1703,10 +1602,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1754,10 +1650,7 @@ const SPEC = {
                   $ref: "#/definitions/Argument",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1811,10 +1704,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1866,10 +1756,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1924,10 +1811,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           "201": {
@@ -1942,10 +1826,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -1996,10 +1877,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2048,10 +1926,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2103,10 +1978,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           "201": {
@@ -2121,10 +1993,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2175,10 +2044,7 @@ const SPEC = {
                   $ref: "#/definitions/DataIdsList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2226,10 +2092,7 @@ const SPEC = {
                   $ref: "#/definitions/Tag",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2283,10 +2146,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2338,10 +2198,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2396,10 +2253,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           "201": {
@@ -2414,10 +2268,7 @@ const SPEC = {
                   $ref: "#/definitions/DataId",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2461,11 +2312,11 @@ const SPEC = {
         summary: "Upload images and get its path",
         parameters: [
           {
-            "description": "The uploaded image",
-            "in": "formData",
-            "name": "file",
-            "required": true,
-            "type": "file",
+            description: "The uploaded image",
+            in: "formData",
+            name: "file",
+            required: true,
+            type: "file",
           },
         ],
         responses: {
@@ -2481,10 +2332,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2513,9 +2361,7 @@ const SPEC = {
                   type: "string",
                 },
               },
-              required: [
-                "file",
-              ],
+              required: ["file"],
             },
           },
         ],
@@ -2532,10 +2378,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2573,10 +2416,7 @@ const SPEC = {
                   },
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2616,10 +2456,7 @@ const SPEC = {
                   $ref: "#/definitions/User",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2697,15 +2534,13 @@ const SPEC = {
             required: true,
             schema: {
               type: "object",
-              properties : {
+              properties: {
                 email: {
                   formet: "email",
                   type: "string",
                 },
               },
-              required: [
-                "email",
-              ],
+              required: ["email"],
               $ref: "#/definitions/User",
             },
           },
@@ -2723,10 +2558,7 @@ const SPEC = {
                   $ref: "#/definitions/User",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2771,10 +2603,7 @@ const SPEC = {
                   $ref: "#/definitions/User",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2817,10 +2646,7 @@ const SPEC = {
                   $ref: "#/definitions/User",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2874,10 +2700,7 @@ const SPEC = {
                   $ref: "#/definitions/User",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2934,10 +2757,7 @@ const SPEC = {
                   $ref: "#/definitions/DataIdsList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -2984,15 +2804,13 @@ const SPEC = {
             required: true,
             schema: {
               type: "object",
-              properties : {
+              properties: {
                 email: {
                   formet: "password",
                   type: "password",
                 },
               },
-              required: [
-                "password",
-              ],
+              required: ["password"],
               $ref: "#/definitions/User",
             },
           },
@@ -3010,10 +2828,7 @@ const SPEC = {
                   $ref: "#/definitions/User",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -3058,10 +2873,7 @@ const SPEC = {
                   $ref: "#/definitions/User",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -3121,10 +2933,7 @@ const SPEC = {
                   $ref: "#/definitions/DataIdsList",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -3170,10 +2979,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -3221,10 +3027,7 @@ const SPEC = {
                   type: "object",
                 },
               },
-              required: [
-                "apiVersion",
-                "data",
-              ],
+              required: ["apiVersion", "data"],
             },
           },
           default: {
@@ -3310,9 +3113,7 @@ const SPEC = {
           },
         },
       },
-      required: [
-        "type",
-      ],
+      required: ["type"],
     },
     Abuse: {
       allOf: [
@@ -3326,9 +3127,7 @@ const SPEC = {
               $ref: "#/definitions/Id",
             },
           },
-          required: [
-            "statementId",
-          ],
+          required: ["statementId"],
         },
       ],
     },
@@ -3345,12 +3144,7 @@ const SPEC = {
             },
             argumentType: {
               type: "string",
-              enum: [
-                "because",
-                "but",
-                "comment",
-                "example",
-              ],
+              enum: ["because", "but", "comment", "example"],
             },
             claimId: {
               $ref: "#/definitions/Id",
@@ -3363,11 +3157,7 @@ const SPEC = {
               default: false,
             },
           },
-          required: [
-            "argumentType",
-            "claimId",
-            "groundId",
-          ],
+          required: ["argumentType", "claimId", "groundId"],
         },
       ],
     },
@@ -3393,9 +3183,7 @@ const SPEC = {
           $ref: "#/definitions/Id",
         },
       },
-      required: [
-        "statementId",
-      ],
+      required: ["statementId"],
     },
     BallotId: {
       type: "string",
@@ -3450,11 +3238,7 @@ const SPEC = {
             type: "number",
           },
         },
-        required: [
-          "autocomplete",
-          "card",
-          "distance",
-        ],
+        required: ["autocomplete", "card", "distance"],
       },
     },
     Collection: {
@@ -3522,9 +3306,7 @@ const SPEC = {
           },
         },
       },
-      required: [
-        "id",
-      ],
+      required: ["id"],
     },
     DataIdsList: {
       type: "object",
@@ -3560,9 +3342,7 @@ const SPEC = {
           },
         },
       },
-      required: [
-        "ids",
-      ],
+      required: ["ids"],
     },
     Error: {
       type: "object",
@@ -3582,11 +3362,7 @@ const SPEC = {
           type: "string",
         },
       },
-      required: [
-        "apiVersion",
-        "code",
-        "message",
-      ],
+      required: ["apiVersion", "code", "message"],
     },
     Id: {
       type: "string",
@@ -3629,10 +3405,7 @@ const SPEC = {
               type: "string",
             },
           },
-          required: [
-            "language",
-            "name",
-          ],
+          required: ["language", "name"],
         },
       ],
     },
@@ -3672,12 +3445,7 @@ const SPEC = {
               $ref: "#/definitions/Widget",
             },
           },
-          required: [
-            "name",
-            "schema",
-            "value",
-            "widget",
-          ],
+          required: ["name", "schema", "value", "widget"],
         },
       ],
     },
@@ -3713,11 +3481,7 @@ const SPEC = {
             $ref: "#/definitions/AbstractStatement",
           },
         },
-        required: [
-          "autocomplete",
-          "distance",
-          "statement",
-        ],
+        required: ["autocomplete", "distance", "statement"],
       },
     },
     Tag: {
@@ -3735,10 +3499,7 @@ const SPEC = {
               $ref: "#/definitions/Id",
             },
           },
-          required: [
-            "name",
-            "statementId",
-          ],
+          required: ["name", "statementId"],
         },
       ],
     },
@@ -3768,10 +3529,7 @@ const SPEC = {
           type: "string",
         },
       },
-      required: [
-        "email",
-        "urlName",
-      ],
+      required: ["email", "urlName"],
     },
     Value: {
       type: "object",
@@ -3813,11 +3571,7 @@ const SPEC = {
             $ref: "#/definitions/Value",
           },
         },
-        required: [
-          "autocomplete",
-          "distance",
-          "value",
-        ],
+        required: ["autocomplete", "distance", "value"],
       },
     },
     Widget: {
@@ -3874,12 +3628,7 @@ const SPEC = {
             type: "object",
           },
         },
-        required: [
-          "language",
-          "schemas",
-          "values",
-          "widgets",
-        ],
+        required: ["language", "schemas", "values", "widgets"],
       },
     },
     cardsBundleBodyParam: {
@@ -3910,11 +3659,7 @@ const SPEC = {
             type: "object",
           },
         },
-        required: [
-          "cards",
-          "key",
-          "language",
-        ],
+        required: ["cards", "key", "language"],
       },
     },
     classQueryRequiredParam: {
@@ -4028,11 +3773,7 @@ const SPEC = {
             $ref: "#/definitions/IdOrSymbol",
           },
         },
-        required: [
-          "keyId",
-          "objectId",
-          "valueId",
-        ],
+        required: ["keyId", "objectId", "valueId"],
       },
     },
     ratingDataParam: {
@@ -4049,9 +3790,7 @@ const SPEC = {
             minimum: -1,
           },
         },
-        required: [
-          "rating",
-        ],
+        required: ["rating"],
       },
     },
     showParam: {

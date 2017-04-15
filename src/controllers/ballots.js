@@ -18,10 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import {db} from "../database"
-import {entryToBallot, rateStatement, toBallotData, unrateStatement, wrapAsyncMiddleware} from "../model"
-
+import { db } from "../database"
+import { entryToBallot, rateStatement, toBallotData, unrateStatement, wrapAsyncMiddleware } from "../model"
 
 export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res) {
   // Delete a statement rating.
@@ -56,7 +54,6 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
   })
 })
 
-
 export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) {
   // Respond an existing statement rating.
   let show = req.query.show || []
@@ -66,10 +63,9 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) 
     statementId: statement.id,
     voterId: req.authenticatedUser.id,
   }
-  let existingBallot = entryToBallot(await db.oneOrNone(
-    "SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
-    ballot,
-  ))
+  let existingBallot = entryToBallot(
+    await db.oneOrNone("SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>", ballot),
+  )
   if (existingBallot !== null) ballot = existingBallot
 
   res.json({
@@ -84,7 +80,6 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) 
   })
 })
 
-
 export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req, res) {
   // Insert or update a statement rating.
   let show = req.query.show || []
@@ -92,7 +87,7 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
   let ratingData = req.body
 
   let [oldBallot, ballot] = await rateStatement(statement, req.authenticatedUser.id, ratingData.rating)
-  if (oldBallot === null) res.status(201)  // Created
+  if (oldBallot === null) res.status(201) // Created
 
   res.json({
     apiVersion: "1",

@@ -18,16 +18,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import Ajv from "ajv"
 
 import config from "../config"
-import {db} from "../database"
-import {convertValidJsonToExistingOrNewTypedValue, convertValidJsonToExistingTypedValue, entryToValue, getObjectFromId,
-  languageConfigurationNameByCode, toDataJson, wrapAsyncMiddleware} from "../model"
-import {schemaByPath} from "../schemas"
-import {getIdFromIdOrSymbol} from "../symbols"
-
+import { db } from "../database"
+import {
+  convertValidJsonToExistingOrNewTypedValue,
+  convertValidJsonToExistingTypedValue,
+  entryToValue,
+  getObjectFromId,
+  languageConfigurationNameByCode,
+  toDataJson,
+  wrapAsyncMiddleware,
+} from "../model"
+import { schemaByPath } from "../schemas"
+import { getIdFromIdOrSymbol } from "../symbols"
 
 const ajvStrict = new Ajv({
   // See: https://github.com/epoberezkin/ajv#options
@@ -51,7 +56,6 @@ const ajvWithCoercion = new Ajv({
 for (let [path, schema] of Object.entries(schemaByPath)) {
   ajvWithCoercion.addSchema(schema, path)
 }
-
 
 export const createValue = wrapAsyncMiddleware(async function createValue(req, res) {
   // Create a new card, giving its initial attributes, schemas & widgets.
@@ -100,7 +104,7 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       errors,
       message: "Errors detected in schema and/or widget definitions.",
     })
@@ -114,14 +118,14 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
-      errors: {value: schemaValidator.errors},
+      code: 400, // Bad Request
+      errors: { value: schemaValidator.errors },
       message: "Errors detected in given value.",
     })
     return
   }
 
-  let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value, {userId})
+  let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value, { userId })
 
   let result = {
     apiVersion: "1",
@@ -134,10 +138,9 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
     }),
   }
   if (warning !== null) result.warnings = warning
-  res.status(201)  // Created (even when typed value already existed)
+  res.status(201) // Created (even when typed value already existed)
   res.json(result)
 })
-
 
 export const getExistingValue = wrapAsyncMiddleware(async function createValue(req, res) {
   // Create a new card, giving its initial attributes, schemas & widgets.
@@ -185,7 +188,7 @@ export const getExistingValue = wrapAsyncMiddleware(async function createValue(r
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       errors,
       message: "Errors detected in schema and/or widget definitions.",
     })
@@ -199,8 +202,8 @@ export const getExistingValue = wrapAsyncMiddleware(async function createValue(r
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
-      errors: {value: schemaValidator.errors},
+      code: 400, // Bad Request
+      errors: { value: schemaValidator.errors },
       message: "Errors detected in given value.",
     })
     return
@@ -213,7 +216,7 @@ export const getExistingValue = wrapAsyncMiddleware(async function createValue(r
       apiVersion: "1",
       code: 404,
       errors: warning,
-      message: `Value doesn't exist: "${JSON.stringify({schema, value, widget})}".`,
+      message: `Value doesn't exist: "${JSON.stringify({ schema, value, widget })}".`,
     })
     return
   }
@@ -232,7 +235,6 @@ export const getExistingValue = wrapAsyncMiddleware(async function createValue(r
   res.json(result)
 })
 
-
 export const listValues = wrapAsyncMiddleware(async function listValues(req, res) {
   let authenticatedUser = req.authenticatedUser
   let language = req.query.language
@@ -247,13 +249,14 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
     term = term.trim()
     if (term) {
       let languages = language ? [language] : config.languages
-      let termClauses = languages.map(language =>
-        `values.id IN (
+      let termClauses = languages.map(
+        language =>
+          `values.id IN (
           SELECT id
           FROM values_text_search
           WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
           AND language = '${language}'
-        )`
+        )`,
       )
       if (termClauses.length === 1) {
         whereClauses.push(termClauses[0])
@@ -269,15 +272,17 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
   let coreArguments = {
     term,
   }
-  let count = Number((await db.one(
-    `
+  let count = Number(
+    (await db.one(
+      `
       SELECT count(*) as count
       FROM objects
       INNER JOIN values ON objects.id = values.id
       ${whereClause}
     `,
-    coreArguments,
-  )).count)
+      coreArguments,
+    )).count,
+  )
 
   let values = (await db.any(
     `

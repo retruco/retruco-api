@@ -18,23 +18,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 export const schemaByPath = {
   "/schemas/bijective-card-reference": {
     description: "JSON Schema for a bijective card reference (using IDs or symbols)",
     type: "object",
     properties: {
-      "reverseKeyId": {
+      reverseKeyId: {
         type: "string",
       },
-      "targetId": {
+      targetId: {
         type: "string",
       },
     },
-    required: [
-      "reverseKeyId",
-      "targetId",
-    ],
+    required: ["reverseKeyId", "targetId"],
   },
   "/schemas/card-id": {
     description: "JSON Schema for a card reference (ID or symbol)",
@@ -54,7 +50,6 @@ export const schemaByPath = {
     type: "string",
   },
 }
-
 
 export const bundleSchemaByPath = Object.assign({}, schemaByPath, {
   "/schemas/localized-string": {

@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import crypto from "crypto"
 import dataUriToBuffer from "data-uri-to-buffer"
 import fs from "fs"
@@ -28,26 +27,23 @@ import path from "path"
 import os from "os"
 
 import config from "../config"
-import {wrapAsyncMiddleware} from "../model"
+import { wrapAsyncMiddleware } from "../model"
 
-
-const imageMagick = gm.subClass({imageMagick: true})
+const imageMagick = gm.subClass({ imageMagick: true })
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "retruco-api-uploads-"))
 const uploadsDir = config.uploads
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir)
 const imagesDir = path.join(uploadsDir, "images")
 if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir)
 
-
 async function convertAndCopyImage(sourcePath, targetPath) {
-  return new Promise(function (resolve, reject) {
-    imageMagick(sourcePath).strip().write(targetPath, function (err) {
+  return new Promise(function(resolve, reject) {
+    imageMagick(sourcePath).strip().write(targetPath, function(err) {
       if (err) reject(err)
       else resolve()
     })
   })
 }
-
 
 async function convertImageThenRespond(req, res, file) {
   let hash = md5File.sync(file.path)
@@ -61,7 +57,7 @@ async function convertImageThenRespond(req, res, file) {
     res.status(400)
     res.json({
       apiVersion: "1",
-      code: 400,  // Bad Request
+      code: 400, // Bad Request
       message: `File "${file.originalname}" is not a valid image.`,
     })
     return
@@ -73,7 +69,7 @@ async function convertImageThenRespond(req, res, file) {
   let imageName = `${hash.slice(2)}.png`
   let imagePath = path.join(imageDir, imageName)
   fs.renameSync(tempFilePath, imagePath)
-  res.status(201)  // Created
+  res.status(201) // Created
   res.json({
     apiVersion: "1",
     data: {
@@ -82,11 +78,9 @@ async function convertImageThenRespond(req, res, file) {
   })
 }
 
-
 export const uploadImage = wrapAsyncMiddleware(async function uploadImage(req, res) {
   return await convertImageThenRespond(req, res, req.files.file)
 })
-
 
 export const uploadImageJson = wrapAsyncMiddleware(async function uploadImageJson(req, res) {
   let uploadBuffer = dataUriToBuffer(req.body.file)

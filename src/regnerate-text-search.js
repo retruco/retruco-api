@@ -18,37 +18,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import assert from "assert"
 import commandLineArgs from "command-line-args"
 
-import {checkDatabase, db, versionTextSearchNumber} from "./database"
-import {generateObjectTextSearch, getObjectFromId} from "./model"
+import { checkDatabase, db, versionTextSearchNumber } from "./database"
+import { generateObjectTextSearch, getObjectFromId } from "./model"
 
-
-const optionsDefinition = [
-  {alias:  "t", name: "type", type: String, multiple: true, defaultValue: []},
-]
+const optionsDefinition = [{ alias: "t", name: "type", type: String, multiple: true, defaultValue: [] }]
 const options = commandLineArgs(optionsDefinition)
 
-
-async function generateTextSearch () {
+async function generateTextSearch() {
   let version = await db.one("SELECT * FROM version")
-  assert(version.text <= versionTextSearchNumber,
-    `Text search is too recent for current version of application: ${version.text} > ${versionTextSearchNumber}.`)
+  assert(
+    version.text <= versionTextSearchNumber,
+    `Text search is too recent for current version of application: ${version.text} > ${versionTextSearchNumber}.`,
+  )
   if (version.text < versionTextSearchNumber) {
     console.log(`Upgrading text search indexes from version ${version.text} to ${versionTextSearchNumber}...`)
   }
 
-  let whereClause = options.type.length > 0 ?
-    "WHERE type IN ($<types:csv>)" :
-    ""
-  let ids = (await db.any(
-    `SELECT id FROM objects ${whereClause}`,
-    {
-      types: options.type,
-    },
-  )).map(entry => entry.id)
+  let whereClause = options.type.length > 0 ? "WHERE type IN ($<types:csv>)" : ""
+  let ids = (await db.any(`SELECT id FROM objects ${whereClause}`, {
+    types: options.type,
+  })).map(entry => entry.id)
   for (let id of ids) {
     let object = await getObjectFromId(id)
     await generateObjectTextSearch(object)
@@ -63,10 +55,7 @@ async function generateTextSearch () {
   process.exit(0)
 }
 
-
-checkDatabase({ignoreTextSearchVersion: true})
-  .then(generateTextSearch)
-  .catch(error => {
-    console.log(error.stack || error)
-    process.exit(1)
-  })
+checkDatabase({ ignoreTextSearchVersion: true }).then(generateTextSearch).catch(error => {
+  console.log(error.stack || error)
+  process.exit(1)
+})

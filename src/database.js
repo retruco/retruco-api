@@ -18,13 +18,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import assert from "assert"
 import pgPromiseFactory from "pg-promise"
 
 import config from "./config"
-import {symbols, idBySymbol, symbolById} from "./symbols"
-
+import { symbols, idBySymbol, symbolById } from "./symbols"
 
 const pgPromise = pgPromiseFactory()
 export const db = pgPromise({
@@ -39,9 +37,8 @@ export let dbSharedConnectionObject = null
 export const versionNumber = 21
 export const versionTextSearchNumber = 3
 
-
-export {checkDatabase}
-async function checkDatabase({ignoreTextSearchVersion = false} = {}) {
+export { checkDatabase }
+async function checkDatabase({ ignoreTextSearchVersion = false } = {}) {
   // Check that database exists.
   dbSharedConnectionObject = await db.connect()
 
@@ -52,13 +49,15 @@ async function checkDatabase({ignoreTextSearchVersion = false} = {}) {
   assert.strictEqual(version.number, versionNumber, 'Database must be upgraded. Run "node configure" to configure it.')
   assert(version.text <= versionTextSearchNumber, "Text search is too recent. Upgrade Retruco-API.")
   if (!ignoreTextSearchVersion) {
-    assert.strictEqual(version.text, versionTextSearchNumber,
-      'Text search must be upgraded. Run "node regenerate-text-search" to regenerate text search indexes.')
+    assert.strictEqual(
+      version.text,
+      versionTextSearchNumber,
+      'Text search must be upgraded. Run "node regenerate-text-search" to regenerate text search indexes.',
+    )
   }
 
   await checkSymbols()
 }
-
 
 export async function checkSymbols() {
   let results = await db.any(
@@ -73,16 +72,18 @@ export async function checkSymbols() {
       symbols,
     },
   )
-  for (let {id, symbol} of results) {
+  for (let { id, symbol } of results) {
     idBySymbol[symbol] = id
     symbolById[id] = symbol
   }
   for (let symbol of symbols) {
-    assert.notStrictEqual(idBySymbol[symbol], undefined,
-      `Symbol "${symbol}" is missing. Run "node configure" to define it.`)
+    assert.notStrictEqual(
+      idBySymbol[symbol],
+      undefined,
+      `Symbol "${symbol}" is missing. Run "node configure" to define it.`,
+    )
   }
 }
-
 
 async function existsTable(tableName) {
   return (await db.one("SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=$1)", [tableName]))

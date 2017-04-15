@@ -18,13 +18,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import assert from "assert"
 
 import config from "./config"
-import {db} from "./database"
-import {getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol, idBySymbol} from "./symbols"
-
+import { db } from "./database"
+import { getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol, idBySymbol } from "./symbols"
 
 export const languageConfigurationNameByCode = {
   bg: "simple",
@@ -53,15 +51,7 @@ export const languageConfigurationNameByCode = {
   sv: "swedish",
 }
 
-
-export const types = [
-  "Card",
-  "Concept",
-  "Property",
-  "User",
-  "Value",
-]
-
+export const types = ["Card", "Concept", "Property", "User", "Value"]
 
 export async function addAction(objectId, type) {
   await db.none(
@@ -74,11 +64,10 @@ export async function addAction(objectId, type) {
     {
       objectId,
       type,
-    }
+    },
   )
   return null
 }
-
 
 export async function addReferences(referencedIds, schema, value) {
   if (schema.$ref === "/schemas/bijective-card-reference") {
@@ -95,7 +84,7 @@ export async function addReferences(referencedIds, schema, value) {
       assert.notStrictEqual(typedReference.schemaId, getIdFromSymbol("schema:value-id"))
       referencedIds.add(value)
     }
-  } else if (schema.type === "array") {
+  } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       for (let [index, itemSchema] of schema.items.entries()) {
         await addReferences(referencedIds, itemSchema, value[index])
@@ -108,9 +97,12 @@ export async function addReferences(referencedIds, schema, value) {
   }
 }
 
-
-export async function convertValidJsonToExistingOrNewTypedValue(schema, widget, value,
-  {cache = null, inactiveStatementIds = null, userId = null} = {}) {
+export async function convertValidJsonToExistingOrNewTypedValue(
+  schema,
+  widget,
+  value,
+  { cache = null, inactiveStatementIds = null, userId = null } = {},
+) {
   // The function tries to create typed value when it doesn't exist (it is not always possible, for example for type
   // card-id).
 
@@ -128,26 +120,30 @@ export async function convertValidJsonToExistingOrNewTypedValue(schema, widget, 
       return [null, warning]
     }
     value = id
-  } else if (schema.$ref === "/schemas/localized-string") {
+  } else if (schema.$ref === "/schemas/localized-string") {
     let stringIdByLanguageId = {}
     let warningByLanguage = {}
-    let widgetId = widget === null ? null :
-      (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
-        {cache, inactiveStatementIds, userId})).id
+    let widgetId = widget === null
+      ? null
+      : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget, { cache, inactiveStatementIds, userId }))
+          .id
     for (let [language, string] of Object.entries(value)) {
       let languageId = idBySymbol[language]
       if (languageId === undefined) {
         warningByLanguage[language] = `Unknown language: ${language}`
         continue
       }
-      let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string,
-        {cache, inactiveStatementIds, userId})).id
+      let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string, {
+        cache,
+        inactiveStatementIds,
+        userId,
+      })).id
       stringIdByLanguageId[languageId] = stringId
     }
     value = stringIdByLanguageId
     if (Object.keys(warningByLanguage).length > 0) warning["value"] = warningByLanguage
     if (Object.keys(value).length === 0) return [null, warning]
-  } else if (schema.$ref === "/schemas/value-id") {
+  } else if (schema.$ref === "/schemas/value-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
     if (object === null) {
@@ -164,8 +160,11 @@ export async function convertValidJsonToExistingOrNewTypedValue(schema, widget, 
     let warningByItemIndex = {}
     for (let [index, item] of value.entries()) {
       let schemaItem = Array.isArray(schema.items) ? schema.items[index] : schema.items
-      let [typedItem, itemWarning] = (await convertValidJsonToExistingOrNewTypedValue(schemaItem, widget, item,
-        {cache, inactiveStatementIds, userId}))
+      let [typedItem, itemWarning] = await convertValidJsonToExistingOrNewTypedValue(schemaItem, widget, item, {
+        cache,
+        inactiveStatementIds,
+        userId,
+      })
       if (typedItem === null) continue
       itemIds.push(typedItem.id)
       if (itemWarning !== null) warningByItemIndex[String(index)] = itemWarning
@@ -175,14 +174,17 @@ export async function convertValidJsonToExistingOrNewTypedValue(schema, widget, 
     if (Object.keys(warningByItemIndex).length > 0) warning["value"] = warningByItemIndex
   }
 
-  let schemaId = (await getOrNewValue(getIdFromSymbol("schema:object"), null, schema,
-      {cache, inactiveStatementIds, userId})).id
-  let widgetId = widget === null ? null : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget,
-    {cache, inactiveStatementIds, userId})).id
-  let typedValue = await getOrNewValue(schemaId, widgetId, value, {cache, inactiveStatementIds, userId})
-  return [typedValue, (Object.keys(warning).length === 0) ? null : warning]
+  let schemaId = (await getOrNewValue(getIdFromSymbol("schema:object"), null, schema, {
+    cache,
+    inactiveStatementIds,
+    userId,
+  })).id
+  let widgetId = widget === null
+    ? null
+    : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget, { cache, inactiveStatementIds, userId })).id
+  let typedValue = await getOrNewValue(schemaId, widgetId, value, { cache, inactiveStatementIds, userId })
+  return [typedValue, Object.keys(warning).length === 0 ? null : warning]
 }
-
 
 export async function convertValidJsonToExistingTypedValue(schema, widget, value) {
   // Convert symbols to IDs, etc.
@@ -201,13 +203,13 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
       return [null, warning]
     }
     value = id
-  } else if (schema.$ref === "/schemas/localized-string") {
+  } else if (schema.$ref === "/schemas/localized-string") {
     let stringIdByLanguageId = {}
     let warningByLanguage = {}
     if (widget !== null) {
-       let typedWidget = await getValue(getIdFromSymbol("schema:object"), null, widget)
-       if (typedWidget === null) widgetWarning = `Unknown widget: ${widget}`
-       else widgetId = typedWidget.id
+      let typedWidget = await getValue(getIdFromSymbol("schema:object"), null, widget)
+      if (typedWidget === null) widgetWarning = `Unknown widget: ${widget}`
+      else widgetId = typedWidget.id
     }
     for (let [language, string] of Object.entries(value)) {
       let languageId = idBySymbol[language]
@@ -226,7 +228,7 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
     if (Object.keys(warningByLanguage).length > 0) warning["value"] = warningByLanguage
     if (widgetWarning !== null) warning["value"] = widgetWarning
     if (Object.keys(value).length === 0) return [null, warning]
-  } else if (schema.$ref === "/schemas/value-id") {
+  } else if (schema.$ref === "/schemas/value-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
     if (object === null) {
@@ -243,7 +245,7 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
     let warningByItemIndex = {}
     for (let [index, item] of value.entries()) {
       let schemaItem = Array.isArray(schema.items) ? schema.items[index] : schema.items
-      let [typedItem, itemWarning] = (await convertValidJsonToExistingTypedValue(schemaItem, widget, item))
+      let [typedItem, itemWarning] = await convertValidJsonToExistingTypedValue(schemaItem, widget, item)
       if (typedItem === null) continue
       itemIds.push(typedItem.id)
       if (itemWarning !== null) warningByItemIndex[String(index)] = itemWarning
@@ -255,14 +257,13 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
 
   let schemaId = (await getValue(getIdFromSymbol("schema:object"), null, schema)).id
   if (widget !== null) {
-      let typedWidget = await getValue(getIdFromSymbol("schema:object"), null, widget)
-      if (typedWidget === null) widgetWarning = `Unknown widget: ${widget}`
-      else widgetId = typedWidget.id
+    let typedWidget = await getValue(getIdFromSymbol("schema:object"), null, widget)
+    if (typedWidget === null) widgetWarning = `Unknown widget: ${widget}`
+    else widgetId = typedWidget.id
   }
   let typedValue = await getValue(schemaId, widgetId, value)
-  return [typedValue, (Object.keys(warning).length === 0) ? null : warning]
+  return [typedValue, Object.keys(warning).length === 0 ? null : warning]
 }
-
 
 export async function describe(object) {
   if (object === null) return "missing object"
@@ -288,95 +289,101 @@ export async function describe(object) {
   }
 }
 
-
 export function entryToAction(entry) {
-  return entry === null ? null : {
-    createdAt: entry.created_at,
-    id: entry.id,  // Use string for id.
-    objectId: entry.object_id,
-    type: entry.type,
-  }
+  return entry === null
+    ? null
+    : {
+        createdAt: entry.created_at,
+        id: entry.id, // Use string for id.
+        objectId: entry.object_id,
+        type: entry.type,
+      }
 }
-
 
 export function entryToBallot(entry) {
-  return entry === null ? null : {
-    id: `${entry.statement_id}/${entry.voter_id}`,
-    rating: parseInt(entry.rating),
-    statementId: entry.statement_id,
-    updatedAt: entry.updated_at,
-    voterId: entry.voter_id,
-  }
+  return entry === null
+    ? null
+    : {
+        id: `${entry.statement_id}/${entry.voter_id}`,
+        rating: parseInt(entry.rating),
+        statementId: entry.statement_id,
+        updatedAt: entry.updated_at,
+        voterId: entry.voter_id,
+      }
 }
-
 
 export function entryToCard(entry) {
   return entry === null ? null : Object.assign({}, entryToStatement(entry))
 }
 
-
 export function entryToConcept(entry) {
-  return entry === null ? null : Object.assign({}, entryToStatement(entry), {
-    valueId: entry.value_id,
-  })
+  return entry === null
+    ? null
+    : Object.assign({}, entryToStatement(entry), {
+        valueId: entry.value_id,
+      })
 }
-
 
 export function entryToProperty(entry) {
-  return entry === null ? null : Object.assign({}, entryToStatement(entry), {
-    keyId: entry.key_id,
-    objectId: entry.object_id,
-    valueId: entry.value_id,
-  })
+  return entry === null
+    ? null
+    : Object.assign({}, entryToStatement(entry), {
+        keyId: entry.key_id,
+        objectId: entry.object_id,
+        valueId: entry.value_id,
+      })
 }
-
 
 export function entryToObject(entry) {
-  return entry === null ? null : {
-    createdAt: entry.created_at,
-    id: entry.id,
-    properties: entry.properties,
-    subTypeIds: entry.sub_types,
-    symbol: entry.symbol,  // Given only when JOIN with table symbols
-    tagIds: entry.tags,
-    type: entry.type,
-    usageIds: entry.usages,
-  }
+  return entry === null
+    ? null
+    : {
+        createdAt: entry.created_at,
+        id: entry.id,
+        properties: entry.properties,
+        subTypeIds: entry.sub_types,
+        symbol: entry.symbol, // Given only when JOIN with table symbols
+        tagIds: entry.tags,
+        type: entry.type,
+        usageIds: entry.usages,
+      }
 }
-
 
 export function entryToStatement(entry) {
-  return entry === null ? null : Object.assign({}, entryToObject(entry), {
-    arguments: entry.arguments,
-    rating: parseFloat(entry.rating),
-    ratingCount: parseInt(entry.rating_count),
-    ratingSum: parseInt(entry.rating_sum),
-  })
+  return entry === null
+    ? null
+    : Object.assign({}, entryToObject(entry), {
+        arguments: entry.arguments,
+        rating: parseFloat(entry.rating),
+        ratingCount: parseInt(entry.rating_count),
+        ratingSum: parseInt(entry.rating_sum),
+      })
 }
-
 
 export function entryToUser(entry) {
-  return entry === null ? null : Object.assign({}, entryToObject(entry), {
-    activated: entry.activated,
-    apiKey: entry.api_key,
-    email: entry.email,
-    isAdmin: entry.is_admin,
-    name: entry.name,
-    passwordDigest: entry.password_digest,
-    salt: entry.salt,
-    urlName: entry.url_name,
-  })
+  return entry === null
+    ? null
+    : Object.assign({}, entryToObject(entry), {
+        activated: entry.activated,
+        apiKey: entry.api_key,
+        email: entry.email,
+        isAdmin: entry.is_admin,
+        name: entry.name,
+        passwordDigest: entry.password_digest,
+        salt: entry.salt,
+        urlName: entry.url_name,
+      })
 }
-
 
 export function entryToValue(entry) {
-  return entry === null ? null : Object.assign({}, entryToObject(entry), {
-    schemaId: entry.schema_id,
-    value: entry.value,
-    widgetId: entry.widget_id,
-  })
+  return entry === null
+    ? null
+    : Object.assign({}, entryToObject(entry), {
+        schemaId: entry.schema_id,
+        value: entry.value,
+        widgetId: entry.widget_id,
+      })
 }
-
 
 export async function generateObjectTextSearch(object) {
   if (object === null) return
@@ -417,12 +424,7 @@ export async function generateObjectTextSearch(object) {
         }
         autocompleteByLanguage[language] = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
       }
-      for (let [keySymbol, weight] of [
-          ["description", "B"],
-          ["name", "A"],
-          ["title", "A"],
-          ["twitter-name", "A"],
-        ]) {
+      for (let [keySymbol, weight] of [["description", "B"], ["name", "A"], ["title", "A"], ["twitter-name", "A"]]) {
         let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
         if (valueId === undefined) continue
         let value = await getObjectFromId(valueId)
@@ -458,10 +460,7 @@ export async function generateObjectTextSearch(object) {
     //   autocompleteByLanguage[language] = `${object.name} <${object.email}>`
     // }
     for (let language of languages) {
-      for (let text of [
-        object.name,
-        object.email,
-      ]) {
+      for (let text of [object.name, object.email]) {
         if (text) {
           let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
           if (searchableTextsByWeight === undefined) {
@@ -499,10 +498,10 @@ export async function generateObjectTextSearch(object) {
           [object.id, language, autocomplete],
         )
       }
-      await db.none(
-        `DELETE FROM ${table}_autocomplete WHERE id = $1 AND language NOT IN ($2:csv)`,
-        [object.id, Object.keys(autocompleteByLanguage)],
-      )
+      await db.none(`DELETE FROM ${table}_autocomplete WHERE id = $1 AND language NOT IN ($2:csv)`, [
+        object.id,
+        Object.keys(autocompleteByLanguage),
+      ])
     }
 
     if (Object.keys(searchableTextsByWeightByLanguage).length === 0) {
@@ -524,14 +523,13 @@ export async function generateObjectTextSearch(object) {
           [object.id, language, languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
         )
       }
-      await db.none(
-        `DELETE FROM ${table}_text_search WHERE id = $1 AND language NOT IN ($2:csv)`,
-        [object.id, Object.keys(searchableTextsByWeightByLanguage)],
-      )
+      await db.none(`DELETE FROM ${table}_text_search WHERE id = $1 AND language NOT IN ($2:csv)`, [
+        object.id,
+        Object.keys(searchableTextsByWeightByLanguage),
+      ])
     }
   }
 }
-
 
 async function getLanguageText(languageId, defaultLanguageId, typedValue) {
   if (typedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
@@ -569,7 +567,7 @@ export async function getObjectFromId(id) {
       return null
     }
     return entryToCard(Object.assign(entry, cardEntry))
-  } else if (entry.type === "Concept") {
+  } else if (entry.type === "Concept") {
     let conceptEntry = await db.oneOrNone(
       `
         SELECT statements.*, concepts.*, symbol
@@ -585,7 +583,7 @@ export async function getObjectFromId(id) {
       return null
     }
     return entryToConcept(Object.assign(entry, conceptEntry))
-  } else if (entry.type === "Property") {
+  } else if (entry.type === "Property") {
     let propertyEntry = await db.oneOrNone(
       `
         SELECT statements.*, properties.*, symbol
@@ -601,7 +599,7 @@ export async function getObjectFromId(id) {
       return null
     }
     return entryToProperty(Object.assign(entry, propertyEntry))
-  } else if (entry.type === "User") {
+  } else if (entry.type === "User") {
     let userEntry = await db.oneOrNone(
       `
         SELECT users.*, symbol
@@ -616,7 +614,7 @@ export async function getObjectFromId(id) {
       return null
     }
     return entryToUser(Object.assign(entry, userEntry))
-  } else if (entry.type === "Value") {
+  } else if (entry.type === "Value") {
     let valueEntry = await db.oneOrNone(
       `
         SELECT values.*, symbol
@@ -636,32 +634,36 @@ export async function getObjectFromId(id) {
   }
 }
 
-
-export async function getOrNewLocalizedString(language, string, widgetIdOrSymbolFromId,
-  {cache = null, inactiveStatementIds = null, properties = null, userId = null} = {}) {
+export async function getOrNewLocalizedString(
+  language,
+  string,
+  widgetIdOrSymbolFromId,
+  { cache = null, inactiveStatementIds = null, properties = null, userId = null } = {},
+) {
   assert.strictEqual(typeof string, "string")
   let widgetId = getIdFromIdOrSymbol(widgetIdOrSymbolFromId)
-  let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string,
-    {cache, inactiveStatementIds, userId})).id
+  let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string, {
+    cache,
+    inactiveStatementIds,
+    userId,
+  })).id
   let localizedString = {
     [getIdFromSymbol(language)]: stringId,
   }
-  return await getOrNewValue(
-    getIdFromSymbol("schema:localized-string"),
-    widgetId,
-    localizedString,
-    {
-      cache,
-      inactiveStatementIds,
-      properties,
-      userId,
-    },
-  )
+  return await getOrNewValue(getIdFromSymbol("schema:localized-string"), widgetId, localizedString, {
+    cache,
+    inactiveStatementIds,
+    properties,
+    userId,
+  })
 }
 
-
-export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatementIds = null, properties = null,
-  userId = null} = {}) {
+export async function getOrNewProperty(
+  objectId,
+  keyId,
+  valueId,
+  { inactiveStatementIds = null, properties = null, userId = null } = {},
+) {
   assert.strictEqual(typeof objectId, "string")
   assert.strictEqual(typeof keyId, "string")
   assert.strictEqual(typeof valueId, "string")
@@ -673,13 +675,16 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
     assert(properties === null)
     let splitProperties = []
     for (let itemId of typedValue.value) {
-      splitProperties.push(await getOrNewProperty(objectId, keyId, itemId, {inactiveStatementIds, properties, userId}))
+      splitProperties.push(
+        await getOrNewProperty(objectId, keyId, itemId, { inactiveStatementIds, properties, userId }),
+      )
     }
     return splitProperties
   }
 
-  let property = entryToProperty(await db.oneOrNone(
-    `
+  let property = entryToProperty(
+    await db.oneOrNone(
+      `
       SELECT objects.*, statements.*, properties.*, symbol FROM objects
       INNER JOIN statements ON objects.id = statements.id
       INNER JOIN properties ON statements.id = properties.id
@@ -688,12 +693,13 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
       AND key_id = $<keyId>
       AND value_id = $<valueId>
     `,
-    {
-      keyId,
-      objectId,
-      valueId,
-    },
-  ))
+      {
+        keyId,
+        objectId,
+        valueId,
+      },
+    ),
+  )
   if (property === null) {
     let result = await db.one(
       `
@@ -702,7 +708,7 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
         RETURNING created_at, id, properties, sub_types, tags, type, usages
       `,
       {
-        properties,  // Note: Properties are typically set for optimistic optimization.
+        properties, // Note: Properties are typically set for optimistic optimization.
       },
     )
     property = {
@@ -748,22 +754,27 @@ export async function getOrNewProperty(objectId, keyId, valueId, {inactiveStatem
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      property.propertyByKeyId[keyId] = await getOrNewProperty(property.id, keyId, valueId, {inactiveStatementIds,
-        userId})
+      property.propertyByKeyId[keyId] = await getOrNewProperty(property.id, keyId, valueId, {
+        inactiveStatementIds,
+        userId,
+      })
     }
   }
   return property
 }
 
-
-export async function getOrNewValue(schemaId, widgetId, value, {cache = null, inactiveStatementIds = null,
-  properties = null, userId = null} = {}) {
+export async function getOrNewValue(
+  schemaId,
+  widgetId,
+  value,
+  { cache = null, inactiveStatementIds = null, properties = null, userId = null } = {},
+) {
   assert(typeof schemaId === "string")
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
 
   let cacheKey
   if (cache !== null) {
-    cacheKey =  JSON.stringify({schemaId, type: "Value", value, widgetId})
+    cacheKey = JSON.stringify({ schemaId, type: "Value", value, widgetId })
     let cacheValue = cache[cacheKey]
     if (cacheValue !== undefined) return cacheValue
   }
@@ -786,7 +797,7 @@ export async function getOrNewValue(schemaId, widgetId, value, {cache = null, in
         RETURNING created_at, id, properties, sub_types, tags, type, usages
       `,
       {
-        properties,  // Note: Properties are typically set for optimistic optimization.
+        properties, // Note: Properties are typically set for optimistic optimization.
       },
     )
     typedValue = {
@@ -815,8 +826,10 @@ export async function getOrNewValue(schemaId, widgetId, value, {cache = null, in
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, {inactiveStatementIds,
-        userId})
+      typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, {
+        inactiveStatementIds,
+        userId,
+      })
     }
   }
 
@@ -825,7 +838,6 @@ export async function getOrNewValue(schemaId, widgetId, value, {cache = null, in
   }
   return typedValue
 }
-
 
 export async function getSubTypeIdsFromProperties(properties) {
   let subTypeIds = null
@@ -851,7 +863,6 @@ export async function getSubTypeIdsFromProperties(properties) {
   return subTypeIds
 }
 
-
 export async function getTagIdsFromProperties(properties) {
   let tagIds = null
   if (properties) {
@@ -876,17 +887,17 @@ export async function getTagIdsFromProperties(properties) {
   return tagIds
 }
 
-
 export async function getValue(schemaId, widgetId, value) {
   // Note: getValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
   // possible to use function getIdFromSymbol("schema:localized-string").
   let localizedStringSchemaId = idBySymbol["schema:localized-string"]
-  let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId ?
-    "value @> $<value:json>" :
-    "value = $<value:json>"
+  let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId
+    ? "value @> $<value:json>"
+    : "value = $<value:json>"
   // Note: The ORDER BY objects.id LIMIT 1 is a tentative to reduce the number of used duplicate values.
-  return entryToValue(await db.oneOrNone(
-    `
+  return entryToValue(
+    await db.oneOrNone(
+      `
       SELECT objects.*, values.*, symbol
       FROM objects
       INNER JOIN values ON objects.id = values.id
@@ -896,15 +907,15 @@ export async function getValue(schemaId, widgetId, value) {
       ORDER BY objects.id
       LIMIT 1
     `,
-    {
-      schemaId,
-      value,
-    },
-  ))
+      {
+        schemaId,
+        value,
+      },
+    ),
+  )
 }
 
-
-export async function newCard({inactiveStatementIds = null, properties = null, userId = null} = {}) {
+export async function newCard({ inactiveStatementIds = null, properties = null, userId = null } = {}) {
   if (properties) assert(userId, "Properties can only be set when userId is not null.")
 
   // Compute object subTypeIds from properties for optimistic optimization.
@@ -920,7 +931,7 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
       RETURNING created_at, id, type, usages
     `,
     {
-      properties,  // Note: Properties are typically set for optimistic optimization.
+      properties, // Note: Properties are typically set for optimistic optimization.
       subTypeIds,
       tagIds,
     },
@@ -963,13 +974,12 @@ export async function newCard({inactiveStatementIds = null, properties = null, u
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      card.propertyByKeyId[keyId] = await getOrNewProperty(card.id, keyId, valueId, {inactiveStatementIds, userId})
+      card.propertyByKeyId[keyId] = await getOrNewProperty(card.id, keyId, valueId, { inactiveStatementIds, userId })
     }
   }
 
   return card
 }
-
 
 export function ownsUser(user, otherUser) {
   if (!user) return false
@@ -977,22 +987,19 @@ export function ownsUser(user, otherUser) {
   return user.id === otherUser.id
 }
 
-
 export function ownsUserId(user, otherUserId) {
   if (!user) return false
   if (user.isAdmin) return true
   return user.id === otherUserId
 }
 
-
-export {propagateOptimisticOptimization}
+export { propagateOptimisticOptimization }
 async function propagateOptimisticOptimization(/* statements, statement, oldRating, oldRatingSum */) {
   // const newRatingCount = statement.ratingCount !== undefined ? statement.ratingCount : 0
   // const newRating = newRatingCount > 0 ? statement.rating : 0
   // const newRatingSum = newRatingCount > 0 ? statement.ratingSum : 0
   // if (oldRating === undefined) oldRating = 0
   // if (oldRatingSum === undefined) oldRatingSum = 0
-
   // if (statement.type === "Abuse") {
   //   if (oldRatingSum <= 0 && newRatingSum > 0 || oldRatingSum > 0 && newRatingSum <= 0) {
   //     let flaggedStatement = entryToStatement(await db.oneOrNone(
@@ -1032,7 +1039,6 @@ async function propagateOptimisticOptimization(/* statements, statement, oldRati
   // }
 }
 
-
 export async function rateStatement(statement, voterId, rating) {
   assert.ok(statement)
   assert.notStrictEqual(typeof statement, "string")
@@ -1050,7 +1056,6 @@ export async function rateStatement(statement, voterId, rating) {
   return [oldBallot, ballot]
 }
 
-
 export async function rateStatementId(statementId, voterId, rating) {
   assert.strictEqual(typeof statementId, "string")
   let ballot = {
@@ -1059,10 +1064,9 @@ export async function rateStatementId(statementId, voterId, rating) {
     statementId,
     voterId,
   }
-  let oldBallot = entryToBallot(await db.oneOrNone(
-    "SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
-    ballot,
-  ))
+  let oldBallot = entryToBallot(
+    await db.oneOrNone("SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>", ballot),
+  )
   if (oldBallot === null) {
     let result = await db.one(
       `INSERT INTO ballots(rating, statement_id, updated_at, voter_id)
@@ -1088,19 +1092,23 @@ export async function rateStatementId(statementId, voterId, rating) {
   return [oldBallot, ballot]
 }
 
-
-export {toBallotData}
-async function toBallotData(ballot, statementOrStatements, user, {
-  depth = 0,
-  objectsCache = null,
-  showBallots = false,
-  showProperties = false,
-  showReferences = false,
-  showValues = false,
-} = {}) {
+export { toBallotData }
+async function toBallotData(
+  ballot,
+  statementOrStatements,
+  user,
+  {
+    depth = 0,
+    objectsCache = null,
+    showBallots = false,
+    showProperties = false,
+    showReferences = false,
+    showValues = false,
+  } = {},
+) {
   objectsCache = objectsCache ? Object.assign({}, objectsCache) : {}
   let data = {
-    ballots: {[ballot.id]: toBallotJson(ballot)},
+    ballots: { [ballot.id]: toBallotJson(ballot) },
     cards: {},
     concepts: {},
     id: ballot.id,
@@ -1113,13 +1121,23 @@ async function toBallotData(ballot, statementOrStatements, user, {
   if (statementOrStatements !== null) {
     if (Array.isArray(statementOrStatements)) {
       for (let object of statementOrStatements) {
-        await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showReferences,
-          showValues})
+        await toDataJson1(object, data, objectsCache, user, {
+          depth,
+          showBallots,
+          showProperties,
+          showReferences,
+          showValues,
+        })
       }
     } else {
       assert.ok(statementOrStatements)
-      await toDataJson1(statementOrStatements, data, objectsCache, user, {depth, showBallots, showProperties,
-        showReferences, showValues})
+      await toDataJson1(statementOrStatements, data, objectsCache, user, {
+        depth,
+        showBallots,
+        showProperties,
+        showReferences,
+        showValues,
+      })
     }
   }
 
@@ -1133,7 +1151,6 @@ async function toBallotData(ballot, statementOrStatements, user, {
   return data
 }
 
-
 function toBallotJson(ballot) {
   // let ballotJson = {...ballot}
   let ballotJson = Object.assign({}, ballot)
@@ -1141,15 +1158,18 @@ function toBallotJson(ballot) {
   return ballotJson
 }
 
-
-export async function toDataJson(objectOrObjects, user, {
-  depth = 0,
-  objectsCache = null,
-  showBallots = false,
-  showProperties = false,
-  showReferences = false,
-  showValues = false,
-} = {}) {
+export async function toDataJson(
+  objectOrObjects,
+  user,
+  {
+    depth = 0,
+    objectsCache = null,
+    showBallots = false,
+    showProperties = false,
+    showReferences = false,
+    showValues = false,
+  } = {},
+) {
   objectsCache = objectsCache ? Object.assign({}, objectsCache) : {}
   let data = {
     ballots: {},
@@ -1165,14 +1185,24 @@ export async function toDataJson(objectOrObjects, user, {
     if (Array.isArray(objectOrObjects)) {
       data.ids = objectOrObjects.map(object => object.symbol || object.id)
       for (let object of objectOrObjects) {
-        await toDataJson1(object, data, objectsCache, user, {depth, showBallots, showProperties, showReferences,
-          showValues})
+        await toDataJson1(object, data, objectsCache, user, {
+          depth,
+          showBallots,
+          showProperties,
+          showReferences,
+          showValues,
+        })
       }
     } else {
       assert.ok(objectOrObjects)
       data.id = objectOrObjects.symbol || objectOrObjects.id
-      await toDataJson1(objectOrObjects, data, objectsCache, user, {depth, showBallots, showProperties, showReferences,
-        showValues})
+      await toDataJson1(objectOrObjects, data, objectsCache, user, {
+        depth,
+        showBallots,
+        showProperties,
+        showReferences,
+        showValues,
+      })
     }
   }
 
@@ -1186,14 +1216,13 @@ export async function toDataJson(objectOrObjects, user, {
   return data
 }
 
-
-export async function toDataJson1(idOrObject, data, objectsCache, user, {
-  depth = 0,
-  showBallots = false,
-  showProperties = false,
-  showReferences = false,
-  showValues = false,
-} = {}) {
+export async function toDataJson1(
+  idOrObject,
+  data,
+  objectsCache,
+  user,
+  { depth = 0, showBallots = false, showProperties = false, showReferences = false, showValues = false } = {},
+) {
   let object
   if (typeof idOrObject === "number") idOrObject = String(idOrObject)
   if (typeof idOrObject === "string") {
@@ -1232,10 +1261,9 @@ export async function toDataJson1(idOrObject, data, objectsCache, user, {
     let ballotId = [object.id, user.id].join("/")
     objectJson.ballotId = ballotId
     if (!ballotJsonById[ballotId]) {
-      let ballot = entryToBallot(await db.oneOrNone(
-        "SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2",
-        [object.id, user.id],
-      ))
+      let ballot = entryToBallot(
+        await db.oneOrNone("SELECT * FROM ballots WHERE statement_id = $1 AND voter_id = $2", [object.id, user.id]),
+      )
       if (ballot !== null) ballotJsonById[ballotId] = toBallotJson(ballot)
     }
   }
@@ -1264,12 +1292,17 @@ export async function toDataJson1(idOrObject, data, objectsCache, user, {
 
     let referencedIds = new Set([...sourceEntries.map(entry => entry.id), ...targetEntries.map(entry => entry.id)])
     for (let referencedId of referencedIds) {
-      await toDataJson1(referencedId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showReferences, showValues})
+      await toDataJson1(referencedId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showReferences,
+        showValues,
+      })
     }
 
     let references = {}
-    for (let {id, sub_types} of sourceEntries.concat(targetEntries)) {
+    for (let { id, sub_types } of sourceEntries.concat(targetEntries)) {
       for (let subTypeId of sub_types || []) {
         let subTypeReferences = references[subTypeId]
         if (subTypeReferences === undefined) references[subTypeId] = subTypeReferences = new Set()
@@ -1286,61 +1319,111 @@ export async function toDataJson1(idOrObject, data, objectsCache, user, {
 
   if (showValues && depth > 0) {
     if (object.type == "Property") {
-      await toDataJson1(object.keyId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
-      await toDataJson1(object.valueId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
+      await toDataJson1(object.keyId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
+      await toDataJson1(object.valueId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
     } else if (object.type == "Value") {
       if (object.schemaId === getIdFromSymbol("schema:bijective-card-reference")) {
-        await toDataJson1(object.value.reverseKeyId, data, objectsCache, user, {depth: depth - 1, showBallots,
-          showProperties, showValues})
-        await toDataJson1(object.value.targetId, data, objectsCache, user, {depth: depth - 1, showBallots,
-          showProperties, showValues})
+        await toDataJson1(object.value.reverseKeyId, data, objectsCache, user, {
+          depth: depth - 1,
+          showBallots,
+          showProperties,
+          showValues,
+        })
+        await toDataJson1(object.value.targetId, data, objectsCache, user, {
+          depth: depth - 1,
+          showBallots,
+          showProperties,
+          showValues,
+        })
       } else if (object.schemaId === getIdFromSymbol("schema:card-id")) {
-        await toDataJson1(object.value, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-          showValues})
-      } else if ([
-          getIdFromSymbol("schema:card-ids-array"),
-          getIdFromSymbol("schema:value-ids-array"),
-        ].includes(object.schemaId)) {
-        for (let itemId of (object.value)) {
-          await toDataJson1(itemId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-            showValues})
+        await toDataJson1(object.value, data, objectsCache, user, {
+          depth: depth - 1,
+          showBallots,
+          showProperties,
+          showValues,
+        })
+      } else if (
+        [getIdFromSymbol("schema:card-ids-array"), getIdFromSymbol("schema:value-ids-array")].includes(object.schemaId)
+      ) {
+        for (let itemId of object.value) {
+          await toDataJson1(itemId, data, objectsCache, user, {
+            depth: depth - 1,
+            showBallots,
+            showProperties,
+            showValues,
+          })
         }
       }
     }
 
-    for (let {keyId, valueId} of object.arguments || []) {
-      await toDataJson1(keyId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
-      await toDataJson1(valueId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
+    for (let { keyId, valueId } of object.arguments || []) {
+      await toDataJson1(keyId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
+      await toDataJson1(valueId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
     }
 
     for (let [keyId, valueId] of Object.entries(object.properties || {})) {
-      await toDataJson1(keyId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
-      await toDataJson1(valueId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
+      await toDataJson1(keyId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
+      await toDataJson1(valueId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
     }
 
-    for (let subTypeId of (object.subTypeIds || [])) {
-      await toDataJson1(subTypeId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
+    for (let subTypeId of object.subTypeIds || []) {
+      await toDataJson1(subTypeId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
     }
 
-    for (let tagId of (object.tagIds || [])) {
-      await toDataJson1(tagId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
+    for (let tagId of object.tagIds || []) {
+      await toDataJson1(tagId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
     }
 
-    for (let usageId of (object.usageIds || [])) {
-      await toDataJson1(usageId, data, objectsCache, user, {depth: depth - 1, showBallots, showProperties,
-        showValues})
+    for (let usageId of object.usageIds || []) {
+      await toDataJson1(usageId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
     }
   }
 }
-
 
 export async function toSchemaValueJson(schema, value) {
   if (schema.$ref === "/schemas/bijective-card-reference") {
@@ -1379,8 +1462,7 @@ export async function toSchemaValueJson(schema, value) {
   }
 }
 
-
-export async function toObjectJson(object, {showApiKey = false, showEmail = false} = {}) {
+export async function toObjectJson(object, { showApiKey = false, showEmail = false } = {}) {
   let objectJson = Object.assign({}, object)
   if (objectJson.arguments) {
     objectJson.arguments = objectJson.arguments.map(argument => ({
@@ -1391,7 +1473,7 @@ export async function toObjectJson(object, {showApiKey = false, showEmail = fals
   }
   objectJson.createdAt = objectJson.createdAt.toISOString()
   if (objectJson.properties) {
-    let properties = objectJson.properties = Object.assign({}, objectJson.properties)
+    let properties = (objectJson.properties = Object.assign({}, objectJson.properties))
     for (let [keyId, valueId] of Object.entries(properties)) {
       let keySymbol = getIdOrSymbolFromId(keyId)
       properties[keySymbol] = getIdOrSymbolFromId(valueId)
@@ -1440,7 +1522,6 @@ export async function toObjectJson(object, {showApiKey = false, showEmail = fals
   return objectJson
 }
 
-
 // export {toStatementData}
 // async function toStatementData(statement, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
 //   showGrounds = false, showProperties = false, showReferences = false, showTags = false, statements = []} = {}) {
@@ -1463,7 +1544,6 @@ export async function toObjectJson(object, {showApiKey = false, showEmail = fals
 //   if (Object.keys(data.users).length === 0) delete data.users
 //   return data
 // }
-
 
 // async function toStatementData1(data, statement, statementsCache, user, {depth = 0, showAbuse = false,
 //   showAuthor = false, showBallot = false, showGrounds = false, showProperties = false, showReferences = false,
@@ -1659,7 +1739,6 @@ export async function toObjectJson(object, {showApiKey = false, showEmail = fals
 //   }
 // }
 
-
 // export function toStatementJson(statement) {
 //   // let statementJson = {...statement}
 //   let statementJson = Object.assign({}, statement)
@@ -1667,7 +1746,6 @@ export async function toObjectJson(object, {showApiKey = false, showEmail = fals
 //   delete statementJson.hash
 //   return statementJson
 // }
-
 
 // export {toStatementsData}
 // async function toStatementsData(statements, user, {depth = 0, showAbuse = false, showAuthor = false, showBallot = false,
@@ -1694,9 +1772,8 @@ export async function toObjectJson(object, {showApiKey = false, showEmail = fals
 //   return data
 // }
 
-
-export {toUserJson}
-function toUserJson(user, {showApiKey = false, showEmail = false} = {}) {
+export { toUserJson }
+function toUserJson(user, { showApiKey = false, showEmail = false } = {}) {
   // let userJson = {...user}
   let userJson = Object.assign({}, user)
   if (!showApiKey) delete userJson.apiKey
@@ -1707,7 +1784,6 @@ function toUserJson(user, {showApiKey = false, showEmail = false} = {}) {
   delete userJson.salt
   return userJson
 }
-
 
 export async function unrateStatement(statement, voterId) {
   assert.ok(statement)
@@ -1732,26 +1808,20 @@ export async function unrateStatement(statement, voterId) {
   return oldBallot
 }
 
-
 export async function unrateStatementId(statementId, voterId) {
   assert.strictEqual(typeof statementId, "string")
   let ballot = {
     statementId,
     voterId,
   }
-  let oldBallot = entryToBallot(await db.oneOrNone(
-    "SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
-    ballot,
-  ))
+  let oldBallot = entryToBallot(
+    await db.oneOrNone("SELECT * FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>", ballot),
+  )
   if (oldBallot !== null) {
-    await db.none(
-      "DELETE FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>",
-      ballot,
-    )
+    await db.none("DELETE FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>", ballot)
     await addAction(statementId, "rating")
   }
   return oldBallot
 }
-
 
 export const wrapAsyncMiddleware = fn => (...args) => fn(...args).catch(args[2])

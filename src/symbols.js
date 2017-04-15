@@ -18,9 +18,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 // import {schemaByPath} from "./schemas"
-
 
 export const idBySymbol = {}
 
@@ -37,7 +35,7 @@ export const symbolizedTypedValues = [
   {
     symbol: "schema:boolean",
     schemaSymbol: "schema:object",
-    value: {type: "boolean"},
+    value: { type: "boolean" },
     widgetSymbol: null,
   },
   {
@@ -45,14 +43,14 @@ export const symbolizedTypedValues = [
     schemaSymbol: "schema:object",
     value: {
       type: "array",
-      items: {type: "boolean"},
+      items: { type: "boolean" },
     },
     widgetSymbol: null,
   },
   {
     symbol: "schema:email",
     schemaSymbol: "schema:object",
-    value: {type: "string", format: "email"},
+    value: { type: "string", format: "email" },
     widgetSymbol: null,
   },
   {
@@ -60,14 +58,14 @@ export const symbolizedTypedValues = [
     schemaSymbol: "schema:object",
     value: {
       type: "array",
-      items: {type: "string", format: "email"},
+      items: { type: "string", format: "email" },
     },
     widgetSymbol: null,
   },
   {
     symbol: "schema:number",
     schemaSymbol: "schema:object",
-    value: {type: "number"},
+    value: { type: "number" },
     widgetSymbol: null,
   },
   {
@@ -75,14 +73,14 @@ export const symbolizedTypedValues = [
     schemaSymbol: "schema:object",
     value: {
       type: "array",
-      items: {type: "number"},
+      items: { type: "number" },
     },
     widgetSymbol: null,
   },
   {
     symbol: "schema:string",
     schemaSymbol: "schema:object",
-    value: {type: "string"},
+    value: { type: "string" },
     widgetSymbol: null,
   },
   {
@@ -90,14 +88,14 @@ export const symbolizedTypedValues = [
     schemaSymbol: "schema:object",
     value: {
       type: "array",
-      items: {type: "string"},
+      items: { type: "string" },
     },
     widgetSymbol: null,
   },
   {
     symbol: "schema:uri",
     schemaSymbol: "schema:object",
-    value: {type: "string", format: "uri"},
+    value: { type: "string", format: "uri" },
     widgetSymbol: null,
   },
   {
@@ -105,7 +103,7 @@ export const symbolizedTypedValues = [
     schemaSymbol: "schema:object",
     value: {
       type: "array",
-      items: {type: "string", format: "uri"},
+      items: { type: "string", format: "uri" },
     },
     widgetSymbol: null,
   },
@@ -120,7 +118,8 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
-  { // Import only symbol. Not used internally.
+  {
+    // Import only symbol. Not used internally.
     symbol: "schema:bijective-card-references-array",
     schemaSymbol: "schema:object",
     value: {
@@ -158,7 +157,8 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: null,
   },
-  { // Import only symbol. Not used internally.
+  {
+    // Import only symbol. Not used internally.
     symbol: "schema:localized-strings-array",
     schemaSymbol: "schema:object",
     value: {
@@ -271,27 +271,24 @@ export const symbolizedTypedValues = [
 
   // Keys of properties
 
-  { // localization "en" must be first value of type "schema:localized-string".
+  {
+    // localization "en" must be first value of type "schema:localized-string".
     symbol: "en",
     schemaSymbol: "schema:localized-string",
     value: {
       en: "English Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
-    symbol: "cons",  // pros & cons
+    symbol: "cons", // pros & cons
     schemaSymbol: "schema:localized-string",
     value: {
-      en: "Cons",  // Against
+      en: "Cons", // Against
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:value-ids-array", ["widget:rated-item-or-set"]],
-    ],
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "description",
@@ -300,9 +297,7 @@ export const symbolizedTypedValues = [
       en: "Description",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:localized-string", ["widget:textarea", "widget:input-text"]],
-    ],
+    schemasWidgetsOrder: [["schema:localized-string", ["widget:textarea", "widget:input-text"]]],
   },
   {
     symbol: "bg",
@@ -311,9 +306,7 @@ export const symbolizedTypedValues = [
       en: "Bulgarian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "hr",
@@ -322,9 +315,7 @@ export const symbolizedTypedValues = [
       en: "Croatian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "cs",
@@ -333,9 +324,7 @@ export const symbolizedTypedValues = [
       en: "Czech Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "da",
@@ -344,9 +333,7 @@ export const symbolizedTypedValues = [
       en: "Danish Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "nl",
@@ -355,9 +342,7 @@ export const symbolizedTypedValues = [
       en: "Dutch Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "et",
@@ -366,9 +351,7 @@ export const symbolizedTypedValues = [
       en: "Estonian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "fi",
@@ -377,9 +360,7 @@ export const symbolizedTypedValues = [
       en: "Finnish Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "fr",
@@ -388,9 +369,7 @@ export const symbolizedTypedValues = [
       en: "French Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "de",
@@ -399,9 +378,7 @@ export const symbolizedTypedValues = [
       en: "German Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "el",
@@ -410,9 +387,7 @@ export const symbolizedTypedValues = [
       en: "Greek Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "hu",
@@ -421,9 +396,7 @@ export const symbolizedTypedValues = [
       en: "Hungarian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "ga",
@@ -432,9 +405,7 @@ export const symbolizedTypedValues = [
       en: "Irish Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "it",
@@ -443,9 +414,7 @@ export const symbolizedTypedValues = [
       en: "Italian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "lv",
@@ -454,9 +423,7 @@ export const symbolizedTypedValues = [
       en: "Latvian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "lt",
@@ -465,9 +432,7 @@ export const symbolizedTypedValues = [
       en: "Lithuanian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "mt",
@@ -476,9 +441,7 @@ export const symbolizedTypedValues = [
       en: "Maltese Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "pl",
@@ -487,9 +450,7 @@ export const symbolizedTypedValues = [
       en: "Ploish Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "pt",
@@ -498,9 +459,7 @@ export const symbolizedTypedValues = [
       en: "Portugues Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "ro",
@@ -509,9 +468,7 @@ export const symbolizedTypedValues = [
       en: "Romanian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "sk",
@@ -520,9 +477,7 @@ export const symbolizedTypedValues = [
       en: "Slovak Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "sl",
@@ -531,9 +486,7 @@ export const symbolizedTypedValues = [
       en: "Slovenian Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "es",
@@ -542,9 +495,7 @@ export const symbolizedTypedValues = [
       en: "Spanish Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "sv",
@@ -553,9 +504,7 @@ export const symbolizedTypedValues = [
       en: "Swedish Localization",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
 
   {
@@ -565,9 +514,7 @@ export const symbolizedTypedValues = [
       en: "License",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "location",
@@ -576,9 +523,7 @@ export const symbolizedTypedValues = [
       en: "Location",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "logo",
@@ -587,9 +532,7 @@ export const symbolizedTypedValues = [
       en: "Logo",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:uri", ["widget:image", "widget:input-url"]],
-    ],
+    schemasWidgetsOrder: [["schema:uri", ["widget:image", "widget:input-url"]]],
   },
   {
     symbol: "name",
@@ -598,20 +541,16 @@ export const symbolizedTypedValues = [
       en: "Name",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
   },
   {
-    symbol: "pros",  // pros & cons
+    symbol: "pros", // pros & cons
     schemaSymbol: "schema:localized-string",
     value: {
-      en: "Pros",  // For
+      en: "Pros", // For
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:value-ids-array", ["widget:rated-item-or-set"]],
-    ],
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "screenshot",
@@ -620,9 +559,7 @@ export const symbolizedTypedValues = [
       en: "Screenshot",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:uri", ["widget:image", "widget:input-url"]],
-    ],
+    schemasWidgetsOrder: [["schema:uri", ["widget:image", "widget:input-url"]]],
   },
   {
     symbol: "tags",
@@ -631,9 +568,7 @@ export const symbolizedTypedValues = [
       en: "Tags",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:value-ids-array", ["widget:rated-item-or-set"]],
-    ],
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "title",
@@ -642,9 +577,7 @@ export const symbolizedTypedValues = [
       en: "Title",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:localized-string", ["widget:input-text", "widget:textarea"]],
-    ],
+    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "twitter-name",
@@ -653,9 +586,7 @@ export const symbolizedTypedValues = [
       en: "Twitter Name",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:string", ["widget:input-text"]],
-    ],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text"]]],
   },
   {
     symbol: "types",
@@ -664,9 +595,7 @@ export const symbolizedTypedValues = [
       en: "Types",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:value-ids-array", ["widget:rated-item-or-set"]],
-    ],
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "website",
@@ -675,9 +604,7 @@ export const symbolizedTypedValues = [
       en: "Website",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:uri", ["widget:input-url"]],
-    ],
+    schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
   },
 
   // OGP Toolbox specific types
@@ -689,15 +616,7 @@ export const symbolizedTypedValues = [
       en: "Platform",
     },
     widgetSymbol: "widget:input-text",
-    keysOrder: [
-      "types",
-      "name",
-      "description",
-      "website",
-      "logo",
-      "screenshot",
-      "tags",
-    ],
+    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
   },
   {
     symbol: "software",
@@ -706,16 +625,7 @@ export const symbolizedTypedValues = [
       en: "Software",
     },
     widgetSymbol: "widget:input-text",
-    keysOrder: [
-      "types",
-      "name",
-      "description",
-      "license",
-      "website",
-      "logo",
-      "screenshot",
-      "tags",
-    ],
+    keysOrder: ["types", "name", "description", "license", "website", "logo", "screenshot", "tags"],
   },
   {
     symbol: "source-code",
@@ -724,9 +634,7 @@ export const symbolizedTypedValues = [
       en: "SourceCode",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:uri", ["widget:input-url"]],
-    ],
+    schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
   },
   {
     symbol: "organization",
@@ -735,15 +643,7 @@ export const symbolizedTypedValues = [
       en: "Organization",
     },
     widgetSymbol: "widget:input-text",
-    keysOrder: [
-      "types",
-      "name",
-      "description",
-      "website",
-      "logo",
-      "screenshot",
-      "tags",
-    ],
+    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
   },
   {
     symbol: "use-case",
@@ -752,15 +652,7 @@ export const symbolizedTypedValues = [
       en: "Use Case",
     },
     widgetSymbol: "widget:input-text",
-    keysOrder: [
-      "types",
-      "name",
-      "description",
-      "website",
-      "logo",
-      "screenshot",
-      "tags",
-    ],
+    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
   },
   {
     symbol: "use-cases",
@@ -769,9 +661,7 @@ export const symbolizedTypedValues = [
       en: "Use Cases",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
-    ],
+    schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "used-by",
@@ -780,9 +670,7 @@ export const symbolizedTypedValues = [
       en: "Used by",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
-    ],
+    schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "used-for",
@@ -791,9 +679,7 @@ export const symbolizedTypedValues = [
       en: "Used for",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
-    ],
+    schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "uses",
@@ -802,9 +688,7 @@ export const symbolizedTypedValues = [
       en: "Uses",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [
-      ["schema:bijective-card-references-array", ["widget:autocomplete"]],
-    ],
+    schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
   },
 
   // OGP Explorer specific tags
@@ -1238,10 +1122,7 @@ export const symbolizedTypedValues = [
   },
 ]
 
-export const symbols = [
-  "schema:object",
-  ...symbolizedTypedValues.map(infos => infos.symbol),
-]
+export const symbols = ["schema:object", ...symbolizedTypedValues.map(infos => infos.symbol)]
 
 export const symbolById = {}
 
@@ -1249,7 +1130,6 @@ const valueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
   d[typedValue.symbol] = typedValue.value
   return d
 }, {})
-
 
 // function clean(object) {
 //   // Clean up a schema or widget
@@ -1259,13 +1139,11 @@ const valueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
 //   return clone
 // }
 
-
 export function getIdFromIdOrSymbol(idOrSymbol) {
   if (idOrSymbol === null) return null
   if (isNaN(parseInt(idOrSymbol))) return getIdFromSymbol(idOrSymbol)
   return idOrSymbol
 }
-
 
 export function getIdFromSymbol(symbol) {
   if (symbol === null) return null
@@ -1273,7 +1151,6 @@ export function getIdFromSymbol(symbol) {
   if (valueId === undefined) throw `Unknown symbol for getIdFromSymbol: ${symbol}`
   return valueId
 }
-
 
 export function getIdOrSymbolFromId(id) {
   if (id === null) return null
