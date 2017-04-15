@@ -110,7 +110,7 @@ async function handleArgumentChange(objectId) {
       argumentsChanged = true
     }
   } else if (object.arguments !== null) {
-    delete object.arguments
+    object.arguments = null
     argumentsChanged = true
   }
 
