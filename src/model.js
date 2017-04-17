@@ -1494,6 +1494,8 @@ export async function toObjectJson(object, { showApiKey = false, showEmail = fal
     let tagIds = object.tagIds.map(getIdOrSymbolFromId).filter(tagId => !usageIds.includes(tagId))
     if (tagIds.length > 0) {
       objectJson.tagIds = tagIds
+    } else {
+      delete objectJson.tagIds
     }
   }
 
