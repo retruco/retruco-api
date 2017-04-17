@@ -444,6 +444,44 @@ export async function generateObjectTextSearch(object) {
           }
         }
       }
+      for (let tagId of object.tagIds || []) {
+        let value = await getObjectFromId(tagId)
+        assert.ok(value, `Missing tag at ID ${tagId}`)
+        let weight = "B"
+        if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
+          for (let language of languages) {
+            let languageId = getIdFromSymbol(language)
+            let text = await getLanguageText(languageId, englishId, value)
+            if (text === null) continue
+            let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
+            if (searchableTextsByWeight === undefined) {
+              searchableTextsByWeightByLanguage[language] = searchableTextsByWeight = {}
+            }
+            let searchableTexts = searchableTextsByWeight[weight]
+            if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
+            searchableTexts.push(text)
+          }
+        }
+      }
+      for (let usageId of object.usageIds || []) {
+        let value = await getObjectFromId(usageId)
+        assert.ok(value, `Missing usage tag at ID ${usageId}`)
+        let weight = "C"
+        if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
+          for (let language of languages) {
+            let languageId = getIdFromSymbol(language)
+            let text = await getLanguageText(languageId, englishId, value)
+            if (text === null) continue
+            let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
+            if (searchableTextsByWeight === undefined) {
+              searchableTextsByWeightByLanguage[language] = searchableTextsByWeight = {}
+            }
+            let searchableTexts = searchableTextsByWeight[weight]
+            if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
+            searchableTexts.push(text)
+          }
+        }
+      }
     }
   } else if (object.type === "Concept") {
     table = "concepts"
