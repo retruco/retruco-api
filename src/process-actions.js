@@ -117,9 +117,11 @@ async function handleArgumentChange(objectId) {
   if (argumentsChanged) {
     await db.none(
       `
-        UPDATE statements
+        INSERT INTO statements(arguments, id)
+        VALUES ($<arguments:json>, $<id>)
+        ON CONFLICT (id)
+        DO UPDATE
         SET arguments = $<arguments:json>
-        WHERE id = $<id>
       `,
       object,
     )
@@ -594,9 +596,11 @@ async function processAction(action) {
           ratingSum: 0,
         })
         await db.none(
-          `UPDATE statements
+          `
+            UPDATE statements
             SET rating = DEFAULT, rating_count = DEFAULT, rating_sum = DEFAULT
-            WHERE id = $<id>`,
+            WHERE id = $<id>
+          `,
           object,
         )
       } else {
@@ -607,9 +611,13 @@ async function processAction(action) {
           ratingSum,
         })
         await db.none(
-          `UPDATE statements
+          `
+            INSERT INTO statements(id, rating, rating_count, rating_sum)
+            VALUES ($<id>, $<rating>, $<ratingCount>, $<ratingSum>)
+            ON CONFLICT (id)
+            DO UPDATE
             SET rating = $<rating>, rating_count = $<ratingCount>, rating_sum = $<ratingSum>
-            WHERE id = $<id>`,
+          `,
           object,
         )
       }
