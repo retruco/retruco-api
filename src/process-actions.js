@@ -628,8 +628,6 @@ async function processAction(action) {
       // }
       if (object.type === "Card") {
         // Nothing to do yet.
-      } else if (object.type === "Concept") {
-        // Nothing to do yet.
       } else if (object.type === "Property") {
         await handlePropertyChange(object.objectId, object.keyId)
         // If property contains bijective links between 2 cards, also handle the change of the reverse properties.

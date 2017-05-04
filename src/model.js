@@ -51,7 +51,7 @@ export const languageConfigurationNameByCode = {
   sv: "swedish",
 }
 
-export const types = ["Card", "Concept", "Property", "User", "Value"]
+export const types = ["Card", "Property", "User", "Value"]
 
 export async function addAction(objectId, type) {
   await db.none(
@@ -270,9 +270,6 @@ export async function describe(object) {
   const type = object.type
   if (type === "Card") {
     return `card @${object.id}`
-  } else if (type === "Concept") {
-    const valueDescription = await describe(await getObjectFromId(object.valueId))
-    return `concept @${object.id} based on ${valueDescription}`
   } else if (type === "Property") {
     const keyDescription = await describe(await getObjectFromId(object.keyId))
     const objectDescription = await describe(await getObjectFromId(object.objectId))
@@ -316,14 +313,6 @@ export function entryToCard(entry) {
   return entry === null ? null : Object.assign({}, entryToStatement(entry))
 }
 
-export function entryToConcept(entry) {
-  return entry === null
-    ? null
-    : Object.assign({}, entryToStatement(entry), {
-        valueId: entry.value_id,
-      })
-}
-
 export function entryToProperty(entry) {
   return entry === null
     ? null
@@ -347,6 +336,17 @@ export function entryToObject(entry) {
         type: entry.type,
         usageIds: entry.usages,
       }
+}
+
+export function entryToOptionalStatement(entry) {
+  return entry === null
+    ? null
+    : Object.assign({}, entryToObject(entry), {
+        arguments: entry.arguments || null,
+        rating: parseFloat(entry.rating || "0"),
+        ratingCount: parseInt(entry.rating_count || "0"),
+        ratingSum: parseInt(entry.rating_sum || "0"),
+      })
 }
 
 export function entryToStatement(entry) {
@@ -378,7 +378,7 @@ export function entryToUser(entry) {
 export function entryToValue(entry) {
   return entry === null
     ? null
-    : Object.assign({}, entryToObject(entry), {
+    : Object.assign({}, entryToOptionalStatement(entry), {
         schemaId: entry.schema_id,
         value: entry.value,
         widgetId: entry.widget_id,
@@ -483,13 +483,6 @@ export async function generateObjectTextSearch(object) {
         }
       }
     }
-  } else if (object.type === "Concept") {
-    table = "concepts"
-    languages = config.languages
-    // for (let language of languages) {
-    //   autocompleteByLanguage[language] = String(object.value)
-    // }
-    // TODO: searchableTextsByLanguage
   } else if (object.type === "User") {
     table = "users"
     // languages = [object.language]
@@ -605,22 +598,6 @@ export async function getObjectFromId(id) {
       return null
     }
     return entryToCard(Object.assign(entry, cardEntry))
-  } else if (entry.type === "Concept") {
-    let conceptEntry = await db.oneOrNone(
-      `
-        SELECT statements.*, concepts.*, symbol
-        FROM statements
-        INNER JOIN concepts ON statements.id = concepts.id
-        LEFT JOIN symbols ON concepts.id = symbols.id
-        WHERE statements.id = $<id>
-      `,
-      entry,
-    )
-    if (conceptEntry === null) {
-      console.log(`Missing concepts row for object of type Concept at ID ${entry.id}`)
-      return null
-    }
-    return entryToConcept(Object.assign(entry, conceptEntry))
   } else if (entry.type === "Property") {
     let propertyEntry = await db.oneOrNone(
       `
@@ -655,8 +632,9 @@ export async function getObjectFromId(id) {
   } else if (entry.type === "Value") {
     let valueEntry = await db.oneOrNone(
       `
-        SELECT values.*, symbol
+        SELECT values.*, arguments, rating, rating_count, rating_sum, symbol
         FROM values
+        LEFT JOIN statements ON values.id = statements.id
         LEFT JOIN symbols ON values.id = symbols.id
         WHERE values.id = $<id>
       `,
@@ -936,9 +914,10 @@ export async function getValue(schemaId, widgetId, value) {
   return entryToValue(
     await db.oneOrNone(
       `
-      SELECT objects.*, values.*, symbol
+      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol
       FROM objects
       INNER JOIN values ON objects.id = values.id
+      LEFT JOIN statements ON values.id = statements.id
       LEFT JOIN symbols ON values.id = symbols.id
       WHERE schema_id = $<schemaId>
       AND ${valueClause}
@@ -1080,6 +1059,17 @@ async function propagateOptimisticOptimization(/* statements, statement, oldRati
 export async function rateStatement(statement, voterId, rating) {
   assert.ok(statement)
   assert.notStrictEqual(typeof statement, "string")
+  if (statement.type === "Value" && statement.ratingSum === 0) {
+    await db.none(
+      `
+        INSERT INTO statements(id)
+        VALUES ($<id>)
+        ON CONFLICT (id) DO NOTHING
+      `,
+      statement,
+    )
+
+  }
   let [oldBallot, ballot] = await rateStatementId(statement.id, voterId, rating)
   // Optimistic optimizations
   // const statements = []  // TODO: statements should be a parameter of rateStatement.
@@ -1148,7 +1138,6 @@ async function toBallotData(
   let data = {
     ballots: { [ballot.id]: toBallotJson(ballot) },
     cards: {},
-    concepts: {},
     id: ballot.id,
     properties: {},
     users: {},
@@ -1181,7 +1170,6 @@ async function toBallotData(
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
   if (Object.keys(data.cards).length === 0) delete data.cards
-  if (Object.keys(data.concepts).length === 0) delete data.concepts
   if (Object.keys(data.properties).length === 0) delete data.properties
   if (Object.keys(data.users).length === 0) delete data.users
   if (Object.keys(data.values).length === 0) delete data.values
@@ -1212,7 +1200,6 @@ export async function toDataJson(
   let data = {
     ballots: {},
     cards: {},
-    concepts: {},
     properties: {},
     users: {},
     values: {},
@@ -1246,7 +1233,6 @@ export async function toDataJson(
 
   if (Object.keys(data.ballots).length === 0) delete data.ballots
   if (Object.keys(data.cards).length === 0) delete data.cards
-  if (Object.keys(data.concepts).length === 0) delete data.concepts
   if (Object.keys(data.properties).length === 0) delete data.properties
   if (Object.keys(data.users).length === 0) delete data.users
   if (Object.keys(data.values).length === 0) delete data.values
@@ -1285,7 +1271,6 @@ export async function toDataJson1(
 
   const objectJsonByIdOrSymbol = {
     Card: data.cards,
-    Concept: data.concepts,
     Property: data.properties,
     User: data.users,
     Value: data.values,
@@ -1537,9 +1522,7 @@ export async function toObjectJson(object, { showApiKey = false, showEmail = fal
     }
   }
 
-  if (object.type === "Concept") {
-    objectJson.valueId = getIdOrSymbolFromId(objectJson.valueId)
-  } else if (object.type === "Property") {
+  if (object.type === "Property") {
     objectJson.objectId = getIdOrSymbolFromId(objectJson.objectId)
     objectJson.keyId = getIdOrSymbolFromId(objectJson.keyId)
     objectJson.valueId = getIdOrSymbolFromId(objectJson.valueId)

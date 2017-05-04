@@ -57,11 +57,12 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
 
   let entries = await db.any(
     `
-      SELECT objects.*, values.*, values_autocomplete.autocomplete,
+      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, values_autocomplete.autocomplete,
         values_autocomplete.autocomplete <-> $<term> AS distance
       FROM properties
       INNER JOIN objects ON properties.key_id = objects.id
       INNER JOIN values ON objects.id = values.id
+      LEFT JOIN statements ON objects.id = statements.id
       INNER JOIN values_autocomplete ON values.id = values_autocomplete.id
       INNER JOIN objects AS parent_objects ON properties.object_id = parent_objects.id
       ${whereClause}

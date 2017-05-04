@@ -316,7 +316,6 @@ async function toCollectionData(
     ballots: {},
     cards: {},
     collections: collectionJsonById,
-    concepts: {},
     properties: {},
     users: {},
     values: {},
@@ -341,7 +340,6 @@ async function toCollectionData(
   if (Object.keys(data.ballots).length === 0) delete data.ballots
   if (Object.keys(data.cards).length === 0) delete data.cards
   if (Object.keys(data.collections).length === 0) delete data.collections
-  if (Object.keys(data.concepts).length === 0) delete data.concepts
   if (Object.keys(data.properties).length === 0) delete data.properties
   if (Object.keys(data.users).length === 0) delete data.users
   if (Object.keys(data.values).length === 0) delete data.values

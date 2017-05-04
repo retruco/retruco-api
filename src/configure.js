@@ -365,54 +365,6 @@ async function configureDatabase() {
   `,
   )
 
-  // Table: concepts
-  await db.none(
-    `
-    CREATE TABLE IF NOT EXISTS concepts(
-      id bigint NOT NULL PRIMARY KEY REFERENCES statements(id) ON DELETE CASCADE,
-      value_id bigint NOT NULL REFERENCES values(id) ON DELETE RESTRICT
-    )
-  `,
-  )
-
-  // Table: concepts_autocomplete
-  await db.none(
-    `
-    CREATE TABLE IF NOT EXISTS concepts_autocomplete(
-      autocomplete text NOT NULL,
-      id bigint NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
-      language text NOT NULL,
-      PRIMARY KEY (id, language)
-    )
-  `,
-  )
-  await db.none(
-    `
-    CREATE INDEX IF NOT EXISTS concepts_autocomplete_trigrams_idx
-      ON concepts_autocomplete
-      USING GIST (autocomplete gist_trgm_ops)
-  `,
-  )
-
-  // Table: concepts_text_search
-  await db.none(
-    `
-    CREATE TABLE IF NOT EXISTS concepts_text_search(
-      id bigint NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
-      language text NOT NULL,
-      text_search tsvector,
-      PRIMARY KEY (id, language)
-    )
-  `,
-  )
-  await db.none(
-    `
-    CREATE INDEX IF NOT EXISTS concepts_text_search_idx
-      ON concepts_text_search
-      USING GIN (text_search)
-  `,
-  )
-
   // Table: properties
   await db.none(
     `
@@ -604,6 +556,11 @@ async function configureDatabase() {
   if (version.number < 21) {
     await db.none("ALTER TABLE statements ADD COLUMN IF NOT EXISTS arguments jsonb")
   }
+  if (version.number < 22) {
+    await db.none("DROP TABLE IF EXISTS concepts_autocomplete")
+    await db.none("DROP TABLE IF EXISTS concepts_text_search")
+    await db.none("DROP TABLE IF EXISTS concepts")
+  }
 
   await configureSymbols()
 
@@ -630,8 +587,9 @@ async function configureSymbols() {
   let typedValue = entryToValue(
     await db.oneOrNone(
       `
-      SELECT * FROM objects
+      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol FROM objects
       INNER JOIN values ON objects.id = values.id
+      LEFT JOIN statements ON objects.id = statements.id
       INNER JOIN symbols ON objects.id = symbols.id
       WHERE schema_id = values.id
       AND widget_id IS NULL
@@ -647,8 +605,9 @@ async function configureSymbols() {
     typedValue = entryToValue(
       await db.oneOrNone(
         `
-        SELECT * FROM objects
+        SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum FROM objects
         INNER JOIN values ON objects.id = values.id
+        LEFT JOIN statements ON objects.id = statements.id
         WHERE schema_id = values.id
         AND widget_id IS NULL
         AND value = $<value:json>
@@ -695,8 +654,9 @@ async function configureSymbols() {
     let typedValue = entryToValue(
       await db.oneOrNone(
         `
-        SELECT * FROM objects
+        SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol FROM objects
         INNER JOIN values ON objects.id = values.id
+        LEFT JOIN statements ON objects.id = statements.id
         INNER JOIN symbols ON objects.id = symbols.id
         WHERE schema_id = $<schemaId>
         AND symbol = $<symbol>

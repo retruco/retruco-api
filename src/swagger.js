@@ -2911,6 +2911,9 @@ const SPEC = {
             $ref: "#/parameters/offsetQueryParam",
           },
           {
+            $ref: "#/parameters/ratedQueryParam",
+          },
+          {
             $ref: "#/parameters/showParam",
           },
           {
@@ -3775,6 +3778,12 @@ const SPEC = {
         },
         required: ["keyId", "objectId", "valueId"],
       },
+    },
+    ratedQueryParam: {
+      // description: "",
+      in: "query",
+      name: "rated",
+      type: "boolean",
     },
     ratingDataParam: {
       // description: "",
