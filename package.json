@@ -2,10 +2,6 @@
   "name": "retruco-api",
   "version": "0.0.1",
   "description": "Bring out shared positions from argumented statements",
-  "repository": {
-    "type": "git",
-    "url": "git+https://framagit.org/retruco/retruco-api.git"
-  },
   "dependencies": {
     "activator": "^3.0.0",
     "ajv": "^5.2.2",
@@ -52,7 +48,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://git.framasoft.org/retruco/retruco-api.git"
+    "url": "git+https://framagit.org/retruco/retruco-api.git"
   },
   "keywords": [
     "argument",
