@@ -360,7 +360,7 @@ swaggerMiddleware.init(
     app.post("/values", usersController.authenticate(true), valuesController.createValue)
     app.post("/values/existing", usersController.authenticate(false), valuesController.getExistingValue)
 
-    app.use(function(err, req, res, next) {
+    app.use(function(err, req, res, next) {  // eslint-disable-line no-unused-vars
       // Error handling middleware (must be last use of app)
       // Don't remove the next parameter above: It is needed, otherwise it is called with (req, res, next) without err.
       const status = err.status || 500
