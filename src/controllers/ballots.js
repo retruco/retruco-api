@@ -26,8 +26,7 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
   let show = req.query.show || []
   let statement = req.statement
 
-  let ballot = unrateStatement(statement, req.authenticatedUser.id)
-  const statements = []
+  let ballot = await unrateStatement(statement, req.authenticatedUser.id)
   if (ballot === null) {
     ballot = {
       // rating: null,
@@ -39,18 +38,17 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
     delete ballot.rating
     delete ballot.updatedAt
   }
-  statements.push(statement)
+  ballot.id = `${ballot.statementId}/${ballot.voterId}`
 
-  const data = await toBallotData(ballot, statements, req.authenticatedUser, {
-    depth: req.query.depth || 0,
-    showBallots: show.includes("ballots"),
-    showProperties: show.includes("properties"),
-    showReferences: show.includes("references"),
-    showValues: show.includes("values"),
-  })
   res.json({
     apiVersion: "1",
-    data: data,
+    data: await toBallotData(ballot, [statement], req.authenticatedUser, {
+      depth: req.query.depth || 0,
+      showBallots: show.includes("ballots"),
+      showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
+      showValues: show.includes("values"),
+    }),
   })
 })
 
