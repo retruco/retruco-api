@@ -511,6 +511,7 @@ export async function generateObjectTextSearch(object) {
       let text = await getLanguageText(languageId, englishId, object)
       if (text === null) continue
       autocompleteByLanguage[language] = text
+      searchableTextsByWeightByLanguage[language] = {"A": [text]}
     }
     // TODO: searchableTextsByLanguage
   }
