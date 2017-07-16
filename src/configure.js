@@ -113,6 +113,32 @@ async function configureDatabase() {
     await db.none("DROP TABLE IF EXISTS users_autocomplete")
     await db.none("DROP TABLE IF EXISTS values_autocomplete")
   }
+  if (version.number < 23) {
+    await db.none("DROP TABLE IF EXISTS cards_autocomplete")
+    await db.none("DROP TABLE IF EXISTS cards_text_search")
+    await db.none("DROP TABLE IF EXISTS users_autocomplete")
+    await db.none("DROP TABLE IF EXISTS users_text_search")
+    await db.none("DROP TABLE IF EXISTS values_autocomplete")
+    await db.none("DROP TABLE IF EXISTS values_text_search")
+  }
+
+  // Languages sets
+
+    await db.none(
+    `
+    CREATE TABLE IF NOT EXISTS languages_sets(
+      id bigserial NOT NULL PRIMARY KEY,
+      languages text[]
+    )
+  `,
+  )
+  await db.none(
+    `
+    CREATE INDEX IF NOT EXISTS languages_sets_languages_idx
+    ON languages_sets
+    USING GIN (languages)
+  `,
+  )
 
   // Objects
 
@@ -209,8 +235,8 @@ async function configureDatabase() {
     CREATE TABLE IF NOT EXISTS users_autocomplete(
       autocomplete text NOT NULL,
       id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      language text NOT NULL,
-      PRIMARY KEY (id, language)
+      languages_set_id bigint NOT NULL REFERENCES languages_sets(id) ON DELETE CASCADE,
+      PRIMARY KEY (id, languages_set_id)
     )
   `,
   )
@@ -227,9 +253,9 @@ async function configureDatabase() {
     `
     CREATE TABLE IF NOT EXISTS users_text_search(
       id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      language text NOT NULL,
+      languages_set_id bigint NOT NULL REFERENCES languages_sets(id) ON DELETE CASCADE,
       text_search tsvector,
-      PRIMARY KEY (id, language)
+      PRIMARY KEY (id, languages_set_id)
     )
   `,
   )
@@ -271,8 +297,8 @@ async function configureDatabase() {
     CREATE TABLE IF NOT EXISTS values_autocomplete(
       autocomplete text NOT NULL,
       id bigint NOT NULL REFERENCES values(id) ON DELETE CASCADE,
-      language text NOT NULL,
-      PRIMARY KEY (id, language)
+      languages_set_id bigint NOT NULL REFERENCES languages_sets(id) ON DELETE CASCADE,
+      PRIMARY KEY (id, languages_set_id)
     )
   `,
   )
@@ -289,9 +315,9 @@ async function configureDatabase() {
     `
     CREATE TABLE IF NOT EXISTS values_text_search(
       id bigint NOT NULL REFERENCES values(id) ON DELETE CASCADE,
-      language text NOT NULL,
+      languages_set_id bigint NOT NULL REFERENCES languages_sets(id) ON DELETE CASCADE,
       text_search tsvector,
-      PRIMARY KEY (id, language)
+      PRIMARY KEY (id, languages_set_id)
     )
   `,
   )
@@ -333,8 +359,8 @@ async function configureDatabase() {
     CREATE TABLE IF NOT EXISTS cards_autocomplete(
       autocomplete text NOT NULL,
       id bigint NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
-      language text NOT NULL,
-      PRIMARY KEY (id, language)
+      languages_set_id bigint NOT NULL REFERENCES languages_sets(id) ON DELETE CASCADE,
+      PRIMARY KEY (id, languages_set_id)
     )
   `,
   )
@@ -351,9 +377,9 @@ async function configureDatabase() {
     `
     CREATE TABLE IF NOT EXISTS cards_text_search(
       id bigint NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
-      language text NOT NULL,
+      languages_set_id bigint NOT NULL REFERENCES languages_sets(id) ON DELETE CASCADE,
       text_search tsvector,
-      PRIMARY KEY (id, language)
+      PRIMARY KEY (id, languages_set_id)
     )
   `,
   )

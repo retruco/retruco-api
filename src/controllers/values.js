@@ -253,11 +253,12 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
       let termClauses = languages.map(
         language =>
           `values.id IN (
-          SELECT id
-          FROM values_text_search
-          WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
-          AND language = '${language}'
-        )`,
+            SELECT values_text_search.id
+            FROM values_text_search
+            INNER JOIN languages_sets ON values_text_search.languages_set_id = languages_sets.id
+            WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
+            AND '${language}' = ANY(languages_sets.languages)
+          )`,
       )
       if (termClauses.length === 1) {
         whereClauses.push(termClauses[0])

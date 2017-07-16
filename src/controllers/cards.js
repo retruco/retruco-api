@@ -100,7 +100,7 @@ export const autocompleteCards = wrapAsyncMiddleware(async function autocomplete
   let whereClauses = []
 
   if (language) {
-    whereClauses.push("language = $<language>")
+    whereClauses.push("$<language> = ANY(languages_sets.languages)")
   }
 
   if (subTypeIds.length > 0) {
@@ -122,6 +122,7 @@ export const autocompleteCards = wrapAsyncMiddleware(async function autocomplete
       INNER JOIN statements ON objects.id = statements.id
       INNER JOIN cards ON statements.id = cards.id
       INNER JOIN cards_autocomplete ON cards.id = cards_autocomplete.id
+      INNER JOIN languages_sets ON cards_autocomplete.languages_set_id = languages_sets.id
       ${whereClause}
       ORDER BY distance
       LIMIT $<limit>
@@ -905,11 +906,12 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       let termClauses = languages.map(
         language =>
           `objects.id IN (
-          SELECT id
-          FROM cards_text_search
-          WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
-          AND language = '${language}'
-        )`,
+            SELECT cards_text_search.id
+            FROM cards_text_search
+            INNER JOIN languages_sets ON cards_text_search.languages_set_id = languages_sets.id
+            WHERE text_search @@ plainto_tsquery('${languageConfigurationNameByCode[language]}', $<term>)
+            AND '${language}' = ANY(languages_sets.languages)
+          )`,
       )
       if (termClauses.length === 1) {
         whereClauses.push(termClauses[0])

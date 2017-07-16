@@ -51,6 +51,8 @@ export const languageConfigurationNameByCode = {
   sv: "swedish",
 }
 
+export const languagesSetIdByLanguages = {}
+
 export const types = ["Card", "Property", "User", "Value"]
 
 export async function addAction(objectId, type) {
@@ -520,25 +522,37 @@ export async function generateObjectTextSearch(object) {
     if (Object.keys(autocompleteByLanguage).length === 0) {
       await db.none(`DELETE FROM ${table}_autocomplete WHERE id = $1`, object.id)
     } else {
+      let languagesByAutocomplete = {}
       for (let [language, autocomplete] of Object.entries(autocompleteByLanguage)) {
+        let autocompleteLanguages = languagesByAutocomplete[autocomplete]
+        if (autocompleteLanguages === undefined) {
+          languagesByAutocomplete[autocomplete] = autocompleteLanguages = new Set()
+        }
+        autocompleteLanguages.add(language)
+      }
+      let usedLanguagesSetId = []
+      for (let [autocomplete, autocompleteLanguages] of Object.entries(languagesByAutocomplete)) {
+        let languagesSetId = await getOrNewLanguagesSetId(autocompleteLanguages)
+        usedLanguagesSetId.push(languagesSetId)
         await db.none(
-          `INSERT INTO ${table}_autocomplete(id, language, autocomplete)
+          `INSERT INTO ${table}_autocomplete(id, languages_set_id, autocomplete)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id, language)
+            ON CONFLICT (id, languages_set_id)
             DO UPDATE SET autocomplete = $3
           `,
-          [object.id, language, autocomplete],
+          [object.id, languagesSetId, autocomplete],
         )
       }
-      await db.none(`DELETE FROM ${table}_autocomplete WHERE id = $1 AND language NOT IN ($2:csv)`, [
+      await db.none(`DELETE FROM ${table}_autocomplete WHERE id = $1 AND languages_set_id NOT IN ($2:csv)`, [
         object.id,
-        Object.keys(autocompleteByLanguage),
+        usedLanguagesSetId,
       ])
     }
 
     if (Object.keys(searchableTextsByWeightByLanguage).length === 0) {
       await db.none(`DELETE FROM ${table}_text_search WHERE id = $1`, object.id)
     } else {
+      let languagesByVector = {}
       for (let [language, searchableTextsByWeight] of Object.entries(searchableTextsByWeightByLanguage)) {
         let languageConfigurationName = languageConfigurationNameByCode[language]
         assert.ok(languageConfigurationName, language)
@@ -546,18 +560,41 @@ export async function generateObjectTextSearch(object) {
           A: (searchableTextsByWeight["A"] || []).join(" "),
           B: (searchableTextsByWeight["B"] || []).join(" "),
         }
+        let {vector} = await db.one(
+          `SELECT setweight(to_tsvector($1, $2), 'A') || setweight(to_tsvector($1, $3), 'B') AS vector`,
+          [languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
+        )
+        assert.strictEqual(typeof vector, "string")
+        let vectorLanguages = languagesByVector[vector]
+        if (vectorLanguages === undefined) {
+          languagesByVector[vector] = vectorLanguages = new Set()
+        }
+        vectorLanguages.add(language)
+      }
+      let usedLanguagesSetId = []
+      for (let [vector, vectorLanguages] of Object.entries(languagesByVector)) {
+        let languagesSetId = await getOrNewLanguagesSetId(vectorLanguages)
+        usedLanguagesSetId.push(languagesSetId)
+        // await db.none(
+        //   `INSERT INTO ${table}_text_search(id, languages_set_id, text_search)
+        //     VALUES ($1, $2, setweight(to_tsvector($3, $4), 'A') || setweight(to_tsvector($3, $5), 'B'))
+        //     ON CONFLICT (id, languages_set_id)
+        //     DO UPDATE SET text_search = setweight(to_tsvector($3, $4), 'A') || setweight(to_tsvector($3, $5), 'B')
+        //   `,
+        //   [object.id, languagesSetId, languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
+        // )
         await db.none(
-          `INSERT INTO ${table}_text_search(id, language, text_search)
-            VALUES ($1, $2, setweight(to_tsvector($3, $4), 'A') || setweight(to_tsvector($3, $5), 'B'))
-            ON CONFLICT (id, language)
-            DO UPDATE SET text_search = setweight(to_tsvector($3, $4), 'A') || setweight(to_tsvector($3, $5), 'B')
+          `INSERT INTO ${table}_text_search(id, languages_set_id, text_search)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (id, languages_set_id)
+            DO UPDATE SET text_search = $3
           `,
-          [object.id, language, languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
+          [object.id, languagesSetId, vector],
         )
       }
-      await db.none(`DELETE FROM ${table}_text_search WHERE id = $1 AND language NOT IN ($2:csv)`, [
+      await db.none(`DELETE FROM ${table}_text_search WHERE id = $1 AND languages_set_id NOT IN ($2:csv)`, [
         object.id,
-        Object.keys(searchableTextsByWeightByLanguage),
+        usedLanguagesSetId,
       ])
     }
   }
@@ -649,6 +686,39 @@ export async function getObjectFromId(id) {
   } else {
     throw `Unknown object type "${entry.type}" at ID ${id}`
   }
+}
+
+export async function getOrNewLanguagesSetId(languages) {
+  assert.ok(languages instanceof Set, languages)
+  languages = [...languages].sort()
+  const languagesString = languages.join(",")
+  let id = languagesSetIdByLanguages[languagesString]
+  if (id === undefined) {
+    let result = await db.oneOrNone(
+      `
+        SELECT id from languages_sets
+        WHERE languages = $<languages>
+      `,
+      {
+        languages,
+      },
+    )
+    if (result === null) {
+      result = await db.one(
+        `
+          INSERT INTO languages_sets(languages)
+          VALUES ($<languages>)
+          RETURNING id
+        `,
+        {
+          languages,
+        },
+      )
+    }
+    id = result.id
+    languagesSetIdByLanguages[languagesString] = id
+  }
+  return id
 }
 
 export async function getOrNewLocalizedString(

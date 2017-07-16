@@ -42,7 +42,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
   let whereClauses = ["parent_objects.type = $<objectType>"]
 
   if (language) {
-    whereClauses.push("language = $<language>")
+    whereClauses.push("$<language> = ANY(languages_sets.languages)")
   }
 
   if (subTypeIds.length > 0) {
@@ -64,9 +64,10 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
       INNER JOIN values ON objects.id = values.id
       LEFT JOIN statements ON objects.id = statements.id
       INNER JOIN values_autocomplete ON values.id = values_autocomplete.id
+      INNER JOIN languages_sets ON values_autocomplete.languages_set_id = languages_sets.id
       INNER JOIN objects AS parent_objects ON properties.object_id = parent_objects.id
       ${whereClause}
-      GROUP BY objects.id, values.id, values_autocomplete.autocomplete
+      GROUP BY objects.id, statements.id, values.id, values_autocomplete.autocomplete
       ORDER BY distance ASC, count(objects.id) DESC
       LIMIT $<limit>
     `,
