@@ -2997,6 +2997,57 @@ const SPEC = {
         // security: [{apiKey: []}, {basic: []}],
       },
     },
+    "/values/autocomplete": {
+      get: {
+        tags: ["autocompletion", "value"],
+        summary: "Autocomplete values",
+        // description: "",
+        // externalDocs: {},
+        operationId: "properties.autocompleteKeys",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/languageParam",
+          },
+          {
+            $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/schemaQueryParam",
+          },
+          {
+            $ref: "#/parameters/termQueryParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing keys of properties and their autocompletion",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/ValuesAutocompletionList",
+                },
+              },
+              required: ["apiVersion", "data"],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
     "/values/existing": {
       post: {
         tags: ["value"],
@@ -3801,6 +3852,12 @@ const SPEC = {
         },
         required: ["rating"],
       },
+    },
+    schemaQueryParam: {
+      // description: "",
+      in: "query",
+      name: "schema",
+      type: "string",
     },
     showParam: {
       // description: "",

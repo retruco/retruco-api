@@ -29,6 +29,7 @@ import {
   getObjectFromId,
   languageConfigurationNameByCode,
   toDataJson,
+  toObjectJson,
   wrapAsyncMiddleware,
 } from "../model"
 import { schemaByPath } from "../schemas"
@@ -56,6 +57,66 @@ const ajvWithCoercion = new Ajv({
 for (let [path, schema] of Object.entries(schemaByPath)) {
   ajvWithCoercion.addSchema(schema, path)
 }
+
+export const autocompleteValues = wrapAsyncMiddleware(async function autocompleteValues(req, res) {
+  let language = req.query.language
+  let limit = req.query.limit || 20
+  let schema = req.query.schema
+  console.log("schema", schema)
+  let schemaId = schema ? getIdFromIdOrSymbol(schema) : null
+  let term = req.query.term
+
+  let whereClauses = []
+
+  if (language) {
+    whereClauses.push("$<language> = ANY(languages_sets.languages)")
+  }
+
+  if (schemaId !== null) {
+    whereClauses.push("values.schema_id = $<schemaId>")
+  }
+
+  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
+
+  let entries = await db.any(
+    `
+      SELECT objects.*, statements.*, values.*, values_autocomplete.autocomplete,
+        values_autocomplete.autocomplete <-> $<term> AS distance
+      FROM objects
+      INNER JOIN values ON objects.id = values.id
+      LEFT JOIN statements ON objects.id = statements.id
+      INNER JOIN values_autocomplete ON values.id = values_autocomplete.id
+      INNER JOIN languages_sets ON values_autocomplete.languages_set_id = languages_sets.id
+      ${whereClause}
+      ORDER BY distance ASC
+      LIMIT $<limit>
+    `,
+    {
+      language,
+      limit,
+      schemaId,
+      term: term || "",
+    },
+  )
+
+  let autocompletions = []
+  for (let entry of entries) {
+    let autocomplete = entry.autocomplete
+    delete entry.autocomplete
+    let distance = entry.distance
+    delete entry.distance
+    autocompletions.push({
+      autocomplete,
+      distance,
+      value: await toObjectJson(await entryToValue(entry)),
+    })
+  }
+
+  res.json({
+    apiVersion: "1",
+    data: autocompletions,
+  })
+})
 
 export const createValue = wrapAsyncMiddleware(async function createValue(req, res) {
   // Create a new card, giving its initial attributes, schemas & widgets.

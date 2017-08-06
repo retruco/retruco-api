@@ -358,6 +358,7 @@ swaggerMiddleware.init(
 
     app.get("/values", usersController.authenticate(false), valuesController.listValues)
     app.post("/values", usersController.authenticate(true), valuesController.createValue)
+    app.get("/values/autocomplete", valuesController.autocompleteValues)
     app.post("/values/existing", usersController.authenticate(false), valuesController.getExistingValue)
 
     app.use(function(err, req, res, next) {  // eslint-disable-line no-unused-vars
