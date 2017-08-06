@@ -1419,6 +1419,12 @@ export async function toDataJson1(
         showProperties,
         showValues,
       })
+      await toDataJson1(object.objectId, data, objectsCache, user, {
+        depth: depth - 1,
+        showBallots,
+        showProperties,
+        showValues,
+      })
       await toDataJson1(object.valueId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
