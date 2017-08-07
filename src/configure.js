@@ -719,7 +719,7 @@ async function configureSymbols() {
       // Creating a localized string, requires to create each of its strings.
       let properties = {}
       if (symbol === "en" && typedValue === null) {
-        properties["TODO en"] = "TODO en"
+        properties[-1] = -1  // Temporary value, changed below
       } else {
         for (let [language, string] of Object.entries(value)) {
           let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), widgetId, string)
