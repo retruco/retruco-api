@@ -718,15 +718,29 @@ async function configureSymbols() {
     if (schemaSymbol === "schema:localized-string") {
       // Creating a localized string, requires to create each of its strings.
       let properties = {}
-      for (let [language, string] of Object.entries(value)) {
-        let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), widgetId, string)
-        properties[getIdFromSymbol(language)] = typedString.id
-      }
-      value = properties
-      if (typedValue === null) {
-        typedValue = await getOrNewValueWithSymbol(schemaId, widgetId, value, { symbol })
+      if (symbol === "en" && typedValue === null) {
+        properties["TODO en"] = "TODO en"
       } else {
-        typedValue.value = value
+        for (let [language, string] of Object.entries(value)) {
+          let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), widgetId, string)
+          properties[getIdFromSymbol(language)] = typedString.id
+        }
+      }
+      let updateValue = false
+      if (typedValue === null) {
+        typedValue = await getOrNewValueWithSymbol(schemaId, widgetId, properties, { symbol })
+        if (symbol === "en") {
+          for (let [language, string] of Object.entries(value)) {
+            let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), widgetId, string)
+            properties[getIdFromSymbol(language)] = typedString.id
+          }
+          updateValue = true
+        }
+      } else {
+        updateValue = true
+      }
+      if (updateValue) {
+        typedValue.value = properties
         await db.none(
           `
             UPDATE values
@@ -739,7 +753,7 @@ async function configureSymbols() {
 
       // Do an optimistic optimization.
       if (typedValue.properties === null) typedValue.properties = {}
-      for (let [languageId, stringId] of Object.entries(value)) {
+      for (let [languageId, stringId] of Object.entries(properties)) {
         if (typedValue.properties[languageId] === undefined) typedValue.properties[languageId] = stringId
       }
       await db.none(
