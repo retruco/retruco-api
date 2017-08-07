@@ -61,9 +61,8 @@ for (let [path, schema] of Object.entries(schemaByPath)) {
 export const autocompleteValues = wrapAsyncMiddleware(async function autocompleteValues(req, res) {
   let language = req.query.language
   let limit = req.query.limit || 20
-  let schema = req.query.schema
-  console.log("schema", schema)
-  let schemaId = schema ? getIdFromIdOrSymbol(schema) : null
+  let schemas = req.query.schema || []
+  let schemaIds = schemas.map(getIdFromIdOrSymbol).filter(schemaId => schemaId)
   let term = req.query.term
 
   let whereClauses = []
@@ -72,8 +71,8 @@ export const autocompleteValues = wrapAsyncMiddleware(async function autocomplet
     whereClauses.push("$<language> = ANY(languages_sets.languages)")
   }
 
-  if (schemaId !== null) {
-    whereClauses.push("values.schema_id = $<schemaId>")
+  if (schemaIds.length > 0) {
+    whereClauses.push("values.schema_id IN ($<schemaIds:csv>)")
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
@@ -94,7 +93,7 @@ export const autocompleteValues = wrapAsyncMiddleware(async function autocomplet
     {
       language,
       limit,
-      schemaId,
+      schemaIds,
       term: term || "",
     },
   )

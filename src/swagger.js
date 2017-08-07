@@ -3857,7 +3857,10 @@ const SPEC = {
       // description: "",
       in: "query",
       name: "schema",
-      type: "string",
+      type: "array",
+      items: {
+        type: "string",
+      },
     },
     showParam: {
       // description: "",
