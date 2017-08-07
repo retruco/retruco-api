@@ -561,7 +561,7 @@ export async function generateObjectTextSearch(object) {
           B: (searchableTextsByWeight["B"] || []).join(" "),
         }
         let {vector} = await db.one(
-          `SELECT setweight(to_tsvector($1, $2), 'A') || setweight(to_tsvector($1, $3), 'B') AS vector`,
+          "SELECT setweight(to_tsvector($1, $2), 'A') || setweight(to_tsvector($1, $3), 'B') AS vector",
           [languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
         )
         assert.strictEqual(typeof vector, "string")
