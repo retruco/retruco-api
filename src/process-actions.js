@@ -433,7 +433,7 @@ async function processAction(action) {
       entry => entry.target_id,
     ),
   )
-  for (let referencedId of new Set(referencedIds)) {
+  for (let referencedId of referencedIds) {
     if (existingReferencedIds.has(referencedId)) {
       existingReferencedIds.delete(referencedId)
       newReferencedIds.delete(referencedId)
