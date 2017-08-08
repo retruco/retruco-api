@@ -553,8 +553,12 @@ async function processAction(action) {
       if (ballot.rating) ratingSum += ballot.rating
     }
     for (let argument of object.arguments || []) {
-      ratingCount += argument.ratingCount
-      ratingSum += (argument.keyId === consId ? -1 : argument.keyId === prosId ? 1 : 0) * argument.ratingSum
+      // Ignore arguments whose ground has a negative or null rating.
+      let argumentGround = await getObjectFromId(argument.valueId)
+      if (argumentGround !== null && argumentGround.ratingSum !== undefined && argumentGround.ratingSum > 0) {
+        ratingCount += argument.ratingCount
+        ratingSum += (argument.keyId === consId ? -1 : argument.keyId === prosId ? 1 : 0) * argument.ratingSum
+      }
     }
 
     if (object.type === "Card") {
@@ -666,9 +670,9 @@ async function processAction(action) {
         }
       }
 
-      // Propagate rating change to every reference of object.
-      for (let referencedId of referencedIds) {
-        addAction(referencedId, action.type)
+      // Propagate rating change to every objects referenced or referencing current object.
+      for (let referenceId of referenceIds) {
+        addAction(referenceId, action.type)
       }
 
       // if (object.type === "Abuse") {
