@@ -2743,6 +2743,11 @@ const SPEC = {
           objectId: {
             $ref: "#/definitions/IdOrSymbol",
           },
+          rating: {
+            type: "integer",
+            maximum: 1,
+            minimum: -1,
+          },
           valueId: {
             $ref: "#/definitions/IdOrSymbol",
           },

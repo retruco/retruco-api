@@ -519,7 +519,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         { cache, inactiveStatementIds, userId },
       )
       if (typedValue === null) continue
-      await getOrNewProperty(cardId, nameId, typedValue.id, { inactiveStatementIds, userId })
+      await getOrNewProperty(cardId, nameId, typedValue.id, 1, { inactiveStatementIds, userId })
     }
   }
 

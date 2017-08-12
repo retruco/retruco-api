@@ -743,6 +743,7 @@ export async function getOrNewProperty(
   objectId,
   keyId,
   valueId,
+  rating,  // One of undefined, null, -1, 0, 1
   { inactiveStatementIds = null, properties = null, userId = null } = {},
 ) {
   assert.strictEqual(typeof objectId, "string")
@@ -757,7 +758,7 @@ export async function getOrNewProperty(
     let splitProperties = []
     for (let itemId of typedValue.value) {
       splitProperties.push(
-        await getOrNewProperty(objectId, keyId, itemId, { inactiveStatementIds, properties, userId }),
+        await getOrNewProperty(objectId, keyId, itemId, rating, { inactiveStatementIds, properties, userId }),
       )
     }
     return splitProperties
@@ -829,7 +830,7 @@ export async function getOrNewProperty(
   }
   await generateObjectTextSearch(property)
   if (userId) {
-    await rateStatement(property, userId, 1)
+    if ([-1, 0, 1].includes(rating)) await rateStatement(property, userId, rating)
     if (inactiveStatementIds) inactiveStatementIds.delete(property.id)
   }
   if (properties) {
@@ -837,7 +838,7 @@ export async function getOrNewProperty(
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      property.propertyByKeyId[keyId] = await getOrNewProperty(property.id, keyId, valueId, {
+      property.propertyByKeyId[keyId] = await getOrNewProperty(property.id, keyId, valueId, 1, {
         inactiveStatementIds,
         userId,
       })
@@ -909,7 +910,7 @@ export async function getOrNewValue(
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, {
+      typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, 1, {
         inactiveStatementIds,
         userId,
       })
@@ -1060,7 +1061,7 @@ export async function newCard({ inactiveStatementIds = null, properties = null, 
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      card.propertyByKeyId[keyId] = await getOrNewProperty(card.id, keyId, valueId, { inactiveStatementIds, userId })
+      card.propertyByKeyId[keyId] = await getOrNewProperty(card.id, keyId, valueId, 1, { inactiveStatementIds, userId })
     }
   }
 
