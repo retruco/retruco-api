@@ -2,7 +2,7 @@
 // By: Paula Forteza <paula@retruco.org>
 //     Emmanuel Raviart <emmanuel@retruco.org>
 //
-// Copyright (C) 2016 Paula Forteza & Emmanuel Raviart
+// Copyright (C) 2016, 2017 Paula Forteza & Emmanuel Raviart
 // https://git.framasoft.org/retruco/retruco-api
 //
 // Retruco-API is free software; you can redistribute it and/or modify
