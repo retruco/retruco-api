@@ -279,7 +279,8 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
               if (widget.tag !== "textarea") widget = { tag: "textarea" }
             } else {
               if (
-                widget.tag !== "textarea" && (widget.tag !== "input" || !["email", "text", "url"].includes(widget.type))
+                widget.tag !== "textarea" &&
+                (widget.tag !== "input" || !["email", "text", "url"].includes(widget.type))
               ) {
                 widget = { tag: "input", type: "text" }
               }
@@ -379,10 +380,11 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let cache = {}
   let cardIdByKeyValue = {}
   let cardWarningsByKeyValue = {}
-  let keyNameId = keyName === "id"
-    ? null
-    : (await getOrNewLocalizedString(language, keyName, "widget:input-text", { cache, inactiveStatementIds, userId }))
-        .id
+  let keyNameId =
+    keyName === "id"
+      ? null
+      : (await getOrNewLocalizedString(language, keyName, "widget:input-text", { cache, inactiveStatementIds, userId }))
+          .id
   for (let attributes of bundle.cards) {
     let keyValue = attributes[keyName]
     let card = null

@@ -1691,7 +1691,7 @@ const SPEC = {
             name: "user",
             required: true,
             type: "string",
-            format: "^\[0-9]+$",
+            format: "^[0-9]+$",
           },
           {
             description: "The activation JSON Web Token",
@@ -1802,7 +1802,7 @@ const SPEC = {
             name: "user",
             required: true,
             type: "string",
-            format: "^\[0-9]+$",
+            format: "^[0-9]+$",
           },
           {
             description: "The activation JSON Web Token",

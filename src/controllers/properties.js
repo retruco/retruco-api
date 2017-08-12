@@ -172,8 +172,9 @@ export const getOrCreateProperty = wrapAsyncMiddleware(async function getOrCreat
     return
   }
 
-  let propertyOrProperties = await getOrNewProperty(object.id, typedKey.id, typedValue.id, propertyInfos.rating,
-    { userId })
+  let propertyOrProperties = await getOrNewProperty(object.id, typedKey.id, typedValue.id, propertyInfos.rating, {
+    userId,
+  })
 
   res.status(201) // Created
   res.json({

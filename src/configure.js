@@ -127,7 +127,7 @@ async function configureDatabase() {
 
   // Languages sets
 
-    await db.none(
+  await db.none(
     `
     CREATE TABLE IF NOT EXISTS languages_sets(
       id bigserial NOT NULL PRIMARY KEY,
@@ -723,7 +723,7 @@ async function configureSymbols() {
       // Creating a localized string, requires to create each of its strings.
       let properties = {}
       if (symbol === "en" && typedValue === null) {
-        properties[-1] = -1  // Temporary value, changed below
+        properties[-1] = -1 // Temporary value, changed below
       } else {
         for (let [language, string] of Object.entries(value)) {
           let typedString = await getOrNewValueWithSymbol(getIdFromSymbol("schema:string"), widgetId, string)

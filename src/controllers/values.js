@@ -347,10 +347,7 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
       INNER JOIN values ON objects.id = values.id
       ${rated
         ? "INNER JOIN statements ON objects.id = statements.id"
-        : !trashed
-        ? "LEFT JOIN statements ON objects.id = statements.id"
-        : ""
-      }
+        : !trashed ? "LEFT JOIN statements ON objects.id = statements.id" : ""}
       ${whereClause}
     `,
       coreArguments,

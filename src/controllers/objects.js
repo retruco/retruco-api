@@ -172,13 +172,14 @@ export const nextProperties = wrapAsyncMiddleware(async function nextProperties(
     if (valueByIdOrSymbol[keyIdOrSymbol] === undefined) {
       valueByIdOrSymbol[keyIdOrSymbol] = await toObjectJson(await getObjectFromId(keyId))
     }
-    let keySchemasWidgetsOrder = (await db.oneOrNone(
-      `
+    let keySchemasWidgetsOrder =
+      (await db.oneOrNone(
+        `
         SELECT schemas_widgets_order FROM keys
         WHERE id = $1
       `,
-      keyId,
-    )).schemas_widgets_order || []
+        keyId,
+      )).schemas_widgets_order || []
     let keyOrder = []
     for (let [schemaId, widgetIds] of keySchemasWidgetsOrder) {
       let schemaIdOrSymbol = getIdOrSymbolFromId(schemaId)

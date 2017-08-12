@@ -144,7 +144,8 @@ export function authenticate(require) {
         res.json({
           apiVersion: "1",
           code: 401, // Unauthorized
-          message: "HTTP Basic Authentication and retruco-api-key headers must not be used together." +
+          message:
+            "HTTP Basic Authentication and retruco-api-key headers must not be used together." +
             " Use only one authentication method.",
         })
         return

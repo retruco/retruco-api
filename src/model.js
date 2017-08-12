@@ -125,10 +125,11 @@ export async function convertValidJsonToExistingOrNewTypedValue(
   } else if (schema.$ref === "/schemas/localized-string") {
     let stringIdByLanguageId = {}
     let warningByLanguage = {}
-    let widgetId = widget === null
-      ? null
-      : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget, { cache, inactiveStatementIds, userId }))
-          .id
+    let widgetId =
+      widget === null
+        ? null
+        : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget, { cache, inactiveStatementIds, userId }))
+            .id
     for (let [language, string] of Object.entries(value)) {
       let languageId = idBySymbol[language]
       if (languageId === undefined) {
@@ -181,9 +182,11 @@ export async function convertValidJsonToExistingOrNewTypedValue(
     inactiveStatementIds,
     userId,
   })).id
-  let widgetId = widget === null
-    ? null
-    : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget, { cache, inactiveStatementIds, userId })).id
+  let widgetId =
+    widget === null
+      ? null
+      : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget, { cache, inactiveStatementIds, userId }))
+          .id
   let typedValue = await getOrNewValue(schemaId, widgetId, value, { cache, inactiveStatementIds, userId })
   return [typedValue, Object.keys(warning).length === 0 ? null : warning]
 }
@@ -515,7 +518,7 @@ export async function generateObjectTextSearch(object) {
       let text = await getLanguageText(languageId, englishId, object)
       if (text === null) continue
       autocompleteByLanguage[language] = text
-      searchableTextsByWeightByLanguage[language] = {"A": [text]}
+      searchableTextsByWeightByLanguage[language] = { A: [text] }
     }
     // TODO: searchableTextsByLanguage
   }
@@ -562,7 +565,9 @@ export async function generateObjectTextSearch(object) {
           A: (searchableTextsByWeight["A"] || []).join(" "),
           B: (searchableTextsByWeight["B"] || []).join(" "),
         }
-        let {vector} = await db.one(
+        let {
+          vector,
+        } = await db.one(
           "SELECT setweight(to_tsvector($1, $2), 'A') || setweight(to_tsvector($1, $3), 'B') AS vector",
           [languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
         )
@@ -743,7 +748,7 @@ export async function getOrNewProperty(
   objectId,
   keyId,
   valueId,
-  rating,  // One of undefined, null, -1, 0, 1
+  rating, // One of undefined, null, -1, 0, 1
   { inactiveStatementIds = null, properties = null, userId = null } = {},
 ) {
   assert.strictEqual(typeof objectId, "string")
@@ -975,9 +980,8 @@ export async function getValue(schemaId, widgetId, value) {
   // Note: getValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
   // possible to use function getIdFromSymbol("schema:localized-string").
   let localizedStringSchemaId = idBySymbol["schema:localized-string"]
-  let valueClause = localizedStringSchemaId && schemaId === localizedStringSchemaId
-    ? "value @> $<value:json>"
-    : "value = $<value:json>"
+  let valueClause =
+    localizedStringSchemaId && schemaId === localizedStringSchemaId ? "value @> $<value:json>" : "value = $<value:json>"
   // Note: The ORDER BY objects.id LIMIT 1 is a tentative to reduce the number of used duplicate values.
   return entryToValue(
     await db.oneOrNone(
@@ -1092,7 +1096,6 @@ export async function rateStatement(statement, voterId, rating) {
       `,
       statement,
     )
-
   }
   let [oldBallot, ballot] = await rateStatementId(statement.id, voterId, rating)
   // Optimistic optimizations

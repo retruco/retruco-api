@@ -18,10 +18,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import {
-  getObjectFromId,
-  wrapAsyncMiddleware,
-} from "../model"
+import { getObjectFromId, wrapAsyncMiddleware } from "../model"
 import { getIdFromIdOrSymbol } from "../symbols"
 
 export const requireStatement = wrapAsyncMiddleware(async function requireStatement(req, res, next) {
