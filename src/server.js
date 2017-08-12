@@ -30,15 +30,12 @@ import swagger from "swagger-express-middleware"
 
 import config from "./config"
 import { checkDatabase } from "./database"
-import * as abusesController from "./controllers/abuses"
-import * as argumentsController from "./controllers/arguments"
 import * as ballotsController from "./controllers/ballots"
 import * as cardsController from "./controllers/cards"
 import * as collectionsController from "./controllers/collections"
 import * as objectsController from "./controllers/objects"
 import * as propertiesController from "./controllers/properties"
 import * as statementsController from "./controllers/statements"
-import * as tagsController from "./controllers/tags"
 import * as uploadsController from "./controllers/uploads"
 import * as usersController from "./controllers/users"
 import * as valuesController from "./controllers/values"
@@ -177,80 +174,6 @@ swaggerMiddleware.init(
     app.post("/properties", usersController.authenticate(true), propertiesController.createProperty)
     app.get("/properties/keys/autocomplete", propertiesController.autocompletePropertiesKeys)
 
-    app.get("/statements", usersController.authenticate(false), statementsController.listStatements)
-    app.post("/statements", usersController.authenticate(true), statementsController.createStatement)
-    app.get("/statements/autocomplete", statementsController.autocompleteStatements)
-    app.delete(
-      "/statements/:statementId",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      statementsController.deleteStatement,
-    )
-    app.get(
-      "/statements/:statementId",
-      usersController.authenticate(false),
-      statementsController.requireStatement,
-      statementsController.getStatement,
-    )
-
-    app.get(
-      "/statements/:statementId/abuse",
-      usersController.authenticate(false),
-      statementsController.requireStatement,
-      abusesController.requireAbuse,
-      statementsController.getStatement,
-    )
-    app.delete(
-      "/statements/:statementId/abuse/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      abusesController.requireAbuse,
-      ballotsController.deleteBallot,
-    )
-    app.get(
-      "/statements/:statementId/abuse/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      abusesController.requireAbuse,
-      ballotsController.getBallot,
-    )
-    app.post(
-      "/statements/:statementId/abuse/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      abusesController.requireAbuse,
-      ballotsController.upsertBallot,
-    )
-
-    app.get(
-      "/statements/:statementId/arguments/:groundId",
-      usersController.authenticate(false),
-      statementsController.requireStatement,
-      argumentsController.requireArgument,
-      statementsController.getStatement,
-    )
-    app.delete(
-      "/statements/:statementId/arguments/:groundId/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      argumentsController.requireArgument,
-      ballotsController.deleteBallot,
-    )
-    app.get(
-      "/statements/:statementId/arguments/:groundId/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      argumentsController.requireArgument,
-      ballotsController.getBallot,
-    )
-    app.post(
-      "/statements/:statementId/arguments/:groundId/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      argumentsController.requireArgument,
-      ballotsController.upsertBallot,
-    )
-
     app.delete(
       "/statements/:idOrSymbol/rating",
       usersController.authenticate(true),
@@ -267,41 +190,6 @@ swaggerMiddleware.init(
       "/statements/:idOrSymbol/rating",
       usersController.authenticate(true),
       statementsController.requireStatement,
-      ballotsController.upsertBallot,
-    )
-
-    app.get(
-      "/statements/:statementId/tags",
-      usersController.authenticate(false),
-      statementsController.requireStatement,
-      tagsController.listStatementTags,
-    )
-    app.get(
-      "/statements/:statementId/tags/:tagName",
-      usersController.authenticate(false),
-      statementsController.requireStatement,
-      tagsController.requireTag,
-      statementsController.getStatement,
-    )
-    app.delete(
-      "/statements/:statementId/tags/:tagName/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      tagsController.requireTag,
-      ballotsController.deleteBallot,
-    )
-    app.get(
-      "/statements/:statementId/tags/:tagName/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      tagsController.requireTag,
-      ballotsController.getBallot,
-    )
-    app.post(
-      "/statements/:statementId/tags/:tagName/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      tagsController.requireTag,
       ballotsController.upsertBallot,
     )
 
