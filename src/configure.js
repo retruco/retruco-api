@@ -121,6 +121,9 @@ async function configureDatabase() {
     await db.none("DROP TABLE IF EXISTS values_autocomplete")
     await db.none("DROP TABLE IF EXISTS values_text_search")
   }
+  if (version.number < 24) {
+    await db.none("ALTER TABLE statements ADD COLUMN IF NOT EXISTS trashed boolean NOT NULL DEFAULT FALSE")
+  }
 
   // Languages sets
 
@@ -339,7 +342,8 @@ async function configureDatabase() {
       id bigint NOT NULL PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
       rating double precision NOT NULL DEFAULT 0,
       rating_count integer NOT NULL DEFAULT 0,
-      rating_sum integer NOT NULL DEFAULT 0
+      rating_sum integer NOT NULL DEFAULT 0,
+      trashed boolean NOT NULL DEFAULT FALSE
     )
   `,
   )

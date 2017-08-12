@@ -348,6 +348,7 @@ export function entryToOptionalStatement(entry) {
         rating: parseFloat(entry.rating || "0"),
         ratingCount: parseInt(entry.rating_count || "0"),
         ratingSum: parseInt(entry.rating_sum || "0"),
+        trashed: entry.trashed || false,
       })
 }
 
@@ -359,6 +360,7 @@ export function entryToStatement(entry) {
         rating: parseFloat(entry.rating),
         ratingCount: parseInt(entry.rating_count),
         ratingSum: parseInt(entry.rating_sum),
+        trashed: entry.trashed,
       })
 }
 

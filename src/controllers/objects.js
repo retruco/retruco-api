@@ -39,6 +39,7 @@ export const getObject = wrapAsyncMiddleware(async function getObject(req, res) 
 export const listObjectDebateProperties = wrapAsyncMiddleware(async function listObjectDebateProperties(req, res) {
   let objectId = req.object.id
   let show = req.query.show || []
+  let trashed = show.includes("trashed")
 
   const keyIds = ["cons", "pros"].map(getIdFromSymbol)
 
@@ -51,6 +52,7 @@ export const listObjectDebateProperties = wrapAsyncMiddleware(async function lis
       LEFT JOIN symbols ON properties.id = symbols.id
       WHERE properties.object_id = $<objectId>
       AND properties.key_id IN ($<keyIds:csv>)
+      ${!trashed ? "AND NOT statements.trashed" : ""}
       ORDER BY rating_sum DESC, created_at DESC
     `,
     {

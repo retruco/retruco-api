@@ -269,6 +269,21 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
 
+  // Values
+
+  {
+    symbol: "false",
+    schemaSymbol: "schema:boolean",
+    value: false,
+    widgetSymbol: "widget:input-checkbox",
+  },
+  {
+    symbol: "true",
+    schemaSymbol: "schema:boolean",
+    value: true,
+    widgetSymbol: "widget:input-checkbox",
+  },
+
   // Keys of properties
 
   {
@@ -390,13 +405,6 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
-    symbol: "false",
-    schemaSymbol: "schema:boolean",
-    value: false,
-    widgetSymbol: "widget:input-checkbox",
-    schemasWidgetsOrder: [["schema:boolean", ["widget:input-checkbox"]]],
-  },
-  {
     symbol: "ga",
     schemaSymbol: "schema:localized-string",
     value: {
@@ -513,7 +521,6 @@ export const symbolizedTypedValues = [
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
-
   {
     symbol: "license",
     schemaSymbol: "schema:localized-string",
@@ -569,6 +576,15 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:uri", ["widget:image", "widget:input-url"]]],
   },
   {
+    symbol: "source-code",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "SourceCode",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
+  },
+  {
     symbol: "tags",
     schemaSymbol: "schema:localized-string",
     value: {
@@ -587,19 +603,12 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
   },
   {
-    symbol: "trash",
+    symbol: "trashed",
     schemaSymbol: "schema:localized-string",
     value: {
       en: "Trash",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
-  },
-  {
-    symbol: "true",
-    schemaSymbol: "schema:boolean",
-    value: true,
-    widgetSymbol: "widget:input-checkbox",
     schemasWidgetsOrder: [["schema:boolean", ["widget:input-checkbox"]]],
   },
   {
@@ -619,63 +628,6 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
-  },
-  {
-    symbol: "website",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Website",
-    },
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
-  },
-
-  // OGP Toolbox specific types
-
-  {
-    symbol: "platform",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Platform",
-    },
-    widgetSymbol: "widget:input-text",
-    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
-  },
-  {
-    symbol: "software",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Software",
-    },
-    widgetSymbol: "widget:input-text",
-    keysOrder: ["types", "name", "description", "license", "website", "logo", "screenshot", "tags"],
-  },
-  {
-    symbol: "source-code",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "SourceCode",
-    },
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
-  },
-  {
-    symbol: "organization",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Organization",
-    },
-    widgetSymbol: "widget:input-text",
-    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
-  },
-  {
-    symbol: "use-case",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Use Case",
-    },
-    widgetSymbol: "widget:input-text",
-    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
   },
   {
     symbol: "use-cases",
@@ -712,6 +664,54 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
+  },
+  {
+    symbol: "website",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Website",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
+  },
+
+  // OGP Toolbox specific types
+
+  {
+    symbol: "platform",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Platform",
+    },
+    widgetSymbol: "widget:input-text",
+    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
+  },
+  {
+    symbol: "software",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Software",
+    },
+    widgetSymbol: "widget:input-text",
+    keysOrder: ["types", "name", "description", "license", "website", "logo", "screenshot", "tags"],
+  },
+  {
+    symbol: "organization",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Organization",
+    },
+    widgetSymbol: "widget:input-text",
+    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
+  },
+  {
+    symbol: "use-case",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Use Case",
+    },
+    widgetSymbol: "widget:input-text",
+    keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
   },
 
   // OGP Explorer specific tags

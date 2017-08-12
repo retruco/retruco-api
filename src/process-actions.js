@@ -45,6 +45,7 @@ let languageByKeyId = null
 let localizationKeysId = null
 let prosId = null // Set by processActions.
 const matrixConfig = config.matrix
+let trashedKeyId = null // Set by processActions.
 
 // function addRatedValue(requestedSchema, values, schema, value) {
 //   assert(requestedSchema.type !== "array")
@@ -117,11 +118,9 @@ async function handleArgumentChange(objectId) {
   if (argumentsChanged) {
     await db.none(
       `
-        INSERT INTO statements(arguments, id)
-        VALUES ($<arguments:json>, $<id>)
-        ON CONFLICT (id)
-        DO UPDATE
+        UPDATE statements
         SET arguments = $<arguments:json>
+        WHERE id = $<id>
       `,
       object,
     )
@@ -402,6 +401,26 @@ async function handlePropertyChange(objectId, keyId) {
   }
 }
 
+async function handleTrashedChange(objectId, trashed) {
+  let object = await getObjectFromId(objectId)
+  assert.ok(object, `Missing objet at ID ${objectId}`)
+  if (object.trashed === undefined) {
+    // object is not a statement (aka not a rated object) => It has no trashed flag.
+    return
+  }
+  if (trashed !== object.trashed) {
+    object.trashed = trashed
+    await db.none(
+      `
+        UPDATE statements
+        SET trashed = $<trashed>
+        WHERE id = $<id>
+      `,
+      object,
+    )
+  }
+}
+
 async function processAction(action) {
   // TODO: action.type is not handled. It should be removed.
 
@@ -667,6 +686,8 @@ async function processAction(action) {
 
         if (argumentKeysId.includes(object.keyId)) {
           await handleArgumentChange(object.objectId)
+        } else if (object.keyId === trashedKeyId) {
+          await handleTrashedChange(object.objectId, ratingSum > 0)
         }
       }
 
@@ -693,6 +714,7 @@ async function processActions() {
   consId = getIdFromSymbol("cons")
   prosId = getIdFromSymbol("pros")
   argumentKeysId = [consId, prosId]
+  trashedKeyId = getIdFromSymbol("trashed")
 
   languageByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
     if (config.languages.includes(symbol)) d[id] = symbol

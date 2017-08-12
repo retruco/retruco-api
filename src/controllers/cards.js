@@ -820,6 +820,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let tags = req.query.tag || []
   let tagIds = tags.map(getIdFromIdOrSymbol).filter(tag => tag)
   let term = req.query.term
+  let trashed = show.includes("trashed")
   let userName = req.query.user // email or urlName
 
   let user = null
@@ -924,6 +925,10 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 
   if (user !== null) {
     whereClauses.push("statements.id IN (SELECT statement_id FROM ballots WHERE voter_id = $<userId>)")
+  }
+
+  if (!trashed) {
+    whereClauses.push("NOT statements.trashed")
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")

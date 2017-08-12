@@ -303,6 +303,7 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
   let rated = req.query.rated || false
   let show = req.query.show || []
   let term = req.query.term
+  let trashed = show.includes("trashed")
 
   let whereClauses = []
 
@@ -329,6 +330,10 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
     }
   }
 
+  if (!trashed) {
+    whereClauses.push("(trashed IS NULL OR NOT trashed)")
+  }
+
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
   let coreArguments = {
@@ -340,7 +345,12 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
       SELECT count(*) as count
       FROM objects
       INNER JOIN values ON objects.id = values.id
-      ${rated ? "INNER JOIN statements ON objects.id = statements.id" : ""}
+      ${rated
+        ? "INNER JOIN statements ON objects.id = statements.id"
+        : !trashed
+        ? "LEFT JOIN statements ON objects.id = statements.id"
+        : ""
+      }
       ${whereClause}
     `,
       coreArguments,
@@ -350,7 +360,7 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
   let values = (await db.any(
     `
       SELECT
-        objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol
+        objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol, trashed
       FROM objects
       INNER JOIN values ON objects.id = values.id
       ${rated ? "INNER" : "LEFT"} JOIN statements ON objects.id = statements.id
