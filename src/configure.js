@@ -617,7 +617,7 @@ async function configureSymbols() {
   let typedValue = entryToValue(
     await db.oneOrNone(
       `
-      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol FROM objects
+      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol, trashed FROM objects
       INNER JOIN values ON objects.id = values.id
       LEFT JOIN statements ON objects.id = statements.id
       INNER JOIN symbols ON objects.id = symbols.id
@@ -635,7 +635,7 @@ async function configureSymbols() {
     typedValue = entryToValue(
       await db.oneOrNone(
         `
-        SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum FROM objects
+        SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, trashed FROM objects
         INNER JOIN values ON objects.id = values.id
         LEFT JOIN statements ON objects.id = statements.id
         WHERE schema_id = values.id
@@ -684,7 +684,7 @@ async function configureSymbols() {
     let typedValue = entryToValue(
       await db.oneOrNone(
         `
-        SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol FROM objects
+        SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol, trashed FROM objects
         INNER JOIN values ON objects.id = values.id
         LEFT JOIN statements ON objects.id = statements.id
         INNER JOIN symbols ON objects.id = symbols.id
@@ -773,7 +773,7 @@ async function configureSymbols() {
       for (let [keyId, valueId] of Object.entries(properties)) {
         assert.strictEqual(typeof keyId, "string")
         assert.strictEqual(typeof valueId, "string")
-        typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId)
+        typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, 1)
       }
     }
 

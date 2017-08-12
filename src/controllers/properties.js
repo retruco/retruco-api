@@ -57,8 +57,8 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
 
   let entries = await db.any(
     `
-      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, values_autocomplete.autocomplete,
-        values_autocomplete.autocomplete <-> $<term> AS distance
+      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, trashed,
+        values_autocomplete.autocomplete, values_autocomplete.autocomplete <-> $<term> AS distance
       FROM properties
       INNER JOIN objects ON properties.key_id = objects.id
       INNER JOIN values ON objects.id = values.id
@@ -100,8 +100,8 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
   })
 })
 
-export const createProperty = wrapAsyncMiddleware(async function createProperty(req, res) {
-  // Create a new card, giving its initial attributes, schemas & widgets.
+export const getOrCreateProperty = wrapAsyncMiddleware(async function getOrCreateProperty(req, res) {
+  // Create a new card (or retrieve the existing one), giving its initial attributes, schemas & widgets.
   let authenticatedUser = req.authenticatedUser
   let propertyInfos = req.body
   let show = req.query.show || []

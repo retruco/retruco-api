@@ -1034,7 +1034,7 @@ const SPEC = {
         summary: "Create a new property or retrieve the existing one and return it",
         // description: "",
         // externalDocs: {},
-        operationId: "properties.createProperty",
+        operationId: "properties.getOrCreateProperty",
         // consumes: ["application/json"],
         // produces: ["application/json"],
         parameters: [

@@ -171,7 +171,7 @@ swaggerMiddleware.init(
       objectsController.listObjectSameKeyProperties,
     )
 
-    app.post("/properties", usersController.authenticate(true), propertiesController.createProperty)
+    app.post("/properties", usersController.authenticate(true), propertiesController.getOrCreateProperty)
     app.get("/properties/keys/autocomplete", propertiesController.autocompletePropertiesKeys)
 
     app.delete(

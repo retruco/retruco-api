@@ -85,6 +85,7 @@ async function handleArgumentChange(objectId) {
       INNER JOIN values ON properties.value_id = values.id
       WHERE properties.object_id = $<objectId>
       AND properties.key_id IN ($<argumentKeysId:csv>)
+      AND NOT trashed
       AND rating_sum > 0
       ORDER BY rating_sum DESC, objects.id DESC
     `,
@@ -147,7 +148,8 @@ async function handlePropertyChange(objectId, keyId) {
       LEFT JOIN values AS widgets ON values.widget_id = widgets.id
       WHERE properties.object_id = $<objectId>
       AND properties.key_id = $<keyId>
-    `,
+      AND NOT trashed
+      `,
     {
       keyId,
       objectId,
@@ -177,7 +179,8 @@ async function handlePropertyChange(objectId, keyId) {
       WHERE (schemas.value->>'$ref') = '/schemas/bijective-card-reference'
       AND (values.value->>'targetId') = $<objectId>::text
       AND (values.value->>'reverseKeyId') = $<keyId>::text
-    `,
+      AND NOT trashed
+      `,
     {
       keyId,
       objectId,
@@ -209,7 +212,8 @@ async function handlePropertyChange(objectId, keyId) {
       WHERE (schemas.value->>'type') = 'array'
       AND (schemas.value->'items') @> '{"$ref": "/schemas/bijective-card-reference"}'
       AND values.value @> '{"reverseKeyId": $<keyId~>, "targetId": $<objectId~>}'
-    `,
+      AND NOT trashed
+      `,
     {
       keyId,
       objectId,

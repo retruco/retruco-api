@@ -664,7 +664,7 @@ export async function getObjectFromId(id) {
   } else if (entry.type === "Value") {
     let valueEntry = await db.oneOrNone(
       `
-        SELECT values.*, arguments, rating, rating_count, rating_sum, symbol
+        SELECT values.*, arguments, rating, rating_count, rating_sum, symbol, trashed
         FROM values
         LEFT JOIN statements ON values.id = statements.id
         LEFT JOIN symbols ON values.id = symbols.id
@@ -808,14 +808,16 @@ export async function getOrNewProperty(
       `
         INSERT INTO statements(id)
         VALUES ($<id>)
-        RETURNING rating, rating_count, rating_sum
+        RETURNING arguments, rating, rating_count, rating_sum, trashed
       `,
       property,
     )
     Object.assign(property, {
+      arguments: result.arguments,
       rating: result.rating,
       ratingCount: result.rating_count,
       ratingSum: result.rating_sum,
+      trashed: result.trashed,
     })
     await db.none(
       `
@@ -979,7 +981,7 @@ export async function getValue(schemaId, widgetId, value) {
   return entryToValue(
     await db.oneOrNone(
       `
-      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol
+      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol, trashed
       FROM objects
       INNER JOIN values ON objects.id = values.id
       LEFT JOIN statements ON values.id = statements.id
@@ -1031,14 +1033,16 @@ export async function newCard({ inactiveStatementIds = null, properties = null, 
     `
       INSERT INTO statements(id)
       VALUES ($<id>)
-      RETURNING rating, rating_count, rating_sum
+      RETURNING arguments, rating, rating_count, rating_sum, trashed
     `,
     card,
   )
   Object.assign(card, {
+    arguments: result.arguments,
     rating: result.rating,
     ratingCount: result.rating_count,
     ratingSum: result.rating_sum,
+    trashed: result.trashed,
   })
   await db.none(
     `
