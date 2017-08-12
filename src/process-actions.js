@@ -674,69 +674,6 @@ async function processAction(action) {
       for (let referenceId of referenceIds) {
         addAction(referenceId, action.type)
       }
-
-      // if (object.type === "Abuse") {
-      //   let flaggedEntry = await db.oneOrNone(
-      //     `SELECT data FROM statements
-      //       WHERE id = $<statementId>`,
-      //     object,
-      //   )
-      //   if (flaggedEntry !== null) {
-      //     let flaggedData = flaggedEntry.data
-      //     let isAbuse = rating !== null && rating > 0
-      //     if (isAbuse !== Boolean(flaggedData.isAbuse)) {
-      //       if (isAbuse) {
-      //         flaggedData.isAbuse = true
-      //       } else {
-      //         delete flaggedData.isAbuse
-      //       }
-      //       await db.none(
-      //         `UPDATE statements
-      //           SET data = $<data>
-      //           WHERE id = $<id>`,
-      //         flaggedEntry,
-      //       )
-      //       let claimArguments = (await db.any(
-      //         `SELECT * FROM statements
-      //           WHERE (data->>'groundId') = $<id>::text`,
-      //         flaggedEntry,
-      //       )).map(entryToStatement)
-      //       for (let argument of claimArguments) {
-      //         await addAction(argument.claimId, "rating")
-      //       }
-      //     }
-      //   }
-      // } else if (object.type === "Argument") {
-      //   await addAction(object.claimId, "rating")
-      // } else if (object.type === "Tag") {
-      //   let taggedEntry = await db.oneOrNone(
-      //       `SELECT * FROM statements
-      //         WHERE id = $<statementId>`,
-      //       object,
-      //     )
-      //   if (taggedEntry !== null) {
-      //     let taggedData = taggedEntry.data
-      //     let addTag = rating !== null && rating > 0
-      //     let tagExists = Boolean(taggedData.tags && taggedData.tags.includes(object.name))
-      //     if (addTag !== tagExists) {
-      //       if (addTag) {
-      //         if (!taggedData.tags) taggedData.tags = []
-      //         taggedData.tags.push(object.name)
-      //         taggedData.tags.sort()
-      //       } else {
-      //         taggedData.tags.splice(taggedData.tags.indexOf(object.name), 1)
-      //       }
-      //       if (taggedData.tags.length === 0) delete taggedData.tags
-      //       await db.none(
-      //         `UPDATE statements
-      //           SET data = $<data>
-      //           WHERE id = $<id>`,
-      //         taggedEntry,
-      //       )
-      //       await generateObjectTextSearch(entryToStatement(taggedEntry))
-      //     }
-      //   }
-      // }
     }
   }
 
