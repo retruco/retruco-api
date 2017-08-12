@@ -390,19 +390,26 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
-    symbol: "hu",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Hungarian Localization",
-    },
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
+    symbol: "false",
+    schemaSymbol: "schema:boolean",
+    value: false,
+    widgetSymbol: "widget:input-checkbox",
+    schemasWidgetsOrder: [["schema:boolean", ["widget:input-checkbox"]]],
   },
   {
     symbol: "ga",
     schemaSymbol: "schema:localized-string",
     value: {
       en: "Irish Localization",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
+  },
+  {
+    symbol: "hu",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Hungarian Localization",
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
@@ -578,6 +585,22 @@ export const symbolizedTypedValues = [
     },
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
+  },
+  {
+    symbol: "trash",
+    schemaSymbol: "schema:localized-string",
+    value: {
+      en: "Trash",
+    },
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
+  },
+  {
+    symbol: "true",
+    schemaSymbol: "schema:boolean",
+    value: true,
+    widgetSymbol: "widget:input-checkbox",
+    schemasWidgetsOrder: [["schema:boolean", ["widget:input-checkbox"]]],
   },
   {
     symbol: "twitter-name",
