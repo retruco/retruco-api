@@ -645,18 +645,6 @@ async function processAction(action) {
         )
       }
 
-      // Propagate change of statement rating.
-      // TODO: Replace ground arguments with "pros" and "cons" properties: si le statement est mis en value(_id) d'une
-      // property de key "pros" ou "cons" (ou d'autres comme advantages & disadvantages), alors il faut recalculer le
-      // rating du statement les ayant en pros ou cons.
-      // let claimArguments = (await db.any(
-      //   `SELECT * FROM statements
-      //     WHERE (data->>'groundId') = $<id>::text`,
-      //   object,
-      // )).map(entryToStatement)
-      // for (let argument of claimArguments) {
-      //   await addAction(argument.claimId, "rating")
-      // }
       if (object.type === "Card") {
         // Nothing to do yet.
       } else if (object.type === "Property") {

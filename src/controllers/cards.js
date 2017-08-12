@@ -888,10 +888,6 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 
   let whereClauses = []
 
-  // if (language) {
-  //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
-  // }
-
   if (subTypeIds.length > 0) {
     whereClauses.push("sub_types && $<subTypeIds>")
   }
@@ -934,7 +930,6 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
   let coreArguments = {
-    // language,
     subTypeIds,
     tagIds,
     term,
@@ -987,7 +982,6 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
 })
 
 export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPopularity(req, res) {
-  // let language = req.query.language
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
   let subTypes = req.query.type || []
@@ -996,10 +990,6 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
   let tagIds = tags.map(getIdFromIdOrSymbol).filter(tagId => tagId)
 
   let whereClauses = ["type = 'Card'"]
-
-  // if (language) {
-  //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
-  // }
 
   if (subTypeIds.length > 0) {
     whereClauses.push("sub_types && $<subTypeIds>")
@@ -1076,7 +1066,6 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
 })
 
 export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTagsPopularityOgp(req, res) {
-  // let language = req.query.language
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
   let subTypes = req.query.type || []
@@ -1123,10 +1112,6 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
   }
 
   let whereClauses = ["type = 'Card'"]
-
-  // if (language) {
-  //   whereClauses.push("data->>'language' = $<language> OR data->'language' IS NULL")
-  // }
 
   if (subTypeIds.length > 0) {
     whereClauses.push("sub_types && $<subTypeIds>")
