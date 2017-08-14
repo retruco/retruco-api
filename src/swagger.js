@@ -2117,31 +2117,12 @@ const SPEC = {
       type: "object",
       discriminator: "type",
       properties: {
-        activePropertiesIds: {
-          type: "array",
-          items: {
-            $ref: "#/definitions/Id",
-          },
-        },
-        attributes: {
-          type: "object",
-        },
         ballotId: {
           $ref: "#/definitions/BallotId",
         },
         createdAt: {
           type: "string",
           format: "date-time",
-        },
-        deleted: {
-          type: "boolean",
-          default: false,
-        },
-        groundIds: {
-          type: "array",
-          items: {
-            $ref: "#/definitions/Id",
-          },
         },
         id: {
           $ref: "#/definitions/Id",
@@ -2170,15 +2151,13 @@ const SPEC = {
             type: "string",
           },
         },
+        trashed: {
+          type: "boolean",
+          default: false,
+        },
         type: {
           type: "string",
           enum: types,
-        },
-        userPropertiesIds: {
-          type: "array",
-          items: {
-            $ref: "#/definitions/Id",
-          },
         },
       },
       required: ["type"],
@@ -2219,13 +2198,6 @@ const SPEC = {
         {
           type: "object",
           properties: {
-            abuseId: {
-              $ref: "#/definitions/Id",
-            },
-            isAbuse: {
-              type: "boolean",
-              default: false,
-            },
             schemas: {
               type: "object",
             },
@@ -2306,6 +2278,12 @@ const SPEC = {
             $ref: "#/definitions/Ballot",
           },
         },
+        cards: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/Card",
+          },
+        },
         collections: {
           type: "object",
           additionalProperties: {
@@ -2315,16 +2293,22 @@ const SPEC = {
         id: {
           $ref: "#/definitions/IdOrBallotId",
         },
-        statements: {
+        properties: {
           type: "object",
           additionalProperties: {
-            $ref: "#/definitions/AbstractStatement",
+            $ref: "#/definitions/Property",
           },
         },
         users: {
           type: "object",
           additionalProperties: {
             $ref: "#/definitions/User",
+          },
+        },
+        values: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/Value",
           },
         },
       },
@@ -2339,6 +2323,12 @@ const SPEC = {
             $ref: "#/definitions/Ballot",
           },
         },
+        cards: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/Card",
+          },
+        },
         collections: {
           type: "object",
           additionalProperties: {
@@ -2351,16 +2341,22 @@ const SPEC = {
             $ref: "#/definitions/IdOrBallotId",
           },
         },
-        statements: {
+        properties: {
           type: "object",
           additionalProperties: {
-            $ref: "#/definitions/AbstractStatement",
+            $ref: "#/definitions/Property",
           },
         },
         users: {
           type: "object",
           additionalProperties: {
             $ref: "#/definitions/User",
+          },
+        },
+        values: {
+          type: "object",
+          additionalProperties: {
+            $ref: "#/definitions/Value",
           },
         },
       },
@@ -2410,13 +2406,6 @@ const SPEC = {
         {
           type: "object",
           properties: {
-            abuseId: {
-              $ref: "#/definitions/Id",
-            },
-            isAbuse: {
-              type: "boolean",
-              default: false,
-            },
             // language: {
             //   $ref: "#/definitions/Language",
             // },
@@ -2457,26 +2446,6 @@ const SPEC = {
       //   "type",
       // ],
     },
-    StatementsAutocompletionList: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          autocomplete: {
-            type: "string",
-          },
-          distance: {
-            maximum: 1,
-            minimum: 0,
-            type: "number",
-          },
-          statement: {
-            $ref: "#/definitions/AbstractStatement",
-          },
-        },
-        required: ["autocomplete", "distance", "statement"],
-      },
-    },
     UrlName: {
       type: "string",
     },
@@ -2506,26 +2475,30 @@ const SPEC = {
       required: ["email", "urlName"],
     },
     Value: {
-      type: "object",
-      properties: {
-        id: {
-          $ref: "#/definitions/Id",
+      allOf: [
+        {
+          $ref: "#/definitions/AbstractStatement",
         },
-        schemaId: {
-          $ref: "#/definitions/IdOrSymbol",
+        {
+          type: "object",
+          properties: {
+            schemaId: {
+              $ref: "#/definitions/IdOrSymbol",
+            },
+            symbol: {
+              type: "string",
+            },
+            // value: anything,
+            widgetId: {
+              $ref: "#/definitions/IdOrSymbol",
+            },
+          },
+          required: [
+            "id",
+            "schemaId",
+            // "value",
+          ],
         },
-        symbol: {
-          type: "string",
-        },
-        // value: anything,
-        widgetId: {
-          $ref: "#/definitions/IdOrSymbol",
-        },
-      },
-      required: [
-        "id",
-        "schemaId",
-        // "value",
       ],
     },
     ValuesAutocompletionList: {
@@ -2808,15 +2781,6 @@ const SPEC = {
       // },
       type: "string",
       pattern: "^[0-9]+$",
-    },
-    statementParam: {
-      // description: "",
-      in: "body",
-      name: "statement",
-      required: true,
-      schema: {
-        $ref: "#/definitions/AbstractStatement",
-      },
     },
     tagNamePathParam: {
       // description: "",

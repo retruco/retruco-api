@@ -249,8 +249,7 @@ swaggerMiddleware.init(
     app.get("/values/autocomplete", valuesController.autocompleteValues)
     app.post("/values/existing", usersController.authenticate(false), valuesController.getExistingValue)
 
-    app.use(function(err, req, res, next) {
-      // eslint-disable-line no-unused-vars
+    app.use(function(err, req, res, next) {  // eslint-disable-line no-unused-vars
       // Error handling middleware (must be last use of app)
       // Don't remove the next parameter above: It is needed, otherwise it is called with (req, res, next) without err.
       const status = err.status || 500
