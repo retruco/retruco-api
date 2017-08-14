@@ -123,6 +123,7 @@ async function configureDatabase() {
   }
   if (version.number < 24) {
     await db.none("ALTER TABLE statements ADD COLUMN IF NOT EXISTS trashed boolean NOT NULL DEFAULT FALSE")
+    console.log("You must manually execute regenerate-arguments.js.")
   }
 
   // Languages sets

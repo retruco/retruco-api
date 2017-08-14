@@ -37,6 +37,7 @@ import {
   entryToAction,
   entryToBallot,
 } from "./model"
+import { regenerateArguments } from "./regenerators"
 import { getIdFromSymbol, getValueFromSymbol, idBySymbol } from "./symbols"
 
 let argumentKeysId = null // Set by processActions.
@@ -66,70 +67,6 @@ let trashedKeyId = null // Set by processActions.
 //   }
 // }
 
-async function handleArgumentChange(objectId) {
-  let object = await getObjectFromId(objectId)
-  assert.ok(object, `Missing objet at ID ${objectId}`)
-  if (object.ratingSum === undefined) {
-    // object is not a statement (aka not a rated object) => It has no argumentation.
-    return
-  }
-
-  // Retrieve all the argumentation-related valid properties of the rated object, sorting by decreasing rating and id.
-
-  let argumentation = (await db.any(
-    `
-      SELECT properties.key_id as key_id, rating, rating_count, rating_sum, values.id as value_id
-      FROM objects
-      INNER JOIN statements ON objects.id = statements.id
-      INNER JOIN properties ON statements.id = properties.id
-      INNER JOIN values ON properties.value_id = values.id
-      WHERE properties.object_id = $<objectId>
-      AND properties.key_id IN ($<argumentKeysId:csv>)
-      AND NOT trashed
-      AND rating_sum > 0
-      ORDER BY rating_sum DESC, objects.id DESC
-    `,
-    {
-      argumentKeysId,
-      objectId,
-    },
-  )).map(argument => {
-    argument.keyId = argument.key_id
-    delete argument.key_id
-    argument.ratingCount = argument.rating_count
-    delete argument.rating_count
-    argument.ratingSum = argument.rating_sum
-    delete argument.rating_sum
-    argument.valueId = argument.value_id
-    delete argument.value_id
-    return argument
-  })
-
-  let argumentsChanged = false
-  if (argumentation.length > 0) {
-    if (!deepEqual(argumentation, object.arguments)) {
-      object.arguments = argumentation
-      argumentsChanged = true
-    }
-  } else if (object.arguments !== null) {
-    object.arguments = null
-    argumentsChanged = true
-  }
-
-  if (argumentsChanged) {
-    await db.none(
-      `
-        UPDATE statements
-        SET arguments = $<arguments:json>
-        WHERE id = $<id>
-      `,
-      object,
-    )
-    // Don't call the following functions, because handlePropertyChange has already called them.
-    // await generateObjectTextSearch(object)
-    // await addAction(object.id, "arguments")
-  }
-}
 
 async function handlePropertyChange(objectId, keyId) {
   let object = await getObjectFromId(objectId)
@@ -677,7 +614,7 @@ async function processAction(action) {
         }
 
         if (argumentKeysId.includes(object.keyId)) {
-          await handleArgumentChange(object.objectId)
+          await regenerateArguments(object.objectId, argumentKeysId)
         } else if (object.keyId === trashedKeyId) {
           await handleTrashedChange(object.objectId, ratingSum > 0)
         }
