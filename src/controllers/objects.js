@@ -43,7 +43,7 @@ export const listObjectDebateProperties = wrapAsyncMiddleware(async function lis
 
   const keyIds = ["cons", "pros"].map(getIdFromSymbol)
 
-  let sameKeyProperties = (await db.any(
+  let debateProperties = (await db.any(
     `
       SELECT objects.*, statements.*, properties.*, symbol
       FROM objects
@@ -63,7 +63,7 @@ export const listObjectDebateProperties = wrapAsyncMiddleware(async function lis
 
   res.json({
     apiVersion: "1",
-    data: await toDataJson(sameKeyProperties, req.authenticatedUser, {
+    data: await toDataJson(debateProperties, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),

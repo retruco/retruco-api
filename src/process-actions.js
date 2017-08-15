@@ -36,6 +36,7 @@ import {
   getTagIdsFromProperties,
   entryToAction,
   entryToBallot,
+  entryToProperty,
 } from "./model"
 import { regenerateArguments } from "./regenerators"
 import { getIdFromSymbol, getValueFromSymbol, idBySymbol } from "./symbols"
@@ -512,12 +513,33 @@ async function processAction(action) {
       ratingCount += 1
       if (ballot.rating) ratingSum += ballot.rating
     }
-    for (let argument of object.arguments || []) {
+    let debateProperties = (await db.any(
+      `
+        SELECT objects.*, statements.*, properties.*, symbol
+        FROM objects
+        INNER JOIN statements ON objects.id = statements.id
+        INNER JOIN properties ON statements.id = properties.id
+        LEFT JOIN symbols ON properties.id = symbols.id
+        WHERE properties.object_id = $<objectId>
+        AND properties.key_id IN ($<argumentKeysId:csv>)
+        AND NOT statements.trashed
+        AND statements.rating_sum > 0
+        ORDER BY rating_sum DESC, created_at DESC
+      `,
+      {
+        argumentKeysId,
+        objectId: object.id,
+      },
+    )).map(entryToProperty)
+    for (let debateProperty of debateProperties) {
       // Ignore arguments whose ground has a negative or null rating.
-      let argumentGround = await getObjectFromId(argument.valueId)
+      let argumentGround = await getObjectFromId(debateProperty.valueId)
       if (argumentGround !== null && argumentGround.ratingSum !== undefined && argumentGround.ratingSum > 0) {
-        ratingCount += argument.ratingCount
-        ratingSum += (argument.keyId === consId ? -1 : argument.keyId === prosId ? 1 : 0) * argument.ratingSum
+        ratingCount += debateProperty.ratingCount
+        ratingSum += (debateProperty.keyId === consId
+          ? -1
+          : debateProperty.keyId === prosId ? 1 : 0
+        ) * debateProperty.ratingSum
       }
     }
 

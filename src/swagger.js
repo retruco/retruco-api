@@ -2117,6 +2117,10 @@ const SPEC = {
       type: "object",
       discriminator: "type",
       properties: {
+        argumentCount: {
+          minimum: 0,
+          type: "integer",
+        },
         ballotId: {
           $ref: "#/definitions/BallotId",
         },

@@ -57,7 +57,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
 
   let entries = await db.any(
     `
-      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, trashed,
+      SELECT objects.*, values.*, argument_count, rating, rating_count, rating_sum, trashed,
         values_autocomplete.autocomplete, values_autocomplete.autocomplete <-> $<term> AS distance
       FROM properties
       INNER JOIN objects ON properties.key_id = objects.id

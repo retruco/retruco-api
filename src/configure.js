@@ -54,6 +54,8 @@ async function configureDatabase() {
     console.log(`Upgrading database from version ${version.number} to ${versionNumber}...`)
   }
 
+  let requiresArgumentsRegeneration = false
+
   if (version.number < 1) {
     // Remove non UNIQUE index to recreate it.
     await db.none("DROP INDEX IF EXISTS statements_hash_idx")
@@ -123,7 +125,12 @@ async function configureDatabase() {
   }
   if (version.number < 24) {
     await db.none("ALTER TABLE statements ADD COLUMN IF NOT EXISTS trashed boolean NOT NULL DEFAULT FALSE")
-    console.log("You must manually execute regenerate-arguments.js.")
+    requiresArgumentsRegeneration = true
+  }
+  if (version.number < 25) {
+    await db.none("ALTER TABLE statements DROP COLUMN IF EXISTS arguments")
+    await db.none("ALTER TABLE statements ADD COLUMN IF NOT EXISTS argument_count integer NOT NULL DEFAULT 0")
+    requiresArgumentsRegeneration = true
   }
 
   // Languages sets
@@ -339,7 +346,7 @@ async function configureDatabase() {
   await db.none(
     `
     CREATE TABLE IF NOT EXISTS statements(
-      arguments jsonb,
+      argument_count integer NOT NULL DEFAULT 0,
       id bigint NOT NULL PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
       rating double precision NOT NULL DEFAULT 0,
       rating_count integer NOT NULL DEFAULT 0,
@@ -604,6 +611,10 @@ async function configureDatabase() {
     await db.none("UPDATE version SET number = $1", version.number)
     console.log(`Upgraded database from version ${previousVersionNumber} to ${version.number}.`)
   }
+
+  if (requiresArgumentsRegeneration) {
+    console.log("You must manually execute regenerate-arguments.js.")
+  }
 }
 
 async function configureSymbols() {
@@ -618,7 +629,7 @@ async function configureSymbols() {
   let typedValue = entryToValue(
     await db.oneOrNone(
       `
-      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol, trashed FROM objects
+      SELECT objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed FROM objects
       INNER JOIN values ON objects.id = values.id
       LEFT JOIN statements ON objects.id = statements.id
       INNER JOIN symbols ON objects.id = symbols.id
@@ -636,7 +647,7 @@ async function configureSymbols() {
     typedValue = entryToValue(
       await db.oneOrNone(
         `
-        SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, trashed FROM objects
+        SELECT objects.*, values.*, argument_count, rating, rating_count, rating_sum, trashed FROM objects
         INNER JOIN values ON objects.id = values.id
         LEFT JOIN statements ON objects.id = statements.id
         WHERE schema_id = values.id
@@ -685,7 +696,7 @@ async function configureSymbols() {
     let typedValue = entryToValue(
       await db.oneOrNone(
         `
-        SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol, trashed FROM objects
+        SELECT objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed FROM objects
         INNER JOIN values ON objects.id = values.id
         LEFT JOIN statements ON objects.id = statements.id
         INNER JOIN symbols ON objects.id = symbols.id

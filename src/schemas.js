@@ -1,4 +1,4 @@
-// Retruco-API -- HTTP API to bring out shared positions from argumented arguments
+// Retruco-API -- HTTP API to bring out shared positions from argumented statements
 // By: Paula Forteza <paula@retruco.org>
 //     Emmanuel Raviart <emmanuel@retruco.org>
 //

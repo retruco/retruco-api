@@ -18,8 +18,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 import assert from "assert"
-import deepEqual from "deep-equal"
 
 import { db } from "./database"
 import { getObjectFromId } from "./model"
@@ -35,51 +35,30 @@ export async function regenerateArguments(statementId, argumentKeysId) {
 
     // Retrieve all the argumentation-related valid properties of the rated object, sorting by decreasing rating and id.
 
-    let argumentation = (await db.any(
+    let entry = await db.one(
       `
-        SELECT properties.id as id, properties.key_id as key_id, rating, rating_count, rating_sum, values.id as value_id
-        FROM objects
-        INNER JOIN statements ON objects.id = statements.id
+        SELECT count(properties.id) AS argument_count
+        FROM statements
         INNER JOIN properties ON statements.id = properties.id
-        INNER JOIN values ON properties.value_id = values.id
         WHERE properties.object_id = $<statementId>
         AND properties.key_id IN ($<argumentKeysId:csv>)
-        AND NOT trashed
-        AND rating_sum > 0
-        ORDER BY rating_sum DESC, objects.id DESC
+        AND NOT statements.trashed
+        AND statements.rating_sum > 0
       `,
       {
         argumentKeysId,
         statementId,
       },
-    )).map(argument => {
-      argument.keyId = argument.key_id
-      delete argument.key_id
-      argument.ratingCount = argument.rating_count
-      delete argument.rating_count
-      argument.ratingSum = argument.rating_sum
-      delete argument.rating_sum
-      argument.valueId = argument.value_id
-      delete argument.value_id
-      return argument
-    })
+    )
+    let argumentCount = entry.argument_count
+    let argumentCountChanged = argumentCount !== object.argumentCount
+    if (argumentCountChanged) object.argumentCount = argumentCount
 
-    let argumentsChanged = false
-    if (argumentation.length > 0) {
-      if (!deepEqual(argumentation, object.arguments)) {
-        object.arguments = argumentation
-        argumentsChanged = true
-      }
-    } else if (object.arguments !== null) {
-      object.arguments = null
-      argumentsChanged = true
-    }
-
-    if (argumentsChanged) {
+    if (argumentCountChanged) {
       await db.none(
         `
           UPDATE statements
-          SET arguments = $<arguments:json>
+          SET argument_count = $<argumentCount>
           WHERE id = $<id>
         `,
         object,

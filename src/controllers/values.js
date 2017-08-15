@@ -357,7 +357,7 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
   let values = (await db.any(
     `
       SELECT
-        objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol, trashed
+        objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed
       FROM objects
       INNER JOIN values ON objects.id = values.id
       ${rated ? "INNER" : "LEFT"} JOIN statements ON objects.id = statements.id

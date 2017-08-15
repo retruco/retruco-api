@@ -29,7 +29,7 @@ async function generateArguments() {
   const prosId = getIdFromSymbol("pros")
   const argumentKeysId = [consId, prosId]
 
-  let ids = (await db.any("SELECT id FROM statements WHERE arguments IS NOT NULL")).map(entry => entry.id)
+  let ids = (await db.any("SELECT id FROM statements")).map(entry => entry.id)
   for (let id of ids) {
     await regenerateArguments(id, argumentKeysId)
   }

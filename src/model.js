@@ -347,24 +347,24 @@ export function entryToOptionalStatement(entry) {
   return entry === null
     ? null
     : Object.assign({}, entryToObject(entry), {
-        arguments: entry.arguments || null,
-        rating: parseFloat(entry.rating || "0"),
-        ratingCount: parseInt(entry.rating_count || "0"),
-        ratingSum: parseInt(entry.rating_sum || "0"),
-        trashed: entry.trashed || false,
-      })
+      argumentCount: parseInt(entry.argument_count || "0"),
+      rating: parseFloat(entry.rating || "0"),
+      ratingCount: parseInt(entry.rating_count || "0"),
+      ratingSum: parseInt(entry.rating_sum || "0"),
+      trashed: entry.trashed || false,
+    })
 }
 
 export function entryToStatement(entry) {
   return entry === null
     ? null
     : Object.assign({}, entryToObject(entry), {
-        arguments: entry.arguments,
-        rating: parseFloat(entry.rating),
-        ratingCount: parseInt(entry.rating_count),
-        ratingSum: parseInt(entry.rating_sum),
-        trashed: entry.trashed,
-      })
+      argumentCount: parseInt(entry.argument_count),
+      rating: parseFloat(entry.rating),
+      ratingCount: parseInt(entry.rating_count),
+      ratingSum: parseInt(entry.rating_sum),
+      trashed: entry.trashed,
+    })
 }
 
 export function entryToUser(entry) {
@@ -669,7 +669,7 @@ export async function getObjectFromId(id) {
   } else if (entry.type === "Value") {
     let valueEntry = await db.oneOrNone(
       `
-        SELECT values.*, arguments, rating, rating_count, rating_sum, symbol, trashed
+        SELECT values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed
         FROM values
         LEFT JOIN statements ON values.id = statements.id
         LEFT JOIN symbols ON values.id = symbols.id
@@ -814,12 +814,12 @@ export async function getOrNewProperty(
       `
         INSERT INTO statements(id)
         VALUES ($<id>)
-        RETURNING arguments, rating, rating_count, rating_sum, trashed
+        RETURNING argument_count, rating, rating_count, rating_sum, trashed
       `,
       property,
     )
     Object.assign(property, {
-      arguments: result.arguments,
+      argumentCount: result.argument_count,
       rating: result.rating,
       ratingCount: result.rating_count,
       ratingSum: result.rating_sum,
@@ -986,7 +986,7 @@ export async function getValue(schemaId, widgetId, value) {
   return entryToValue(
     await db.oneOrNone(
       `
-      SELECT objects.*, values.*, arguments, rating, rating_count, rating_sum, symbol, trashed
+      SELECT objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed
       FROM objects
       INNER JOIN values ON objects.id = values.id
       LEFT JOIN statements ON values.id = statements.id
@@ -1038,12 +1038,12 @@ export async function newCard({ inactiveStatementIds = null, properties = null, 
     `
       INSERT INTO statements(id)
       VALUES ($<id>)
-      RETURNING arguments, rating, rating_count, rating_sum, trashed
+      RETURNING argument_count, rating, rating_count, rating_sum, trashed
     `,
     card,
   )
   Object.assign(card, {
-    arguments: result.arguments,
+    argumentCount: result.argument_count,
     rating: result.rating,
     ratingCount: result.rating_count,
     ratingSum: result.rating_sum,
@@ -1421,21 +1421,6 @@ export async function toDataJson1(
       }
     }
 
-    for (let { keyId, valueId } of object.arguments || []) {
-      await toDataJson1(keyId, data, objectsCache, user, {
-        depth: depth - 1,
-        showBallots,
-        showProperties,
-        showValues,
-      })
-      await toDataJson1(valueId, data, objectsCache, user, {
-        depth: depth - 1,
-        showBallots,
-        showProperties,
-        showValues,
-      })
-    }
-
     for (let [keyId, valueId] of Object.entries(object.properties || {})) {
       await toDataJson1(keyId, data, objectsCache, user, {
         depth: depth - 1,
@@ -1519,13 +1504,6 @@ export async function toSchemaValueJson(schema, value) {
 
 export async function toObjectJson(object, { showApiKey = false, showEmail = false } = {}) {
   let objectJson = Object.assign({}, object)
-  if (objectJson.arguments) {
-    objectJson.arguments = objectJson.arguments.map(argument => ({
-      ...argument,
-      keyId: getIdOrSymbolFromId(argument["keyId"]),
-      valueId: getIdOrSymbolFromId(argument["valueId"]),
-    }))
-  }
   objectJson.createdAt = objectJson.createdAt.toISOString()
   if (objectJson.properties) {
     let properties = (objectJson.properties = Object.assign({}, objectJson.properties))
