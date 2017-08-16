@@ -2645,18 +2645,6 @@ const SPEC = {
       name: "depth",
       type: "integer",
     },
-    groundIdParam: {
-      // description: "",
-      in: "path",
-      name: "groundId",
-      required: true,
-      // A reference to a non-object definition doesn't work for a parameter that is not in request body.
-      // schema: {
-      //   $ref: "#/definitions/Id",
-      // },
-      type: "string",
-      pattern: "^[0-9]+$",
-    },
     idOrSymbolPathParam: {
       description: "Either an object ID or an object symbol",
       in: "path",
