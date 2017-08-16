@@ -18,11 +18,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import { checkDatabase, db } from "./database"
 import { regenerateArguments } from "./regenerators"
 import { getIdFromSymbol } from "./symbols"
-
 
 async function generateArguments() {
   const consId = getIdFromSymbol("cons")

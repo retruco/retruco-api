@@ -18,25 +18,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import assert from "assert"
 
 import { db } from "./database"
 import { getObjectFromId } from "./model"
 
-
 export async function regenerateArguments(statementId, argumentKeysId) {
-    let object = await getObjectFromId(statementId)
-    assert.ok(object, `Missing objet at ID ${statementId}`)
-    if (object.ratingSum === undefined) {
-      // object is not a statement (aka not a rated object) => It has no argumentation.
-      return
-    }
+  let object = await getObjectFromId(statementId)
+  assert.ok(object, `Missing objet at ID ${statementId}`)
+  if (object.ratingSum === undefined) {
+    // object is not a statement (aka not a rated object) => It has no argumentation.
+    return
+  }
 
-    // Retrieve all the argumentation-related valid properties of the rated object, sorting by decreasing rating and id.
+  // Retrieve all the argumentation-related valid properties of the rated object, sorting by decreasing rating and id.
 
-    let entry = await db.one(
-      `
+  let entry = await db.one(
+    `
         SELECT count(properties.id) AS argument_count
         FROM statements
         INNER JOIN properties ON statements.id = properties.id
@@ -45,23 +43,23 @@ export async function regenerateArguments(statementId, argumentKeysId) {
         AND NOT statements.trashed
         AND statements.rating_sum > 0
       `,
-      {
-        argumentKeysId,
-        statementId,
-      },
-    )
-    let argumentCount = entry.argument_count
-    let argumentCountChanged = argumentCount !== object.argumentCount
-    if (argumentCountChanged) object.argumentCount = argumentCount
+    {
+      argumentKeysId,
+      statementId,
+    },
+  )
+  let argumentCount = entry.argument_count
+  let argumentCountChanged = argumentCount !== object.argumentCount
+  if (argumentCountChanged) object.argumentCount = argumentCount
 
-    if (argumentCountChanged) {
-      await db.none(
-        `
+  if (argumentCountChanged) {
+    await db.none(
+      `
           UPDATE statements
           SET argument_count = $<argumentCount>
           WHERE id = $<id>
         `,
-        object,
-      )
-    }
+      object,
+    )
   }
+}

@@ -347,24 +347,24 @@ export function entryToOptionalStatement(entry) {
   return entry === null
     ? null
     : Object.assign({}, entryToObject(entry), {
-      argumentCount: parseInt(entry.argument_count || "0"),
-      rating: parseFloat(entry.rating || "0"),
-      ratingCount: parseInt(entry.rating_count || "0"),
-      ratingSum: parseInt(entry.rating_sum || "0"),
-      trashed: entry.trashed || false,
-    })
+        argumentCount: parseInt(entry.argument_count || "0"),
+        rating: parseFloat(entry.rating || "0"),
+        ratingCount: parseInt(entry.rating_count || "0"),
+        ratingSum: parseInt(entry.rating_sum || "0"),
+        trashed: entry.trashed || false,
+      })
 }
 
 export function entryToStatement(entry) {
   return entry === null
     ? null
     : Object.assign({}, entryToObject(entry), {
-      argumentCount: parseInt(entry.argument_count),
-      rating: parseFloat(entry.rating),
-      ratingCount: parseInt(entry.rating_count),
-      ratingSum: parseInt(entry.rating_sum),
-      trashed: entry.trashed,
-    })
+        argumentCount: parseInt(entry.argument_count),
+        rating: parseFloat(entry.rating),
+        ratingCount: parseInt(entry.rating_count),
+        ratingSum: parseInt(entry.rating_sum),
+        trashed: entry.trashed,
+      })
 }
 
 export function entryToUser(entry) {

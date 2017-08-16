@@ -68,7 +68,6 @@ let trashedKeyId = null // Set by processActions.
 //   }
 // }
 
-
 async function handlePropertyChange(objectId, keyId) {
   let object = await getObjectFromId(objectId)
   assert.ok(object, `Missing objet at ID ${objectId}`)
@@ -536,10 +535,8 @@ async function processAction(action) {
       let argumentGround = await getObjectFromId(debateProperty.valueId)
       if (argumentGround !== null && argumentGround.ratingSum !== undefined && argumentGround.ratingSum > 0) {
         ratingCount += debateProperty.ratingCount
-        ratingSum += (debateProperty.keyId === consId
-          ? -1
-          : debateProperty.keyId === prosId ? 1 : 0
-        ) * debateProperty.ratingSum
+        ratingSum +=
+          (debateProperty.keyId === consId ? -1 : debateProperty.keyId === prosId ? 1 : 0) * debateProperty.ratingSum
       }
     }
 
