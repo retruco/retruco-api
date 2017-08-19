@@ -153,16 +153,16 @@ swaggerMiddleware.init(
       objectsController.getObject,
     )
     app.get(
-      "/objects/:idOrSymbol/debate-properties",
-      usersController.authenticate(false),
-      objectsController.requireObject,
-      objectsController.listObjectDebateProperties,
-    )
-    app.get(
       "/objects/:idOrSymbol/next-properties",
       usersController.authenticate(false),
       objectsController.requireObject,
       objectsController.nextProperties,
+    )
+    app.get(
+      "/objects/:idOrSymbol/properties",
+      usersController.authenticate(false),
+      objectsController.requireObject,
+      objectsController.listObjectProperties,
     )
     app.get(
       "/objects/:idOrSymbol/properties/:keyIdOrSymbol",

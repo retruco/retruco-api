@@ -844,57 +844,6 @@ const SPEC = {
         // security: {},
       },
     },
-    "/objects/{idOrSymbol}/debate-properties": {
-      get: {
-        tags: ["debate", "object", "property"],
-        summary: "List all the debate-related properties of an existing object",
-        // description: "",
-        // externalDocs: {},
-        operationId: "objects.listObjectDebateProperties",
-        // consumes: ["application/json"],
-        // produces: ["application/json"],
-        parameters: [
-          {
-            $ref: "#/parameters/idOrSymbolPathParam",
-          },
-          {
-            $ref: "#/parameters/depthParam",
-          },
-          {
-            $ref: "#/parameters/showParam",
-          },
-          {
-            $ref: "#/parameters/apiKeyOptionalParam",
-          },
-        ],
-        responses: {
-          "200": {
-            description: "A wrapper containing the requested properties",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  $ref: "#/definitions/DataIdsList",
-                },
-              },
-              required: ["apiVersion", "data"],
-            },
-          },
-          default: {
-            description: "Error payload",
-            schema: {
-              $ref: "#/definitions/Error",
-            },
-          },
-        },
-        // deprecated: true,
-        // schemes: ["http", "https", "ws", "wss"],
-        // security: {},
-      },
-    },
     "/objects/{idOrSymbol}/next-properties": {
       get: {
         tags: ["object", "property"],
@@ -957,6 +906,63 @@ const SPEC = {
                     },
                   },
                   required: ["order", "values"],
+                },
+              },
+              required: ["apiVersion", "data"],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
+    },
+    "/objects/{idOrSymbol}/properties": {
+      get: {
+        tags: ["object", "property"],
+        summary: "List all or some properties of an existing object",
+        // description: "",
+        // externalDocs: {},
+        operationId: "objects.listObjectProperties",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/idOrSymbolPathParam",
+          },
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/keyIdsOrSymbolsQueryParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/valueIdsOrSymbolsQueryParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested properties",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataIdsList",
                 },
               },
               required: ["apiVersion", "data"],
@@ -2665,11 +2671,21 @@ const SPEC = {
       pattern: "^[0-9]+$",
     },
     keyIdOrSymbolPathParam: {
-      description: "Either an object ID or an object symbol",
+      description: "Either an object ID or an object symbol for a property key",
       in: "path",
       name: "keyIdOrSymbol",
       required: true,
       type: "string",
+    },
+    keyIdsOrSymbolsQueryParam: {
+      description: "Either an object ID or an object symbol for a property key",
+      in: "query",
+      name: "keyId",
+      type: "array",
+      items: {
+        type: "string",
+      },
+      collectionFormat: "multi",
     },
     languageParam: {
       // description: "",
@@ -2851,6 +2867,16 @@ const SPEC = {
         //   "widget",
         // ],
       },
+    },
+    valueIdsOrSymbolsQueryParam: {
+      description: "Either an object ID or an object symbol for a property value",
+      in: "query",
+      name: "valueId",
+      type: "array",
+      items: {
+        type: "string",
+      },
+      collectionFormat: "multi",
     },
   },
   // externalDocs: {},

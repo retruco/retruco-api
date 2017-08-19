@@ -36,12 +36,30 @@ export const getObject = wrapAsyncMiddleware(async function getObject(req, res) 
   })
 })
 
-export const listObjectDebateProperties = wrapAsyncMiddleware(async function listObjectDebateProperties(req, res) {
+export const listObjectProperties = wrapAsyncMiddleware(async function listObjectDebateProperties(req, res) {
+  let keyIds = (req.query.keyId || []).map(getIdFromIdOrSymbol).filter(id => id)
   let objectId = req.object.id
   let show = req.query.show || []
   let trashed = show.includes("trashed")
+  let valueIds = (req.query.valueId || []).map(getIdFromIdOrSymbol).filter(id => id)
 
-  const keyIds = ["cons", "pros"].map(getIdFromSymbol)
+  let whereClauses = [
+    'properties.object_id = $<objectId>',
+  ]
+
+    if (!trashed) {
+      whereClauses.push("NOT statements.trashed")
+    }
+
+  if (keyIds.length > 0) {
+    whereClauses.push("properties.key_id IN ($<keyIds:csv>)")
+  }
+
+  if (valueIds.length > 0) {
+    whereClauses.push("properties.value_id IN ($<valueIds:csv>)")
+  }
+
+  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
 
   let debateProperties = (await db.any(
     `
@@ -50,14 +68,13 @@ export const listObjectDebateProperties = wrapAsyncMiddleware(async function lis
       INNER JOIN statements ON objects.id = statements.id
       INNER JOIN properties ON statements.id = properties.id
       LEFT JOIN symbols ON properties.id = symbols.id
-      WHERE properties.object_id = $<objectId>
-      AND properties.key_id IN ($<keyIds:csv>)
-      ${!trashed ? "AND NOT statements.trashed" : ""}
+      ${whereClause}
       ORDER BY rating_sum DESC, created_at DESC
     `,
     {
       keyIds,
       objectId,
+      valueIds,
     },
   )).map(entryToProperty)
 
