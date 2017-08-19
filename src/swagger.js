@@ -2039,6 +2039,9 @@ const SPEC = {
           {
             $ref: "#/parameters/termQueryParam",
           },
+          {
+            $ref: "#/parameters/widgetQueryParam",
+          },
         ],
         responses: {
           "200": {
@@ -2877,6 +2880,15 @@ const SPEC = {
         type: "string",
       },
       collectionFormat: "multi",
+    },
+    widgetQueryParam: {
+      // description: "",
+      in: "query",
+      name: "widget",
+      type: "array",
+      items: {
+        type: "string",
+      },
     },
   },
   // externalDocs: {},

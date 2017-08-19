@@ -64,6 +64,8 @@ export const autocompleteValues = wrapAsyncMiddleware(async function autocomplet
   let schemas = req.query.schema || []
   let schemaIds = schemas.map(getIdFromIdOrSymbol).filter(schemaId => schemaId)
   let term = req.query.term
+  let widgets = req.query.widget || []
+  let widgetIds = widgets.map(getIdFromIdOrSymbol).filter(widgetId => widgetId)
 
   let whereClauses = []
 
@@ -73,6 +75,10 @@ export const autocompleteValues = wrapAsyncMiddleware(async function autocomplet
 
   if (schemaIds.length > 0) {
     whereClauses.push("values.schema_id IN ($<schemaIds:csv>)")
+  }
+
+  if (widgetIds.length > 0) {
+    whereClauses.push("values.widget_id IN ($<widgetIds:csv>)")
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
@@ -95,6 +101,7 @@ export const autocompleteValues = wrapAsyncMiddleware(async function autocomplet
       limit,
       schemaIds,
       term: term || "",
+      widgetIds,
     },
   )
 
