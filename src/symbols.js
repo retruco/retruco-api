@@ -150,6 +150,25 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
+    symbol: "schema:id",
+    schemaSymbol: "schema:object",
+    value: {
+      $ref: "/schemas/id",
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "schema:ids-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: {
+        $ref: "/schemas/id",
+      },
+    },
+    widgetSymbol: null,
+  },
+  {
     symbol: "schema:localized-string",
     schemaSymbol: "schema:object",
     value: {
@@ -165,6 +184,25 @@ export const symbolizedTypedValues = [
       type: "array",
       items: {
         $ref: "/schemas/localized-string",
+      },
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "schema:property-id",
+    schemaSymbol: "schema:object",
+    value: {
+      $ref: "/schemas/property-id",
+    },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "schema:property-ids-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: {
+        $ref: "/schemas/property-id",
       },
     },
     widgetSymbol: null,
@@ -636,7 +674,7 @@ export const symbolizedTypedValues = [
       en: "Use Cases",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
+    schemasWidgetsOrder: [["schema:ids-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "used-by",
@@ -645,7 +683,7 @@ export const symbolizedTypedValues = [
       en: "Used by",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
+    schemasWidgetsOrder: [["schema:ids-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "used-for",
@@ -654,7 +692,7 @@ export const symbolizedTypedValues = [
       en: "Used for",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
+    schemasWidgetsOrder: [["schema:ids-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "uses",
@@ -663,7 +701,7 @@ export const symbolizedTypedValues = [
       en: "Uses",
     },
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:bijective-card-references-array", ["widget:autocomplete"]]],
+    schemasWidgetsOrder: [["schema:ids-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "website",

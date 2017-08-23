@@ -19,9 +19,15 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import assert from "assert"
+import deepEqual from "deep-equal"
+import fetch from "node-fetch"
+import https from "https"
 
+import config from "./config"
 import { db } from "./database"
-import { getObjectFromId } from "./model"
+import { addAction, generateObjectTextSearch, getObjectFromId } from "./model"
+
+const matrixConfig = config.matrix
 
 export async function regenerateArguments(statementId, argumentKeysId) {
   let object = await getObjectFromId(statementId)
@@ -61,5 +67,92 @@ export async function regenerateArguments(statementId, argumentKeysId) {
         `,
       object,
     )
+  }
+}
+
+export async function regeneratePropertiesItem(objectId, keyId, {quiet = false} = {}) {
+  let object = await getObjectFromId(objectId)
+  assert.ok(object, `Missing objet at ID ${objectId}`)
+
+  // Retrieve all the valid properties of the card having the same key.
+  let valueIds = (await db.any(
+    `
+      SELECT values.id as value_id
+      FROM objects
+      INNER JOIN statements ON objects.id = statements.id
+      INNER JOIN properties ON statements.id = properties.id
+      INNER JOIN values ON properties.value_id = values.id
+      INNER JOIN values AS schemas ON values.schema_id = schemas.id
+      LEFT JOIN values AS widgets ON values.widget_id = widgets.id
+      WHERE properties.object_id = $<objectId>
+      AND properties.key_id = $<keyId>
+      AND NOT statements.trashed
+      AND statements.rating_sum > 0
+      ORDER BY statements.rating_sum DESC, objects.id DESC
+      `,
+    {
+      keyId,
+      objectId,
+    },
+  )).map(entry => entry.value_id)
+
+  // Remove duplicate value IDs. (This should not occur, but...)
+  let uniqueValueIds = []
+  for (let valueId of valueIds) {
+    if (!uniqueValueIds.includes(valueId)) {
+      uniqueValueIds.push(valueId)
+    }
+  }
+
+  let objectPropertiesChanged = false
+  if (uniqueValueIds.length > 0) {
+    if (!object.properties) object.properties = {}
+    if (uniqueValueIds.length === 1) uniqueValueIds = uniqueValueIds[0]
+    if (!deepEqual(object.properties[keyId], uniqueValueIds)) {
+      object.properties[keyId] = uniqueValueIds
+      objectPropertiesChanged = true
+    }
+  } else if (object.properties && object.properties[keyId]) {
+    delete object.properties[keyId]
+    if (Object.keys(object.properties).length === 0) object.properties = null
+    objectPropertiesChanged = true
+  }
+
+  if (objectPropertiesChanged) {
+    await db.none(
+      `
+        UPDATE objects
+        SET properties = $<properties:json>
+        WHERE id = $<id>
+      `,
+      object,
+    )
+    await generateObjectTextSearch(object)
+    await addAction(object.id, "properties")
+
+    if (!quiet && matrixConfig !== null) {
+      fetch(
+        matrixConfig.serverUrl +
+          "/_matrix/client/r0/rooms/" +
+          encodeURIComponent(matrixConfig.roomId) +
+          "/send/m.room.message?access_token=" +
+          matrixConfig.accessToken,
+        {
+          agent: new https.Agent({
+            rejectUnauthorized: matrixConfig.rejectUnauthorized === undefined ? true : matrixConfig.rejectUnauthorized,
+          }),
+          body: JSON.stringify({
+            body: `${object.type} ${object.id} has been modified.`,
+            msgtype: "m.text",
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        },
+      )
+      // .then(res => res.json())
+      // .then(json => console.log(json))
+    }
   }
 }

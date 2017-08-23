@@ -20,8 +20,6 @@
 
 import assert from "assert"
 import deepEqual from "deep-equal"
-import fetch from "node-fetch"
-import https from "https"
 
 import config from "./config"
 import { checkDatabase, db, dbSharedConnectionObject } from "./database"
@@ -31,316 +29,21 @@ import {
   describe,
   generateObjectTextSearch,
   getObjectFromId,
-  getOrNewValue,
   getSubTypeIdsFromProperties,
   getTagIdsFromProperties,
   entryToAction,
   entryToBallot,
   entryToProperty,
 } from "./model"
-import { regenerateArguments } from "./regenerators"
-import { getIdFromSymbol, getValueFromSymbol, idBySymbol } from "./symbols"
+import { regenerateArguments, regeneratePropertiesItem } from "./regenerators"
+import { getIdFromSymbol, idBySymbol } from "./symbols"
 
 let argumentKeysId = null // Set by processActions.
 let consId = null // Set by processActions.
 let languageByKeyId = null
 let localizationKeysId = null
 let prosId = null // Set by processActions.
-const matrixConfig = config.matrix
 let trashedKeyId = null // Set by processActions.
-
-// function addRatedValue(requestedSchema, values, schema, value) {
-//   assert(requestedSchema.type !== "array")
-//   if (schema.type === "array") {
-//     if (Array.isArray(schema.items)) {
-//       for (let [index, itemValue] of value.entries()) {
-//         addRatedValue(requestedSchema, values, schema.items[index], itemValue)
-//       }
-//     } else {
-//       for (let itemValue of value) {
-//         addRatedValue(requestedSchema, values, schema.items, itemValue)
-//       }
-//     }
-//   } else if (schema.$ref === requestedSchema.$ref && schema.type === requestedSchema.type) {
-//     if (values.every(item => !deepEqual(item, value))) {
-//       values.push(value)
-//     }
-//   }
-// }
-
-async function handlePropertyChange(objectId, keyId) {
-  let object = await getObjectFromId(objectId)
-  assert.ok(object, `Missing objet at ID ${objectId}`)
-
-  // Retrieve all the properties of the card having the same key.
-  let sameKeyDescriptions = (await db.any(
-    `
-      SELECT objects.id, rating, rating_count, rating_sum, schemas.id as schema_id, schemas.value AS schema,
-        widgets.id as widget_id, widgets.value AS widget, values.id as value_id, values.value
-      FROM objects
-      INNER JOIN statements ON objects.id = statements.id
-      INNER JOIN properties ON statements.id = properties.id
-      INNER JOIN values ON properties.value_id = values.id
-      INNER JOIN values AS schemas ON values.schema_id = schemas.id
-      LEFT JOIN values AS widgets ON values.widget_id = widgets.id
-      WHERE properties.object_id = $<objectId>
-      AND properties.key_id = $<keyId>
-      AND NOT trashed
-      `,
-    {
-      keyId,
-      objectId,
-    },
-  )).map(description => {
-    description.ratingCount = description.rating_count
-    delete description.rating_count
-    description.ratingSum = description.rating_sum
-    delete description.rating_sum
-    description.schemaId = description.schema_id
-    delete description.schema_id
-    description.valueId = description.value_id
-    delete description.value_id
-    description.widgetId = description.widget_id
-    delete description.widget_id
-    return description
-  })
-
-  // Add inverse properties of bijective URI references.
-  let inverseDescriptions = (await db.any(
-    `
-      SELECT objects.id, object_id as value, rating, rating_count, rating_sum FROM objects
-      INNER JOIN statements ON objects.id = statements.id
-      INNER JOIN properties ON statements.id = properties.id
-      INNER JOIN values ON properties.value_id = values.id
-      INNER JOIN values AS schemas ON values.schema_id = schemas.id
-      WHERE (schemas.value->>'$ref') = '/schemas/bijective-card-reference'
-      AND (values.value->>'targetId') = $<objectId>::text
-      AND (values.value->>'reverseKeyId') = $<keyId>::text
-      AND NOT trashed
-      `,
-    {
-      keyId,
-      objectId,
-    },
-  )).map(description => {
-    description.ratingCount = description.rating_count
-    delete description.rating_count
-    description.ratingSum = description.rating_sum
-    delete description.rating_sum
-    description.schema = getValueFromSymbol("schema:card-id")
-    description.schemaId = getIdFromSymbol("schema:card-id")
-    description.valueId = null
-    description.widget = getValueFromSymbol("widget:rated-item-or-set")
-    description.widgetId = getIdFromSymbol("widget:rated-item-or-set")
-    return description
-  })
-  sameKeyDescriptions = sameKeyDescriptions.concat(inverseDescriptions)
-
-  // Add inverse properties of arrays of bijective URI references.
-  let entries = await db.any(
-    `
-      SELECT objects.id, object_id AS value, rating, rating_count, rating_sum, schemas.value AS schema,
-        values.value AS values
-      FROM objects
-      INNER JOIN statements ON objects.id = statements.id
-      INNER JOIN properties ON statements.id = properties.id
-      INNER JOIN values ON properties.value_id = values.id
-      INNER JOIN values AS schemas ON values.schema_id = schemas.id
-      WHERE (schemas.value->>'type') = 'array'
-      AND (schemas.value->'items') @> '{"$ref": "/schemas/bijective-card-reference"}'
-      AND values.value @> '{"reverseKeyId": $<keyId~>, "targetId": $<objectId~>}'
-      AND NOT trashed
-      `,
-    {
-      keyId,
-      objectId,
-    },
-  )
-  for (let entry of entries) {
-    let schemaItems = entry.schema.items
-    if (Array.isArray(schemaItems)) {
-      for (let itemSchema of schemaItems) {
-        if (itemSchema.$ref === "/schemas/bijective-card-reference") {
-          // let itemValue = entry.values[index]
-          sameKeyDescriptions.push({
-            id: entry.id,
-            rating: entry.rating,
-            ratingCount: entry.rating_count,
-            ratingSum: entry.rating_sum,
-            schema: getValueFromSymbol("schema:card-id"),
-            schemaId: getIdFromSymbol("schema:card-id"),
-            value: entry.value,
-            valueId: null,
-            widget: getValueFromSymbol("widget:rated-item-or-set"),
-            widgetId: getIdFromSymbol("widget:rated-item-or-set"),
-          })
-        }
-      }
-    } else {
-      let itemSchema = schemaItems
-      if (itemSchema.$ref === "/schemas/bijective-card-reference") {
-        for (let itemValue of entry.values) {
-          sameKeyDescriptions.push({
-            id: entry.id,
-            rating: entry.rating,
-            ratingCount: entry.rating_count,
-            ratingSum: entry.rating_sum,
-            schema: getValueFromSymbol("schema:card-id"),
-            schemaId: getIdFromSymbol("schema:card-id"),
-            value: entry.value,
-            valueId: null,
-            widget: getValueFromSymbol("widget:rated-item-or-set"),
-            widgetId: getIdFromSymbol("widget:rated-item-or-set"),
-          })
-        }
-      }
-    }
-  }
-
-  // Sort properties by decreasing rating and id.
-  sameKeyDescriptions.sort(function(a, b) {
-    if (a.ratingSum > b.ratingSum) return -1
-    else if (a.ratingSum < b.ratingSum) return 1
-    else {
-      let aId = parseInt(a.id)
-      let bId = parseInt(b.id)
-      if (aId > bId) return -1
-      else if (aId < bId) return 1
-      else return 0
-    }
-  })
-
-  let objectPropertiesChanged = false
-  let removeProperty = true
-  if (sameKeyDescriptions.length > 0) {
-    // TODO: Improve search of best property. For example, if any of the best rated properties is of type
-    // "RatedItemOrSet", it wins even when it is not the oldest (lowest id).
-    let bestDescription = sameKeyDescriptions[0]
-    let bestRating = bestDescription.rating
-    if (bestRating > 0) {
-      // // Sometimes the best property is not the oldest of the best rated properties.
-      // for (let description of sameKeyDescriptions) {
-      //   if (description.rating < bestRating) break
-      //   if (description.widget && description.widget.tag === "RatedItemOrSet") {
-      //     let requestedSchema = description.schema
-      //     if (requestedSchema.type === "array") {
-      //       requestedSchema = (Array.isArray(requestedSchema.items)) ? requestedSchema.items[0] :
-      //         requestedSchema.items
-      //     }
-      //     let ratedValues = []
-      //     for (let description1 of sameKeyDescriptions) {
-      //       if (description1.rating <= 0) break
-      //       addRatedValue(requestedSchema, ratedValues, description1.schema, description1.value)
-      //     }
-      //     if (ratedValues.length === 0) {
-      //       requestedSchema = {type: null}
-      //       ratedValues = null
-      //     } else if (ratedValues.length === 1) {
-      //       ratedValues = ratedValues[0]
-      //     } else {
-      //       requestedSchema = {
-      //         type: "array",
-      //         items: requestedSchema,
-      //       }
-      //     }
-      //     bestDescription = {
-      //       schema: requestedSchema,
-      //       schemaId: null,
-      //       value: ratedValues,
-      //       valueId: null,
-      //       widget: description.widget,
-      //       widgetId: description.widgetId,
-      //     }
-      //     break
-      //   }
-      // }
-
-      let validSameKeyDescriptions = sameKeyDescriptions.filter(description => description.rating > 0)
-      if (validSameKeyDescriptions.length > 1) {
-        let valueIds = []
-        for (let description of validSameKeyDescriptions) {
-          // TODO: handle revert bijective-card-references (=> they must have a non null valueId).
-          if (description.valueId !== null && !valueIds.includes(description.valueId)) {
-            valueIds.push(description.valueId)
-          }
-        }
-        bestDescription = {
-          schema: null, // schemaId will be used instead
-          schemaId: getIdFromSymbol("schema:value-ids-array"),
-          value: valueIds,
-          valueId: null,
-          widget: bestDescription.widget,
-          widgetId: bestDescription.widgetId,
-        }
-      }
-
-      // Now that bestDescription is found, lets ensure that it matchs a typed value in database.
-      if (bestDescription.valueId === null) {
-        if (bestDescription.schemaId === null) {
-          let schema = await getOrNewValue(getIdFromSymbol("schema:object"), null, bestDescription.schema)
-          bestDescription.schemaId = schema.id
-        }
-        if (bestDescription.wigetId === null && bestDescription.wiget !== null) {
-          let widget = await getOrNewValue(getIdFromSymbol("schema:object"), null, bestDescription.widget)
-          bestDescription.widgetId = widget.id
-        }
-        let value = await getOrNewValue(bestDescription.schemaId, bestDescription.widgetId, bestDescription.value)
-        bestDescription.valueId = value.id
-      }
-
-      removeProperty = false
-      if (!object.properties) object.properties = {}
-      if (object.properties[keyId] != bestDescription.valueId) {
-        object.properties[keyId] = bestDescription.valueId
-        objectPropertiesChanged = true
-      }
-    }
-  }
-  if (removeProperty) {
-    if (object.properties && object.properties[keyId]) {
-      delete object.properties[keyId]
-      if (Object.keys(object.properties).length === 0) object.properties = null
-      objectPropertiesChanged = true
-    }
-  }
-
-  if (objectPropertiesChanged) {
-    await db.none(
-      `
-        UPDATE objects
-        SET properties = $<properties:json>
-        WHERE id = $<id>
-      `,
-      object,
-    )
-    await generateObjectTextSearch(object)
-    await addAction(object.id, "properties")
-    if (matrixConfig !== null) {
-      fetch(
-        matrixConfig.serverUrl +
-          "/_matrix/client/r0/rooms/" +
-          encodeURIComponent(matrixConfig.roomId) +
-          "/send/m.room.message?access_token=" +
-          matrixConfig.accessToken,
-        {
-          agent: new https.Agent({
-            rejectUnauthorized: matrixConfig.rejectUnauthorized === undefined ? true : matrixConfig.rejectUnauthorized,
-          }),
-          body: JSON.stringify({
-            body: `${object.type} ${object.id} has been modified.`,
-            msgtype: "m.text",
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        },
-      )
-      // .then(res => res.json())
-      // .then(json => console.log(json))
-    }
-  }
-}
 
 async function handleTrashedChange(objectId, trashed) {
   let object = await getObjectFromId(objectId)
@@ -376,14 +79,20 @@ async function processAction(action) {
   let properties = object.properties || {}
   let referencedIds = new Set()
   let textSearchUpdateNeeded = false
-  for (let valueId of Object.values(properties)) {
-    let typedValue = await getObjectFromId(valueId)
-    let schema = (await getObjectFromId(typedValue.schemaId)).value
-    if (schema === undefined) {
-      console.log("Skipping property value without schema:", typedValue)
-      continue
+  for (let valueIds of Object.values(properties)) {
+    if (!Array.isArray(valueIds)) {
+      // valueIds is a single ID.
+      valueIds = [valueIds]
     }
-    await addReferences(referencedIds, schema, typedValue.value)
+    for (let valueId of valueIds) {
+      let typedValue = await getObjectFromId(valueId)
+      let schema = (await getObjectFromId(typedValue.schemaId)).value
+      if (schema === undefined) {
+        console.log("Skipping property value without schema:", typedValue)
+        continue
+      }
+      await addReferences(referencedIds, schema, typedValue.value)
+    }
   }
   referencedIds.delete(object.id) // Remove reference to itself.
 
@@ -480,11 +189,18 @@ async function processAction(action) {
     if (object.schemaId === getIdFromSymbol("schema:localized-string")) {
       // Compute value of a localized-string from its properties.
       let stringIdByLanguageId = {}
-      for (let [keyId, valueId] of Object.entries(object.properties || {})) {
+      for (let [keyId, valueIds] of Object.entries(object.properties || {})) {
         if (localizationKeysId.includes(keyId)) {
-          let localizationValue = await getObjectFromId(valueId)
-          if (localizationValue.schemaId === getIdFromSymbol("schema:string")) {
-            stringIdByLanguageId[keyId] = valueId
+          if (!Array.isArray(valueIds)) {
+            // valueIds is a single ID.
+            valueIds = [valueIds]
+          }
+          for (let valueId of valueIds) {
+            let localizationValue = await getObjectFromId(valueId)
+            if (localizationValue.schemaId === getIdFromSymbol("schema:string")) {
+              stringIdByLanguageId[keyId] = valueId
+              break
+            }
           }
         }
       }
@@ -556,7 +272,7 @@ async function processAction(action) {
       let locationsId = (object.properties || {})[getIdFromSymbol("location")]
       if (locationsId) {
         let typedLocation = await getObjectFromId(locationsId)
-        if (typedLocation !== null && typedLocation.schemaId === getIdFromSymbol("schema:value-ids-array")) {
+        if (typedLocation !== null && typedLocation.schemaId === getIdFromSymbol("schema:ids-array")) {
           locationsCount = typedLocation.value.length
         }
       }
@@ -608,30 +324,7 @@ async function processAction(action) {
       if (object.type === "Card") {
         // Nothing to do yet.
       } else if (object.type === "Property") {
-        await handlePropertyChange(object.objectId, object.keyId)
-        // If property contains bijective links between 2 cards, also handle the change of the reverse properties.
-        let propertyValue = await getObjectFromId(object.valueId)
-        assert.ok(propertyValue, `Missing value for ${await describe(object)}`)
-        let schema = await getObjectFromId(propertyValue.schemaId)
-        assert.ok(schema, `Missing schema for ${await describe(propertyValue)}`)
-        if (schema.$ref === "/schemas/bijective-card-reference") {
-          let value = propertyValue.value
-          await handlePropertyChange(value.targetId, value.reverseKeyId)
-        } else if (schema.type === "array") {
-          if (Array.isArray(schema.items)) {
-            for (let [index, itemSchema] of schema.items.entries()) {
-              if (itemSchema.$ref === "/schemas/bijective-card-reference") {
-                let itemValue = propertyValue[index]
-                await handlePropertyChange(itemValue.targetId, itemValue.reverseKeyId)
-              }
-            }
-          } else if (schema.items.$ref === "/schemas/bijective-card-reference") {
-            for (let itemValue of propertyValue) {
-              await handlePropertyChange(itemValue.targetId, itemValue.reverseKeyId)
-            }
-          }
-        }
-
+        await regeneratePropertiesItem(object.objectId, object.keyId)
         if (argumentKeysId.includes(object.keyId)) {
           await regenerateArguments(object.objectId, argumentKeysId)
         } else if (object.keyId === trashedKeyId) {

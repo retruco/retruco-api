@@ -264,14 +264,14 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
             if (widget.tag !== "input" || widget.type !== "checkbox") widget = { tag: "input", type: "checkbox" }
           }
         } else if (valueType === "number") {
-          if (!["/schemas/card-id", "/schemas/value-id"].includes(schema.$ref)) {
+          if (!["/schemas/card-id", "/schemas/id", "/schemas/property-id", "/schemas/value-id"].includes(schema.$ref)) {
             if ((!schema.$ref && !schema.type) || schema.type === "boolean") schema = { type: "number" }
             if (schema.type === "number") {
               if (widget.tag !== "input" || widget.type !== "number") widget = { tag: "input", type: "number" }
             }
           }
         } else if (valueType === "string") {
-          if (!["/schemas/card-id", "/schemas/value-id"].includes(schema.$ref)) {
+          if (!["/schemas/card-id", "/schemas/id", "/schemas/property-id", "/schemas/value-id"].includes(schema.$ref)) {
             if (schema.$ref !== "/schemas/localized-string" && schema.type !== "string") {
               schema = { $ref: "/schemas/localized-string" }
             }
@@ -417,7 +417,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         keyName,
         fieldByName[keyName],
         attributes[keyName],
-        { cache, inactiveStatementIds, userId },
+        { inactiveStatementIds, userId },
       )
       if (keyTypedValue === null) continue
       let keyValueId = keyTypedValue.id
@@ -518,7 +518,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
         name,
         fieldByName[name],
         value,
-        { cache, inactiveStatementIds, userId },
+        { inactiveStatementIds, userId },
       )
       if (typedValue === null) continue
       await getOrNewProperty(cardId, nameId, typedValue.id, 1, { inactiveStatementIds, userId })
@@ -672,7 +672,7 @@ async function getOrNewTypedValueFromBundleField(
   name,
   field,
   value,
-  { cache = null, inactiveStatementIds = null, userId = null } = {},
+  { inactiveStatementIds = null, userId = null } = {},
 ) {
   // Simplify value and schema of attribute.
   let { maxLength, schema, widget } = field
@@ -694,57 +694,7 @@ async function getOrNewTypedValueFromBundleField(
       value = null
     }
   }
-  if (schema.$ref === "/schemas/bijective-card-reference") {
-    let referencedCardId = cardIdByKeyValue[value.targetId]
-    if (referencedCardId === undefined) {
-      let cardWarnings = cardWarningsByKeyValue[keyValue]
-      if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-      cardWarnings[name] = `Unknown key "${value.targetId}" for referenced card.`
-      value = value.targetId
-
-      schema = { type: "string" }
-      // TODO: Change widget.
-    } else {
-      value.targetId = referencedCardId
-      let reverseName = value.reverseKeyId
-      let reverseNameId = (await getOrNewLocalizedString(language, reverseName, "widget:input-text", {
-        cache,
-        inactiveStatementIds,
-        userId,
-      })).id
-      value.reverseKeyId = reverseNameId
-    }
-  } else if (schema.type === "array" && schema.items.$ref === "/schemas/bijective-card-reference") {
-    let items = []
-    for (let [index, item] of value.entries()) {
-      let referencedCardId = cardIdByKeyValue[item.targetId]
-      if (referencedCardId === undefined) {
-        let cardWarnings = cardWarningsByKeyValue[keyValue]
-        if (cardWarnings === undefined) cardWarningsByKeyValue[keyValue] = cardWarnings = {}
-        let attributeWarnings = cardWarnings[name]
-        if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
-        attributeWarnings[String(index)] = `Unknown key "${item.targetId}" for referenced card`
-        item = item.targetId
-
-        schema = Object.assign({}, schema)
-        if (Array.isArray(schema.items)) schema.items = [...schema.items]
-        else schema.items = value.map(() => Object.assign({}, schema.items))
-        schema.items[index] = { type: "string" }
-        // TODO: Change widget.
-      } else {
-        item.targetId = referencedCardId
-        let reverseName = item.reverseKeyId
-        let reverseNameId = (await getOrNewLocalizedString(language, reverseName, "widget:input-text", {
-          cache,
-          inactiveStatementIds,
-          userId,
-        })).id
-        item.reverseKeyId = reverseNameId
-      }
-      items.push(item)
-    }
-    value = items
-  } else if (schema.$ref === "/schemas/card-id") {
+  if (schema.$ref === "/schemas/card-id") {
     let referencedCardId = cardIdByKeyValue[value]
     if (referencedCardId === undefined && !Number.isNaN(Number(value))) {
       referencedCardId = value // Verification that card exists is done below.

@@ -23,6 +23,7 @@ import slugify from "slug"
 
 import { db, versionNumber } from "./database"
 import { entryToValue, getOrNewProperty, getValue, types } from "./model"
+import { regeneratePropertiesItem } from "./regenerators"
 import { getIdFromSymbol, symbolizedTypedValues, idBySymbol, symbolById } from "./symbols"
 
 async function configureDatabase() {
@@ -55,6 +56,7 @@ async function configureDatabase() {
   }
 
   let requiresArgumentsRegeneration = false
+  let requiresPropertiesRegeneration = false
 
   if (version.number < 1) {
     // Remove non UNIQUE index to recreate it.
@@ -131,6 +133,22 @@ async function configureDatabase() {
     await db.none("ALTER TABLE statements DROP COLUMN IF EXISTS arguments")
     await db.none("ALTER TABLE statements ADD COLUMN IF NOT EXISTS argument_count integer NOT NULL DEFAULT 0")
     requiresArgumentsRegeneration = true
+  }
+  if (version.number < 26) {
+    // In table properties, replace:
+    // value_id bigint NOT NULL REFERENCES values(id) ON DELETE RESTRICT
+    // xith:
+    // value_id bigint NOT NULL REFERENCES objects(id) ON DELETE RESTRICT
+    await db.none("ALTER TABLE properties DROP CONSTRAINT IF EXISTS properties_value_id_fkey")
+    await db.none(
+      `
+        ALTER TABLE properties
+        ADD CONSTRAINT properties_value_id_fkey
+        FOREIGN KEY (value_id)
+        REFERENCES objects(id)
+        ON DELETE RESTRICT
+      `
+    )
   }
 
   // Languages sets
@@ -410,7 +428,7 @@ async function configureDatabase() {
       id bigint NOT NULL PRIMARY KEY REFERENCES statements(id) ON DELETE CASCADE,
       key_id bigint NOT NULL REFERENCES values(id) ON DELETE RESTRICT,
       object_id bigint NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
-      value_id bigint NOT NULL REFERENCES values(id) ON DELETE RESTRICT
+      value_id bigint NOT NULL REFERENCES objects(id) ON DELETE RESTRICT
     )
   `,
   )
@@ -527,10 +545,6 @@ async function configureDatabase() {
     await db.none("DROP TABLE IF EXISTS events")
   }
   if (version.number < 3) {
-    // TODO: Database user must be owner of type statement_type.
-    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Citation' AFTER 'Card'")
-    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Event' AFTER 'Citation'")
-    // await db.none("ALTER TYPE statement_type ADD VALUE IF NOT EXISTS 'Person' AFTER 'PlainStatement'")
     console.log(
       `
       YOU MUST manually execute the following SQL commands:
@@ -602,6 +616,72 @@ async function configureDatabase() {
 
   await configureSymbols()
 
+  if (version.number < 26) {
+    await db.none("UPDATE values SET schema_id = $2 WHERE schema_id = $1", [
+      getIdFromSymbol("schema:card-ids-array"),
+      getIdFromSymbol("schema:ids-array"),
+    ])
+
+    await db.none("UPDATE values SET schema_id = $2 WHERE schema_id = $1", [
+      getIdFromSymbol("schema:value-ids-array"),
+      getIdFromSymbol("schema:ids-array"),
+    ])
+
+    let valueEntries = await db.any("SELECT * FROM values WHERE schema_id = $1", getIdFromSymbol("schema:card-id"))
+    for (let valueEntry of valueEntries) {
+      await db.none("UPDATE properties SET value_id = $<value> WHERE value_id = $<id>", valueEntry)
+
+      let arrayEntries = await db.any(
+        "SELECT * FROM values WHERE schema_id = $<schemaId> AND value_id @> $<id:json>",
+        {
+          id: valueEntry.id,
+          schemaId: getIdFromSymbol("schema:ids-array"),
+        },
+      )
+      for (let arrayEntry of arrayEntries) {
+        arrayEntry.value = arrayEntry.value.map(id => id === valueEntry.id ? valueEntry.value : id)
+        await db.none("UPDATE values SET value = $<value> WHERE id = $<id>", arrayEntry)
+      }
+    }
+    await db.none("DELETE FROM values WHERE schema_id = $1", getIdFromSymbol("schema:card-id"))
+  }
+
+  if (version.number < 27) {
+    await db.none("UPDATE values SET schema_id = $2 WHERE schema_id = $1", [
+      getIdFromSymbol("schema:bijective-card-references-array"),
+      getIdFromSymbol("schema:ids-array"),
+    ])
+
+    let valueEntries = await db.any(
+      "SELECT * FROM values WHERE schema_id = $1",
+      getIdFromSymbol("schema:bijective-card-reference"),
+    )
+    for (let valueEntry of valueEntries) {
+      await db.none(
+        "UPDATE properties SET value_id = $<targetId> WHERE value_id = $<id>",
+        {
+          id: valueEntry.id,
+          targetId: valueEntry.value.targetId,
+        },
+      )
+
+      let arrayEntries = await db.any(
+        "SELECT * FROM values WHERE schema_id = $<schemaId> AND value @> $<id:json>",
+        {
+          id: valueEntry.id,
+          schemaId: getIdFromSymbol("schema:ids-array"),
+        },
+      )
+      for (let arrayEntry of arrayEntries) {
+        arrayEntry.value = arrayEntry.value.map(id => id === valueEntry.id ? valueEntry.value.targetId : id)
+        await db.none("UPDATE values SET value = $<value:json> WHERE id = $<id>", arrayEntry)
+      }
+    }
+    await db.none("DELETE FROM values WHERE schema_id = $1", getIdFromSymbol("schema:bijective-card-reference"))
+
+    requiresPropertiesRegeneration = true
+  }
+
   version.number = versionNumber
   assert(
     version.number >= previousVersionNumber,
@@ -610,6 +690,27 @@ async function configureDatabase() {
   if (version.number !== previousVersionNumber) {
     await db.none("UPDATE version SET number = $1", version.number)
     console.log(`Upgraded database from version ${previousVersionNumber} to ${version.number}.`)
+  }
+
+  if (requiresPropertiesRegeneration) {
+    console.log("Regenerating properties...")
+    let entries = await db.any(
+      `
+        SELECT object_id, key_id
+        FROM properties
+        GROUP BY object_id, key_id
+        ORDER BY object_id, key_id
+      `,
+    )
+    let previousObjectId = null
+    for (let entry of entries) {
+      if (entry.object_id !== previousObjectId) {
+        console.log(`  Regenerating properties of object ${entry.object_id}...`)
+        previousObjectId = entry.object_id
+      }
+      await regeneratePropertiesItem(entry.object_id, entry.key_id, {quiet: true})
+    }
+    console.log("All properties have been regenerated.")
   }
 
   if (requiresArgumentsRegeneration) {

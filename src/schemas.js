@@ -19,21 +19,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 export const schemaByPath = {
-  "/schemas/bijective-card-reference": {
-    description: "JSON Schema for a bijective card reference (using IDs or symbols)",
-    type: "object",
-    properties: {
-      reverseKeyId: {
-        type: "string",
-      },
-      targetId: {
-        type: "string",
-      },
-    },
-    required: ["reverseKeyId", "targetId"],
-  },
   "/schemas/card-id": {
     description: "JSON Schema for a card reference (ID or symbol)",
+    type: "string",
+  },
+  "/schemas/id": {
+    description: "JSON Schema for an object reference (ID or symbol)",
     type: "string",
   },
   "/schemas/localized-string": {
@@ -44,6 +35,10 @@ export const schemaByPath = {
         type: "string",
       },
     },
+  },
+  "/schemas/property-id": {
+    description: "JSON Schema for a property reference (ID or symbol)",
+    type: "string",
   },
   "/schemas/value-id": {
     description: "JSON Schema for a value reference (ID or symbol)",

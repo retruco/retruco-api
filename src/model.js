@@ -72,20 +72,8 @@ export async function addAction(objectId, type) {
 }
 
 export async function addReferences(referencedIds, schema, value) {
-  if (schema.$ref === "/schemas/bijective-card-reference") {
-    referencedIds.add(value.targetId)
-  } else if (schema.$ref === "/schemas/card-id") {
+  if (schema.$ref === "/schemas/id") {
     referencedIds.add(value)
-  } else if (schema.$ref === "/schemas/value-id") {
-    let typedReference = await getObjectFromId(value)
-    if (typedReference.schemaId === getIdFromSymbol("schema:bijective-card-reference")) {
-      referencedIds.add(typedReference.value.targetId)
-    } else if (typedReference.schemaId === getIdFromSymbol("schema:card-id")) {
-      referencedIds.add(typedReference.value)
-    } else {
-      assert.notStrictEqual(typedReference.schemaId, getIdFromSymbol("schema:value-id"))
-      referencedIds.add(value)
-    }
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       for (let [index, itemSchema] of schema.items.entries()) {
@@ -106,7 +94,7 @@ export async function convertValidJsonToExistingOrNewTypedValue(
   { cache = null, inactiveStatementIds = null, userId = null } = {},
 ) {
   // The function tries to create typed value when it doesn't exist (it is not always possible, for example for type
-  // card-id).
+  // card-id, id, property-id & value-id).
 
   // Convert symbols to IDs, etc.
   let warning = {}
@@ -121,7 +109,15 @@ export async function convertValidJsonToExistingOrNewTypedValue(
       warning["value"] = `Object with ID or symbol "${value}" is not a card.`
       return [null, warning]
     }
-    value = id
+    return [object, null]
+  } else if (schema.$ref === "/schemas/id") {
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) {
+      warning["value"] = `Unknown ID or symbol: ${value}`
+      return [null, warning]
+    }
+    return [object, null]
   } else if (schema.$ref === "/schemas/localized-string") {
     let stringIdByLanguageId = {}
     let warningByLanguage = {}
@@ -146,6 +142,18 @@ export async function convertValidJsonToExistingOrNewTypedValue(
     value = stringIdByLanguageId
     if (Object.keys(warningByLanguage).length > 0) warning["value"] = warningByLanguage
     if (Object.keys(value).length === 0) return [null, warning]
+  } else if (schema.$ref === "/schemas/property-id") {
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) {
+      warning["value"] = `Unknown ID or symbol: ${value}`
+      return [null, warning]
+    }
+    if (object.type !== "Property") {
+      warning["value"] = `Object with ID or symbol "${value}" is not a property.`
+      return [null, warning]
+    }
+    return [object, null]
   } else if (schema.$ref === "/schemas/value-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
@@ -172,7 +180,7 @@ export async function convertValidJsonToExistingOrNewTypedValue(
       itemIds.push(typedItem.id)
       if (itemWarning !== null) warningByItemIndex[String(index)] = itemWarning
     }
-    schema = getValueFromSymbol("schema:value-ids-array")
+    schema = getValueFromSymbol("schema:ids-array")
     value = itemIds
     if (Object.keys(warningByItemIndex).length > 0) warning["value"] = warningByItemIndex
   }
@@ -207,7 +215,15 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
       warning["value"] = `Object with ID or symbol "${value}" is not a card.`
       return [null, warning]
     }
-    value = id
+    return [object, null]
+  } else if (schema.$ref === "/schemas/id") {
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) {
+      warning["value"] = `Unknown ID or symbol: ${value}`
+      return [null, warning]
+    }
+    return [object, null]
   } else if (schema.$ref === "/schemas/localized-string") {
     let stringIdByLanguageId = {}
     let warningByLanguage = {}
@@ -233,6 +249,18 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
     if (Object.keys(warningByLanguage).length > 0) warning["value"] = warningByLanguage
     if (widgetWarning !== null) warning["value"] = widgetWarning
     if (Object.keys(value).length === 0) return [null, warning]
+  } else if (schema.$ref === "/schemas/property-id") {
+    let id = getIdFromIdOrSymbol(value)
+    let object = await getObjectFromId(id)
+    if (object === null) {
+      warning["value"] = `Unknown ID or symbol: ${value}`
+      return [null, warning]
+    }
+    if (object.type !== "Property") {
+      warning["value"] = `Object with ID or symbol "${value}" is not a property.`
+      return [null, warning]
+    }
+    return [object, null]
   } else if (schema.$ref === "/schemas/value-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
@@ -255,7 +283,7 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
       itemIds.push(typedItem.id)
       if (itemWarning !== null) warningByItemIndex[String(index)] = itemWarning
     }
-    schema = getValueFromSymbol("schema:value-ids-array")
+    schema = getValueFromSymbol("schema:ids-array")
     value = itemIds
     if (Object.keys(warningByItemIndex).length > 0) warning["value"] = warningByItemIndex
   }
@@ -408,8 +436,10 @@ export async function generateObjectTextSearch(object) {
         let autocomplete = null
         let languageId = getIdFromSymbol(language)
         for (let keySymbol of ["name", "title"]) {
-          let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-          if (valueId !== undefined) {
+          let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+          if (valueIds === undefined) continue
+          if (!Array.isArray(valueIds)) valueIds = [valueIds]
+          for (let valueId of valueIds) {
             let value = await getObjectFromId(valueId)
             assert.ok(value, `Missing value at ID ${valueId}`)
             let text = await getLanguageText(languageId, englishId, value)
@@ -417,37 +447,44 @@ export async function generateObjectTextSearch(object) {
             autocomplete = text
             break
           }
+          if (autocomplete !== null) break
         }
         for (let keySymbol of ["twitter-name"]) {
-          let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-          if (valueId !== undefined) {
+          let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+          if (valueIds == undefined) continue
+          if (!Array.isArray(valueIds)) valueIds = [valueIds]
+          for (let valueId of valueIds) {
             let value = await getObjectFromId(valueId)
             assert.ok(value, `Missing value at ID ${valueId}`)
             let text = await getLanguageText(languageId, englishId, value)
             if (text === null) continue
-            autocomplete = autocomplete ? `${autocomplete} (${text})` : `(${text})`
+            autocomplete = text
             break
           }
+          if (autocomplete !== null) break
         }
         autocompleteByLanguage[language] = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
       }
       for (let [keySymbol, weight] of [["description", "B"], ["name", "A"], ["title", "A"], ["twitter-name", "A"]]) {
-        let valueId = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-        if (valueId === undefined) continue
-        let value = await getObjectFromId(valueId)
-        assert.ok(value, `Missing value at ID ${valueId}`)
-        if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
-          for (let language of languages) {
-            let languageId = getIdFromSymbol(language)
-            let text = await getLanguageText(languageId, englishId, value)
-            if (text === null) continue
-            let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
-            if (searchableTextsByWeight === undefined) {
-              searchableTextsByWeightByLanguage[language] = searchableTextsByWeight = {}
+        let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+        if (valueIds === undefined) continue
+        if (!Array.isArray(valueIds)) valueIds = [valueIds]
+        for (let valueId of valueIds) {
+          let value = await getObjectFromId(valueId)
+          assert.ok(value, `Missing value at ID ${valueId}`)
+          if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
+            for (let language of languages) {
+              let languageId = getIdFromSymbol(language)
+              let text = await getLanguageText(languageId, englishId, value)
+              if (text === null) continue
+              let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
+              if (searchableTextsByWeight === undefined) {
+                searchableTextsByWeightByLanguage[language] = searchableTextsByWeight = {}
+              }
+              let searchableTexts = searchableTextsByWeight[weight]
+              if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
+              searchableTexts.push(text)
             }
-            let searchableTexts = searchableTextsByWeight[weight]
-            if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
-            searchableTexts.push(text)
           }
         }
       }
@@ -758,7 +795,7 @@ export async function getOrNewProperty(
 
   // TODO: Remove ? Split arrays into atomic properties.
   let typedValue = await getObjectFromId(valueId)
-  if (typedValue.schemaId === getIdFromSymbol("schema:value-ids-array")) {
+  if (typedValue.schemaId === getIdFromSymbol("schema:ids-array")) {
     assert(properties === null)
     let splitProperties = []
     for (let itemId of typedValue.value) {
@@ -931,22 +968,30 @@ export async function getOrNewValue(
 export async function getSubTypeIdsFromProperties(properties) {
   let subTypeIds = null
   if (properties) {
-    let subTypesId = properties[getIdFromSymbol("types")]
-    if (subTypesId !== undefined) {
-      let subTypesTypedValue = await getObjectFromId(subTypesId)
-      if (subTypesTypedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
-        subTypeIds = [subTypesId]
-      } else if (subTypesTypedValue.schemaId === getIdFromSymbol("schema:value-ids-array")) {
-        subTypeIds = new Set()
-        for (let itemId of subTypesTypedValue.value) {
-          let typedItem = await getObjectFromId(itemId)
-          if (typedItem.schemaId === getIdFromSymbol("schema:localized-string")) {
-            subTypeIds.add(itemId)
+    subTypeIds = properties[getIdFromSymbol("types")]
+    if (subTypeIds === undefined) {
+      subTypeIds = null
+    } else {
+      if (!Array.isArray(subTypeIds)) {
+        // subTypeIds is a single ID.
+        subTypeIds = [subTypeIds]
+      }
+      let validSubTypeIds = new Set()
+      for (let subTypeId of subTypeIds) {
+        let subTypeTypedValue = await getObjectFromId(subTypeId)
+        if (subTypeTypedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
+          validSubTypeIds.add(subTypeId)
+        } else if (subTypeTypedValue.schemaId === getIdFromSymbol("schema:ids-array")) {
+          for (let itemId of subTypeTypedValue.value) {
+            let typedItem = await getObjectFromId(itemId)
+            if (typedItem.schemaId === getIdFromSymbol("schema:localized-string")) {
+              validSubTypeIds.add(itemId)
+            }
           }
         }
-        subTypeIds = [...subTypeIds].sort()
-        if (subTypeIds.length === 0) subTypeIds = null
       }
+      subTypeIds = [...validSubTypeIds].sort()
+      if (subTypeIds.length === 0) subTypeIds = null
     }
   }
   return subTypeIds
@@ -955,22 +1000,30 @@ export async function getSubTypeIdsFromProperties(properties) {
 export async function getTagIdsFromProperties(properties) {
   let tagIds = null
   if (properties) {
-    let tagsId = properties[getIdFromSymbol("tags")]
-    if (tagsId !== undefined) {
-      let tagsTypedValue = await getObjectFromId(tagsId)
-      if (tagsTypedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
-        tagIds = [tagsId]
-      } else if (tagsTypedValue.schemaId === getIdFromSymbol("schema:value-ids-array")) {
-        tagIds = new Set()
-        for (let itemId of tagsTypedValue.value) {
-          let typedItem = await getObjectFromId(itemId)
-          if (typedItem.schemaId === getIdFromSymbol("schema:localized-string")) {
-            tagIds.add(itemId)
+    tagIds = properties[getIdFromSymbol("tags")]
+    if (tagIds === undefined) {
+      tagIds = null
+    } else {
+      if (!Array.isArray(tagIds)) {
+        // tagIds is a single ID.
+        tagIds = [tagIds]
+      }
+      let validTagIds = new Set()
+      for (let tagId of tagIds) {
+        let tagTypedValue = await getObjectFromId(tagId)
+        if (tagTypedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
+          validTagIds.add(tagId)
+        } else if (tagTypedValue.schemaId === getIdFromSymbol("schema:ids-array")) {
+          for (let itemId of tagTypedValue.value) {
+            let typedItem = await getObjectFromId(itemId)
+            if (typedItem.schemaId === getIdFromSymbol("schema:localized-string")) {
+              validTagIds.add(itemId)
+            }
           }
         }
-        tagIds = [...tagIds].sort()
-        if (tagIds.length === 0) tagIds = null
       }
+      tagIds = [...validTagIds].sort()
+      if (tagIds.length === 0) tagIds = null
     }
   }
   return tagIds
@@ -1387,29 +1440,7 @@ export async function toDataJson1(
         showValues,
       })
     } else if (object.type == "Value") {
-      if (object.schemaId === getIdFromSymbol("schema:bijective-card-reference")) {
-        await toDataJson1(object.value.reverseKeyId, data, objectsCache, user, {
-          depth: depth - 1,
-          showBallots,
-          showProperties,
-          showValues,
-        })
-        await toDataJson1(object.value.targetId, data, objectsCache, user, {
-          depth: depth - 1,
-          showBallots,
-          showProperties,
-          showValues,
-        })
-      } else if (object.schemaId === getIdFromSymbol("schema:card-id")) {
-        await toDataJson1(object.value, data, objectsCache, user, {
-          depth: depth - 1,
-          showBallots,
-          showProperties,
-          showValues,
-        })
-      } else if (
-        [getIdFromSymbol("schema:card-ids-array"), getIdFromSymbol("schema:value-ids-array")].includes(object.schemaId)
-      ) {
+      if (object.schemaId === getIdFromSymbol("schema:ids-array")) {
         for (let itemId of object.value) {
           await toDataJson1(itemId, data, objectsCache, user, {
             depth: depth - 1,
@@ -1421,19 +1452,22 @@ export async function toDataJson1(
       }
     }
 
-    for (let [keyId, valueId] of Object.entries(object.properties || {})) {
+    for (let [keyId, valueIds] of Object.entries(object.properties || {})) {
       await toDataJson1(keyId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
         showProperties,
         showValues,
       })
-      await toDataJson1(valueId, data, objectsCache, user, {
-        depth: depth - 1,
-        showBallots,
-        showProperties,
-        showValues,
-      })
+      if (!Array.isArray(valueIds)) valueIds = [valueIds]
+      for (let valueId of valueIds) {
+        await toDataJson1(valueId, data, objectsCache, user, {
+          depth: depth - 1,
+          showBallots,
+          showProperties,
+          showValues,
+        })
+      }
     }
 
     for (let subTypeId of object.subTypeIds || []) {
@@ -1466,12 +1500,7 @@ export async function toDataJson1(
 }
 
 export async function toSchemaValueJson(schema, value) {
-  if (schema.$ref === "/schemas/bijective-card-reference") {
-    return {
-      reverseKeyId: getIdOrSymbolFromId(value.reverseKeyId),
-      targetId: getIdOrSymbolFromId(value.targetId),
-    }
-  } else if (schema.$ref === "/schemas/card-id") {
+  if (schema.$ref === "/schemas/id") {
     return getIdOrSymbolFromId(value)
   } else if (schema.$ref === "/schemas/localized-string") {
     let stringByLanguage = {}
@@ -1481,8 +1510,6 @@ export async function toSchemaValueJson(schema, value) {
       stringByLanguage[language] = typedString.value
     }
     return stringByLanguage
-  } else if (schema.$ref === "/schemas/value-id") {
-    return getIdOrSymbolFromId(value)
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       let valueJson = []
@@ -1506,10 +1533,11 @@ export async function toObjectJson(object, { showApiKey = false, showEmail = fal
   let objectJson = Object.assign({}, object)
   objectJson.createdAt = objectJson.createdAt.toISOString()
   if (objectJson.properties) {
-    let properties = (objectJson.properties = Object.assign({}, objectJson.properties))
-    for (let [keyId, valueId] of Object.entries(properties)) {
+    let properties = objectJson.properties = {...objectJson.properties}
+    for (let [keyId, valueIds] of Object.entries(properties)) {
       let keySymbol = getIdOrSymbolFromId(keyId)
-      properties[keySymbol] = getIdOrSymbolFromId(valueId)
+      if (!Array.isArray(valueIds)) valueIds = [valueIds]
+      properties[keySymbol] = valueIds.map(getIdOrSymbolFromId)
       if (keySymbol !== keyId) delete properties[keyId]
     }
   }
