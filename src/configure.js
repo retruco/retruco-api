@@ -631,7 +631,7 @@ async function configureDatabase() {
     for (let valueEntry of valueEntries) {
       await db.none("UPDATE properties SET value_id = $<value> WHERE value_id = $<id>", valueEntry)
 
-      let arrayEntries = await db.any("SELECT * FROM values WHERE schema_id = $<schemaId> AND value_id @> $<id:json>", {
+      let arrayEntries = await db.any("SELECT * FROM values WHERE schema_id = $<schemaId> AND value @> $<id:json>", {
         id: valueEntry.id,
         schemaId: getIdFromSymbol("schema:ids-array"),
       })
