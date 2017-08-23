@@ -147,7 +147,7 @@ async function configureDatabase() {
         FOREIGN KEY (value_id)
         REFERENCES objects(id)
         ON DELETE RESTRICT
-      `
+      `,
     )
   }
 
@@ -631,15 +631,12 @@ async function configureDatabase() {
     for (let valueEntry of valueEntries) {
       await db.none("UPDATE properties SET value_id = $<value> WHERE value_id = $<id>", valueEntry)
 
-      let arrayEntries = await db.any(
-        "SELECT * FROM values WHERE schema_id = $<schemaId> AND value_id @> $<id:json>",
-        {
-          id: valueEntry.id,
-          schemaId: getIdFromSymbol("schema:ids-array"),
-        },
-      )
+      let arrayEntries = await db.any("SELECT * FROM values WHERE schema_id = $<schemaId> AND value_id @> $<id:json>", {
+        id: valueEntry.id,
+        schemaId: getIdFromSymbol("schema:ids-array"),
+      })
       for (let arrayEntry of arrayEntries) {
-        arrayEntry.value = arrayEntry.value.map(id => id === valueEntry.id ? valueEntry.value : id)
+        arrayEntry.value = arrayEntry.value.map(id => (id === valueEntry.id ? valueEntry.value : id))
         await db.none("UPDATE values SET value = $<value> WHERE id = $<id>", arrayEntry)
       }
     }
@@ -657,23 +654,17 @@ async function configureDatabase() {
       getIdFromSymbol("schema:bijective-card-reference"),
     )
     for (let valueEntry of valueEntries) {
-      await db.none(
-        "UPDATE properties SET value_id = $<targetId> WHERE value_id = $<id>",
-        {
-          id: valueEntry.id,
-          targetId: valueEntry.value.targetId,
-        },
-      )
+      await db.none("UPDATE properties SET value_id = $<targetId> WHERE value_id = $<id>", {
+        id: valueEntry.id,
+        targetId: valueEntry.value.targetId,
+      })
 
-      let arrayEntries = await db.any(
-        "SELECT * FROM values WHERE schema_id = $<schemaId> AND value @> $<id:json>",
-        {
-          id: valueEntry.id,
-          schemaId: getIdFromSymbol("schema:ids-array"),
-        },
-      )
+      let arrayEntries = await db.any("SELECT * FROM values WHERE schema_id = $<schemaId> AND value @> $<id:json>", {
+        id: valueEntry.id,
+        schemaId: getIdFromSymbol("schema:ids-array"),
+      })
       for (let arrayEntry of arrayEntries) {
-        arrayEntry.value = arrayEntry.value.map(id => id === valueEntry.id ? valueEntry.value.targetId : id)
+        arrayEntry.value = arrayEntry.value.map(id => (id === valueEntry.id ? valueEntry.value.targetId : id))
         await db.none("UPDATE values SET value = $<value:json> WHERE id = $<id>", arrayEntry)
       }
     }
@@ -708,7 +699,7 @@ async function configureDatabase() {
         console.log(`  Regenerating properties of object ${entry.object_id}...`)
         previousObjectId = entry.object_id
       }
-      await regeneratePropertiesItem(entry.object_id, entry.key_id, {quiet: true})
+      await regeneratePropertiesItem(entry.object_id, entry.key_id, { quiet: true })
     }
     console.log("All properties have been regenerated.")
   }

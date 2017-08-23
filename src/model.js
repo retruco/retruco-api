@@ -1533,7 +1533,7 @@ export async function toObjectJson(object, { showApiKey = false, showEmail = fal
   let objectJson = Object.assign({}, object)
   objectJson.createdAt = objectJson.createdAt.toISOString()
   if (objectJson.properties) {
-    let properties = objectJson.properties = {...objectJson.properties}
+    let properties = (objectJson.properties = { ...objectJson.properties })
     for (let [keyId, valueIds] of Object.entries(properties)) {
       let keySymbol = getIdOrSymbolFromId(keyId)
       if (!Array.isArray(valueIds)) valueIds = [valueIds]

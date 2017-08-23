@@ -43,13 +43,11 @@ export const listObjectProperties = wrapAsyncMiddleware(async function listObjec
   let trashed = show.includes("trashed")
   let valueIds = (req.query.valueId || []).map(getIdFromIdOrSymbol).filter(id => id)
 
-  let whereClauses = [
-    'properties.object_id = $<objectId>',
-  ]
+  let whereClauses = ["properties.object_id = $<objectId>"]
 
-    if (!trashed) {
-      whereClauses.push("NOT statements.trashed")
-    }
+  if (!trashed) {
+    whereClauses.push("NOT statements.trashed")
+  }
 
   if (keyIds.length > 0) {
     whereClauses.push("properties.key_id IN ($<keyIds:csv>)")

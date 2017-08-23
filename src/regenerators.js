@@ -70,7 +70,7 @@ export async function regenerateArguments(statementId, argumentKeysId) {
   }
 }
 
-export async function regeneratePropertiesItem(objectId, keyId, {quiet = false} = {}) {
+export async function regeneratePropertiesItem(objectId, keyId, { quiet = false } = {}) {
   let object = await getObjectFromId(objectId)
   assert.ok(object, `Missing objet at ID ${objectId}`)
 
