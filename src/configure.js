@@ -822,7 +822,6 @@ async function configureDatabase() {
     console.log(`Upgraded database from version ${previousVersionNumber} to ${version.number}.`)
   }
 
-  requiresPropertiesRegeneration = true
   if (requiresPropertiesRegeneration) {
     await cleanupObjectsProperties()
 
