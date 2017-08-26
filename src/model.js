@@ -588,10 +588,15 @@ async function getLanguageText(
   if (typedValue === null) {
     return null
   }
+  const stringSchemaIds = new Set([
+    getIdFromSymbol("schema:email"),
+    getIdFromSymbol("schema:string"),
+    getIdFromSymbol("schema:uri"),
+  ])
   if (languageId === null) {
-    return typedValue.schemaId === getIdFromSymbol("schema:string") ? typedValue.value : String(typedValue.value)
+    return stringSchemaIds.has(typedValue.schemaId) ? typedValue.value : String(typedValue.value)
   }
-  if (typedValue.schemaId !== getIdFromSymbol("schema:string")) {
+  if (!stringSchemaIds.has(typedValue.schemaId)) {
     return null
   }
   let properties = typedValue.properties
