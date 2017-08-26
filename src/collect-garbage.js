@@ -18,50 +18,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import { checkDatabase } from "./database"
+import { collectGarbage } from "./repairs"
 
-import {checkDatabase, db} from "../src/database"
-import {describe, entryToValue} from "../src/model"
-import {getIdFromSymbol} from "../src/symbols"
-
-
-async function collectGarbage() {
-  let typedValues = (await db.any(
-    `
-      SELECT
-        objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed
-      FROM objects
-      INNER JOIN values ON objects.id = values.id
-      LEFT JOIN statements ON objects.id = statements.id
-      LEFT JOIN symbols ON objects.id = symbols.id
-      WHERE statements.id IS null
-      AND symbol IS null
-      AND objects.id NOT IN (SELECT objects.id FROM properties WHERE key_id = objects.id)
-      AND objects.id NOT IN (SELECT objects.id FROM properties WHERE value_id = objects.id)
-      AND objects.id NOT IN (
-        SELECT objects.id
-        FROM properties
-        INNER JOIN values ON properties.value_id = values.id
-        WHERE values.schema_id = $<idsArraySchemaId>
-        AND values.value @> to_jsonb(objects.id::text)
-      )
-    `,
-    {
-      idsArraySchemaId: getIdFromSymbol("schema:ids-array"),
-
-    },
-  )).map(entryToValue)
-  for (let typedValue of typedValues) {
-    let description = await describe(typedValue)
-    console.log(`Deleting ${description}...`)
-    await db.none("DELETE FROM objects WHERE id = $<id>", typedValue)
-  }
-
-  process.exit(0)
-}
-
-
-checkDatabase()
-  .then(collectGarbage)
+checkDatabase({ ignoreTextSearchVersion: true })
+  .then(async () => {
+    await collectGarbage()
+    process.exit(0)
+  })
   .catch(error => {
     console.log(error.stack || error)
     process.exit(1)

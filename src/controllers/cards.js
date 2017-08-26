@@ -28,8 +28,8 @@ import {
   entryToCard,
   entryToUser,
   getObjectFromId,
-  getOrNewLocalizedString,
   getOrNewProperty,
+  getOrNewValue,
   languageConfigurationNameByCode,
   newCard,
   ownsUser,
@@ -272,8 +272,8 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
           }
         } else if (valueType === "string") {
           if (!["/schemas/card-id", "/schemas/id", "/schemas/property-id", "/schemas/value-id"].includes(schema.$ref)) {
-            if (schema.$ref !== "/schemas/localized-string" && schema.type !== "string") {
-              schema = { $ref: "/schemas/localized-string" }
+            if (schema.type !== "string") {
+              schema = { type: "string" }
             }
             if (value.includes("\n")) {
               if (widget.tag !== "textarea") widget = { tag: "textarea" }
@@ -383,8 +383,11 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   let keyNameId =
     keyName === "id"
       ? null
-      : (await getOrNewLocalizedString(language, keyName, "widget:input-text", { cache, inactiveStatementIds, userId }))
-          .id
+      : (await getOrNewValue(getIdFromSymbol("schema:string"), "widget:input-text", keyName, {
+          cache,
+          inactiveStatementIds,
+          userId,
+        })).id
   for (let attributes of bundle.cards) {
     let keyValue = attributes[keyName]
     let card = null
@@ -503,7 +506,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       if (name === "id") continue
 
       // Convert attribute name to a typed value.
-      let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text", {
+      let nameId = (await getOrNewValue(getIdFromSymbol("schema:string"), "widget:input-text", name, {
         cache,
         inactiveStatementIds,
         userId,
@@ -545,7 +548,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   // Create a new card, giving its initial attributes, schemas & widgets.
   let authenticatedUser = req.authenticatedUser
   let cardInfos = req.body
-  let language = cardInfos.language
+  // let language = cardInfos.language
   let show = req.query.show || []
   let userId = authenticatedUser.id
 
@@ -625,7 +628,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   let warnings = {}
   for (let [name, value] of Object.entries(cardInfos.values)) {
     // Convert attribute name to a typed value.
-    let nameId = (await getOrNewLocalizedString(language, name, "widget:input-text", {
+    let nameId = (await getOrNewValue(getIdFromSymbol("schema:string"), "widget:input-text", name, {
       cache,
       inactiveStatementIds,
       userId,
@@ -734,17 +737,6 @@ async function getOrNewTypedValueFromBundleField(
       items.push(item)
     }
     value = items
-  } else if (schema.$ref === "/schemas/localized-string") {
-    if (typeof value === "string") {
-      value = { [language]: value }
-    }
-  } else if (schema.type === "array" && schema.items.$ref === "/schemas/localized-string") {
-    value = value.map(item => {
-      if (typeof item === "string") {
-        item = { [language]: item }
-      }
-      return item
-    })
   }
 
   let [typedValue, warning] = await convertValidJsonToExistingOrNewTypedValue(schema, widget, value, {

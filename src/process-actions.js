@@ -21,7 +21,6 @@
 import assert from "assert"
 import deepEqual from "deep-equal"
 
-import config from "./config"
 import { checkDatabase, db, dbSharedConnectionObject } from "./database"
 import {
   addAction,
@@ -36,12 +35,10 @@ import {
   entryToProperty,
 } from "./model"
 import { regenerateArguments, regeneratePropertiesItem } from "./regenerators"
-import { getIdFromSymbol, idBySymbol } from "./symbols"
+import { getIdFromSymbol } from "./symbols"
 
 let argumentKeysId = null // Set by processActions.
 let consId = null // Set by processActions.
-let languageByKeyId = null
-let localizationKeysId = null
 let prosId = null // Set by processActions.
 let trashedKeyId = null // Set by processActions.
 
@@ -86,6 +83,10 @@ async function processAction(action) {
     }
     for (let valueId of valueIds) {
       let typedValue = await getObjectFromId(valueId)
+      if (typedValue === null) {
+        console.log("Skipping missing property value:", valueId)
+        continue
+      }
       let schema = (await getObjectFromId(typedValue.schemaId)).value
       if (schema === undefined) {
         console.log("Skipping property value without schema:", typedValue)
@@ -183,37 +184,6 @@ async function processAction(action) {
     contentChanged = true
     textSearchUpdateNeeded = true
     // await addAction(object.id, "value")  TODO?
-  }
-
-  if (object.type === "Value") {
-    if (object.schemaId === getIdFromSymbol("schema:localized-string")) {
-      // Compute value of a localized-string from its properties.
-      let stringIdByLanguageId = {}
-      for (let [keyId, valueIds] of Object.entries(object.properties || {})) {
-        if (localizationKeysId.includes(keyId)) {
-          if (!Array.isArray(valueIds)) {
-            // valueIds is a single ID.
-            valueIds = [valueIds]
-          }
-          for (let valueId of valueIds) {
-            let localizationValue = await getObjectFromId(valueId)
-            if (localizationValue.schemaId === getIdFromSymbol("schema:string")) {
-              stringIdByLanguageId[keyId] = valueId
-              break
-            }
-          }
-        }
-      }
-      if (!deepEqual(stringIdByLanguageId, object.value)) {
-        await db.none("UPDATE values SET value = $<stringIdByLanguageId:json> WHERE id = $<id>", {
-          id: object.id,
-          stringIdByLanguageId,
-        })
-        contentChanged = true
-        textSearchUpdateNeeded = true
-        // await addAction(object.id, "value")  TODO?
-      }
-    }
   }
 
   if (object.ratingSum !== undefined) {
@@ -356,12 +326,6 @@ async function processActions() {
   prosId = getIdFromSymbol("pros")
   argumentKeysId = [consId, prosId]
   trashedKeyId = getIdFromSymbol("trashed")
-
-  languageByKeyId = Object.entries(idBySymbol).reduce((d, [symbol, id]) => {
-    if (config.languages.includes(symbol)) d[id] = symbol
-    return d
-  }, {})
-  localizationKeysId = Array.from(Object.keys(languageByKeyId))
 
   let processingActions = false
 

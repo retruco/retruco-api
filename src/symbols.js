@@ -325,390 +325,303 @@ export const symbolizedTypedValues = [
   // Keys of properties
 
   {
-    // localization "en" must be first value of type "schema:localized-string".
     symbol: "en",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "English Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "English Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "cons", // pros & cons
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Cons", // Against
-    },
+    schemaSymbol: "schema:string",
+    value: "Cons", // Against
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "description",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Description",
-    },
+    schemaSymbol: "schema:string",
+    value: "Description",
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:localized-string", ["widget:textarea", "widget:input-text"]]],
+    schemasWidgetsOrder: [["schema:string", ["widget:textarea", "widget:input-text"]]],
   },
   {
     symbol: "bg",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Bulgarian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Bulgarian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "hr",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Croatian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Croatian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "cs",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Czech Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Czech Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "da",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Danish Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Danish Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "nl",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Dutch Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Dutch Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "et",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Estonian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Estonian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "fi",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Finnish Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Finnish Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "fr",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "French Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "French Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "de",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "German Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "German Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "el",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Greek Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Greek Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "ga",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Irish Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Irish Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "hu",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Hungarian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Hungarian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "it",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Italian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Italian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "lv",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Latvian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Latvian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "lt",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Lithuanian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Lithuanian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "mt",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Maltese Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Maltese Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "pl",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Ploish Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Ploish Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "pt",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Portugues Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Portugues Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "ro",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Romanian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Romanian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "sk",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Slovak Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Slovak Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "sl",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Slovenian Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Slovenian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "es",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Spanish Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Spanish Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "sv",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Swedish Localization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Swedish Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "license",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "License",
-    },
+    schemaSymbol: "schema:string",
+    value: "License",
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "location",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Location",
-    },
+    schemaSymbol: "schema:string",
+    value: "Location",
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "logo",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Logo",
-    },
+    schemaSymbol: "schema:string",
+    value: "Logo",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:uri", ["widget:image", "widget:input-url"]]],
   },
   {
     symbol: "name",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Name",
-    },
+    schemaSymbol: "schema:string",
+    value: "Name",
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "pros", // pros & cons
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Pros", // For
-    },
+    schemaSymbol: "schema:string",
+    value: "Pros", // For
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "screenshot",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Screenshot",
-    },
+    schemaSymbol: "schema:string",
+    value: "Screenshot",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:uri", ["widget:image", "widget:input-url"]]],
   },
   {
     symbol: "source-code",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "SourceCode",
-    },
+    schemaSymbol: "schema:string",
+    value: "SourceCode",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
   },
   {
     symbol: "tags",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Tags",
-    },
+    schemaSymbol: "schema:string",
+    value: "Tags",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "title",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Title",
-    },
+    schemaSymbol: "schema:string",
+    value: "Title",
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:localized-string", ["widget:input-text", "widget:textarea"]]],
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
     symbol: "trashed",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Trash",
-    },
+    schemaSymbol: "schema:string",
+    value: "Trash",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:boolean", ["widget:input-checkbox"]]],
   },
   {
     symbol: "twitter-name",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Twitter Name",
-    },
+    schemaSymbol: "schema:string",
+    value: "Twitter Name",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text"]]],
   },
   {
     symbol: "types",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Types",
-    },
+    schemaSymbol: "schema:string",
+    value: "Types",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "use-cases",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Use Cases",
-    },
+    schemaSymbol: "schema:string",
+    value: "Use Cases",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:ids-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "used-by",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Used by",
-    },
+    schemaSymbol: "schema:string",
+    value: "Used by",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:ids-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "used-for",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Used for",
-    },
+    schemaSymbol: "schema:string",
+    value: "Used for",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:ids-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "uses",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Uses",
-    },
+    schemaSymbol: "schema:string",
+    value: "Uses",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:ids-array", ["widget:autocomplete"]]],
   },
   {
     symbol: "website",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Website",
-    },
+    schemaSymbol: "schema:string",
+    value: "Website",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
   },
@@ -717,37 +630,29 @@ export const symbolizedTypedValues = [
 
   {
     symbol: "platform",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Platform",
-    },
+    schemaSymbol: "schema:string",
+    value: "Platform",
     widgetSymbol: "widget:input-text",
     keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
   },
   {
     symbol: "software",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Software",
-    },
+    schemaSymbol: "schema:string",
+    value: "Software",
     widgetSymbol: "widget:input-text",
     keysOrder: ["types", "name", "description", "license", "website", "logo", "screenshot", "tags"],
   },
   {
     symbol: "organization",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Organization",
-    },
+    schemaSymbol: "schema:string",
+    value: "Organization",
     widgetSymbol: "widget:input-text",
     keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
   },
   {
     symbol: "use-case",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Use Case",
-    },
+    schemaSymbol: "schema:string",
+    value: "Use Case",
     widgetSymbol: "widget:input-text",
     keysOrder: ["types", "name", "description", "website", "logo", "screenshot", "tags"],
   },
@@ -757,428 +662,326 @@ export const symbolizedTypedValues = [
   // Public Integrity Measures
   {
     symbol: "public-integrity-measures",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Public Integrity Measures",
-    },
+    schemaSymbol: "schema:string",
+    value: "Public Integrity Measures",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "anti-corruption",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Anti-corruption",
-    },
+    schemaSymbol: "schema:string",
+    value: "Anti-corruption",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "conflicts-of-interest",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Conflicts of interest",
-    },
+    schemaSymbol: "schema:string",
+    value: "Conflicts of interest",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "asset-disclosure",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Asset disclosure",
-    },
+    schemaSymbol: "schema:string",
+    value: "Asset disclosure",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "audits-control",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Audits & control",
-    },
+    schemaSymbol: "schema:string",
+    value: "Audits & control",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "whistleblower-protections",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Whistleblower protections",
-    },
+    schemaSymbol: "schema:string",
+    value: "Whistleblower protections",
     widgetSymbol: "widget:input-text",
   },
 
   // Fiscal Openness
   {
     symbol: "fiscal-openness",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Fiscal Openness",
-    },
+    schemaSymbol: "schema:string",
+    value: "Fiscal Openness",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "budget-transparency",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Budget Transparency",
-    },
+    schemaSymbol: "schema:string",
+    value: "Budget Transparency",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "citizen-budgets",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Citizen Budgets",
-    },
+    schemaSymbol: "schema:string",
+    value: "Citizen Budgets",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "participatory-budgeting",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Participatory budgeting",
-    },
+    schemaSymbol: "schema:string",
+    value: "Participatory budgeting",
     widgetSymbol: "widget:input-text",
   },
 
   // Citizen Engagement
   {
     symbol: "citizen-engagement",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Citizen Engagement",
-    },
+    schemaSymbol: "schema:string",
+    value: "Citizen Engagement",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "e-petitions",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "E-petitions",
-    },
+    schemaSymbol: "schema:string",
+    value: "E-petitions",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "social-audits",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Social Audits",
-    },
+    schemaSymbol: "schema:string",
+    value: "Social Audits",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "public-participation",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Public Participation",
-    },
+    schemaSymbol: "schema:string",
+    value: "Public Participation",
     widgetSymbol: "widget:input-text",
   },
 
   // Procurement
   {
     symbol: "procurement",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Procurement",
-    },
+    schemaSymbol: "schema:string",
+    value: "Procurement",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "public-procurement",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Public Procurement",
-    },
+    schemaSymbol: "schema:string",
+    value: "Public Procurement",
     widgetSymbol: "widget:input-text",
   },
 
   // Access to Information Mechanisms
   {
     symbol: "access-to-information-mechanisms",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Access to Information Mechanisms",
-    },
+    schemaSymbol: "schema:string",
+    value: "Access to Information Mechanisms",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "records-management",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Records Management",
-    },
+    schemaSymbol: "schema:string",
+    value: "Records Management",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "elections-political-finance",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Elections & Political Finance",
-    },
+    schemaSymbol: "schema:string",
+    value: "Elections & Political Finance",
     widgetSymbol: "widget:input-text",
   },
 
   // Justice
   {
     symbol: "justice",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Justice",
-    },
+    schemaSymbol: "schema:string",
+    value: "Justice",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "law-enforcement-justice",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Law Enforcement & Justice",
-    },
+    schemaSymbol: "schema:string",
+    value: "Law Enforcement & Justice",
     widgetSymbol: "widget:input-text",
   },
 
   // Public Services
   {
     symbol: "public-services",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Public Services",
-    },
+    schemaSymbol: "schema:string",
+    value: "Public Services",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "public-service-delivery-improvement",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Public Service Delivery Improvement",
-    },
+    schemaSymbol: "schema:string",
+    value: "Public Service Delivery Improvement",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "e-government",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "E-government",
-    },
+    schemaSymbol: "schema:string",
+    value: "E-government",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "open-data",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Open data",
-    },
+    schemaSymbol: "schema:string",
+    value: "Open data",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "capacity-building",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Capacity-building",
-    },
+    schemaSymbol: "schema:string",
+    value: "Capacity-building",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "legislative-regulation",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Legislative & Regulation",
-    },
+    schemaSymbol: "schema:string",
+    value: "Legislative & Regulation",
     widgetSymbol: "widget:input-text",
   },
 
   // Sectors
   {
     symbol: "sectors",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Sectors",
-    },
+    schemaSymbol: "schema:string",
+    value: "Sectors",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "media-telecommunications",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Media & Telecommunications",
-    },
+    schemaSymbol: "schema:string",
+    value: "Media & Telecommunications",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "education",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Education",
-    },
+    schemaSymbol: "schema:string",
+    value: "Education",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "health-nutrition",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Health and Nutrition",
-    },
+    schemaSymbol: "schema:string",
+    value: "Health and Nutrition",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "citizenship-immigration",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Citizenship & Immigration",
-    },
+    schemaSymbol: "schema:string",
+    value: "Citizenship & Immigration",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "welfare-social-security",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Welfare & Social Security",
-    },
+    schemaSymbol: "schema:string",
+    value: "Welfare & Social Security",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "water-sanitation",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Water & Sanitation",
-    },
+    schemaSymbol: "schema:string",
+    value: "Water & Sanitation",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "infrastructure",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Infrastructure",
-    },
+    schemaSymbol: "schema:string",
+    value: "Infrastructure",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "public-safety",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Public safety",
-    },
+    schemaSymbol: "schema:string",
+    value: "Public safety",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "defense",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Defense",
-    },
+    schemaSymbol: "schema:string",
+    value: "Defense",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "natural-resources",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Natural Resources",
-    },
+    schemaSymbol: "schema:string",
+    value: "Natural Resources",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "aid",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Aid",
-    },
+    schemaSymbol: "schema:string",
+    value: "Aid",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "nonprofits",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Nonprofits",
-    },
+    schemaSymbol: "schema:string",
+    value: "Nonprofits",
     widgetSymbol: "widget:input-text",
   },
 
   // Who is Affected
   {
     symbol: "who-is-affected",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Who is Affected",
-    },
+    schemaSymbol: "schema:string",
+    value: "Who is Affected",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "private-sector",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Private sector",
-    },
+    schemaSymbol: "schema:string",
+    value: "Private sector",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "legislature",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Legislature",
-    },
+    schemaSymbol: "schema:string",
+    value: "Legislature",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "sub-national-governance",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Sub-national governance",
-    },
+    schemaSymbol: "schema:string",
+    value: "Sub-national governance",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "judiciary",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Judiciary",
-    },
+    schemaSymbol: "schema:string",
+    value: "Judiciary",
     widgetSymbol: "widget:input-text",
   },
 
   // Mainstreaming Issues
   {
     symbol: "mainstreaming-issues",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Mainstreaming Issues",
-    },
+    schemaSymbol: "schema:string",
+    value: "Mainstreaming Issues",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "gender-sexuality",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Gender & sexuality",
-    },
+    schemaSymbol: "schema:string",
+    value: "Gender & sexuality",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "human-rights",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Human rights",
-    },
+    schemaSymbol: "schema:string",
+    value: "Human rights",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "ogp",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "OGP",
-    },
+    schemaSymbol: "schema:string",
+    value: "OGP",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "marginalised-communities",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Marginalised communities",
-    },
+    schemaSymbol: "schema:string",
+    value: "Marginalised communities",
     widgetSymbol: "widget:input-text",
   },
   {
     symbol: "labor",
-    schemaSymbol: "schema:localized-string",
-    value: {
-      en: "Labor",
-    },
+    schemaSymbol: "schema:string",
+    value: "Labor",
     widgetSymbol: "widget:input-text",
   },
 ]

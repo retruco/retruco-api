@@ -27,15 +27,6 @@ export const schemaByPath = {
     description: "JSON Schema for an object reference (ID or symbol)",
     type: "string",
   },
-  "/schemas/localized-string": {
-    description: "JSON Schema for a string localized in several languages",
-    type: "object",
-    patternProperties: {
-      "^[a-z]{2}$": {
-        type: "string",
-      },
-    },
-  },
   "/schemas/property-id": {
     description: "JSON Schema for a property reference (ID or symbol)",
     type: "string",
@@ -46,21 +37,4 @@ export const schemaByPath = {
   },
 }
 
-export const bundleSchemaByPath = Object.assign({}, schemaByPath, {
-  "/schemas/localized-string": {
-    description: "JSON Schema for a string localized in several languages (version for bundles)",
-    anyOf: [
-      {
-        type: "string",
-      },
-      {
-        type: "object",
-        patternProperties: {
-          "^[a-z]{2}$": {
-            type: "string",
-          },
-        },
-      },
-    ],
-  },
-})
+export const bundleSchemaByPath = schemaByPath

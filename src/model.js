@@ -22,7 +22,7 @@ import assert from "assert"
 
 import config from "./config"
 import { db } from "./database"
-import { getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol, idBySymbol } from "./symbols"
+import { getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol } from "./symbols"
 
 export const languageConfigurationNameByCode = {
   bg: "simple",
@@ -118,30 +118,6 @@ export async function convertValidJsonToExistingOrNewTypedValue(
       return [null, warning]
     }
     return [object, null]
-  } else if (schema.$ref === "/schemas/localized-string") {
-    let stringIdByLanguageId = {}
-    let warningByLanguage = {}
-    let widgetId =
-      widget === null
-        ? null
-        : (await getOrNewValue(getIdFromSymbol("schema:object"), null, widget, { cache, inactiveStatementIds, userId }))
-            .id
-    for (let [language, string] of Object.entries(value)) {
-      let languageId = idBySymbol[language]
-      if (languageId === undefined) {
-        warningByLanguage[language] = `Unknown language: ${language}`
-        continue
-      }
-      let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string, {
-        cache,
-        inactiveStatementIds,
-        userId,
-      })).id
-      stringIdByLanguageId[languageId] = stringId
-    }
-    value = stringIdByLanguageId
-    if (Object.keys(warningByLanguage).length > 0) warning["value"] = warningByLanguage
-    if (Object.keys(value).length === 0) return [null, warning]
   } else if (schema.$ref === "/schemas/property-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
@@ -203,7 +179,6 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
   // Convert symbols to IDs, etc.
   let warning = {}
   let widgetId = null
-  let widgetWarning = null
   if (schema.$ref === "/schemas/card-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
@@ -224,31 +199,6 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
       return [null, warning]
     }
     return [object, null]
-  } else if (schema.$ref === "/schemas/localized-string") {
-    let stringIdByLanguageId = {}
-    let warningByLanguage = {}
-    if (widget !== null) {
-      let typedWidget = await getValue(getIdFromSymbol("schema:object"), null, widget)
-      if (typedWidget === null) widgetWarning = `Unknown widget: ${widget}`
-      else widgetId = typedWidget.id
-    }
-    for (let [language, string] of Object.entries(value)) {
-      let languageId = idBySymbol[language]
-      if (languageId === undefined) {
-        warningByLanguage[language] = `Unknown language: ${language}`
-        continue
-      }
-      let typedString = await getValue(getIdFromSymbol("schema:string"), widgetId, string)
-      if (typedString === null) {
-        warningByLanguage[language] = `Unknown string: ${string}`
-        continue
-      }
-      stringIdByLanguageId[languageId] = typedString.id
-    }
-    value = stringIdByLanguageId
-    if (Object.keys(warningByLanguage).length > 0) warning["value"] = warningByLanguage
-    if (widgetWarning !== null) warning["value"] = widgetWarning
-    if (Object.keys(value).length === 0) return [null, warning]
   } else if (schema.$ref === "/schemas/property-id") {
     let id = getIdFromIdOrSymbol(value)
     let object = await getObjectFromId(id)
@@ -291,7 +241,7 @@ export async function convertValidJsonToExistingTypedValue(schema, widget, value
   let schemaId = (await getValue(getIdFromSymbol("schema:object"), null, schema)).id
   if (widget !== null) {
     let typedWidget = await getValue(getIdFromSymbol("schema:object"), null, widget)
-    if (typedWidget === null) widgetWarning = `Unknown widget: ${widget}`
+    if (typedWidget === null) warning["widget"] = `Unknown widget: ${widget}`
     else widgetId = typedWidget.id
   }
   let typedValue = await getValue(schemaId, widgetId, value)
@@ -424,58 +374,50 @@ export async function generateObjectTextSearch(object) {
   if (object === null) return
   let autocompleteByLanguage = {}
   let englishId = getIdFromSymbol("en")
-  let languages = []
+  let languages = config.languages
+  let languageIds = new Set(languages.map(getIdFromSymbol))
+  let objectByIdCache = { [object.id]: object }
+  let preferredLanguageFound
   let searchableTextsByWeightByLanguage = {}
   let table = null
+  let weight
   if (object.type === "Card") {
     table = "cards"
-    languages = config.languages
     let valueIdByKeyId = object.properties
     if (valueIdByKeyId) {
       for (let language of languages) {
         let autocomplete = null
         let languageId = getIdFromSymbol(language)
-        for (let keySymbol of ["name", "title"]) {
-          let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-          if (valueIds === undefined) continue
-          if (!Array.isArray(valueIds)) valueIds = [valueIds]
-          for (let valueId of valueIds) {
-            let value = await getObjectFromId(valueId)
-            assert.ok(value, `Missing value at ID ${valueId}`)
-            let text = await getLanguageText(languageId, englishId, value)
-            if (text === null) continue
-            autocomplete = text
-            break
-          }
-          if (autocomplete !== null) break
-        }
-        for (let keySymbol of ["twitter-name"]) {
-          let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-          if (valueIds == undefined) continue
-          if (!Array.isArray(valueIds)) valueIds = [valueIds]
-          for (let valueId of valueIds) {
-            let value = await getObjectFromId(valueId)
-            assert.ok(value, `Missing value at ID ${valueId}`)
-            let text = await getLanguageText(languageId, englishId, value)
-            if (text === null) continue
-            autocomplete = text
-            break
+        let preferredLanguageIds = languageId === englishId ? [languageId, null] : [languageId, englishId, null]
+
+        for (let preferredLanguageId of preferredLanguageIds) {
+          for (let keySymbol of ["name", "title", "twitter-name"]) {
+            let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+            if (valueIds === undefined) continue
+            if (!Array.isArray(valueIds)) valueIds = [valueIds]
+            for (let valueId of valueIds) {
+              autocomplete = await getLanguageTextFromId(valueId, preferredLanguageId, languageIds, { objectByIdCache })
+              if (autocomplete !== null) break
+            }
+            if (autocomplete !== null) break
           }
           if (autocomplete !== null) break
         }
         autocompleteByLanguage[language] = autocomplete ? `${autocomplete} #${object.id}` : `#${object.id}`
-      }
-      for (let [keySymbol, weight] of [["description", "B"], ["name", "A"], ["title", "A"], ["twitter-name", "A"]]) {
-        let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
-        if (valueIds === undefined) continue
-        if (!Array.isArray(valueIds)) valueIds = [valueIds]
-        for (let valueId of valueIds) {
-          let value = await getObjectFromId(valueId)
-          assert.ok(value, `Missing value at ID ${valueId}`)
-          if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
-            for (let language of languages) {
-              let languageId = getIdFromSymbol(language)
-              let text = await getLanguageText(languageId, englishId, value)
+
+        preferredLanguageFound = false
+        for (let preferredLanguageId of preferredLanguageIds) {
+          for (let [keySymbol, weight] of [
+            ["description", "B"],
+            ["name", "A"],
+            ["title", "A"],
+            ["twitter-name", "A"],
+          ]) {
+            let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+            if (valueIds === undefined) continue
+            if (!Array.isArray(valueIds)) valueIds = [valueIds]
+            for (let valueId of valueIds) {
+              let text = await getLanguageTextFromId(valueId, preferredLanguageId, languageIds, { objectByIdCache })
               if (text === null) continue
               let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
               if (searchableTextsByWeight === undefined) {
@@ -484,18 +426,17 @@ export async function generateObjectTextSearch(object) {
               let searchableTexts = searchableTextsByWeight[weight]
               if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
               searchableTexts.push(text)
+              preferredLanguageFound = true
             }
           }
+          if (preferredLanguageFound) break
         }
-      }
-      for (let tagId of object.tagIds || []) {
-        let value = await getObjectFromId(tagId)
-        assert.ok(value, `Missing tag at ID ${tagId}`)
-        let weight = "B"
-        if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
-          for (let language of languages) {
-            let languageId = getIdFromSymbol(language)
-            let text = await getLanguageText(languageId, englishId, value)
+
+        preferredLanguageFound = false
+        weight = "B"
+        for (let preferredLanguageId of preferredLanguageIds) {
+          for (let valueId of object.tagIds || []) {
+            let text = await getLanguageTextFromId(valueId, preferredLanguageId, languageIds, { objectByIdCache })
             if (text === null) continue
             let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
             if (searchableTextsByWeight === undefined) {
@@ -504,17 +445,16 @@ export async function generateObjectTextSearch(object) {
             let searchableTexts = searchableTextsByWeight[weight]
             if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
             searchableTexts.push(text)
+            preferredLanguageFound = true
           }
+          if (preferredLanguageFound) break
         }
-      }
-      for (let usageId of object.usageIds || []) {
-        let value = await getObjectFromId(usageId)
-        assert.ok(value, `Missing usage tag at ID ${usageId}`)
-        let weight = "C"
-        if (value.schemaId === getIdFromSymbol("schema:localized-string")) {
-          for (let language of languages) {
-            let languageId = getIdFromSymbol(language)
-            let text = await getLanguageText(languageId, englishId, value)
+
+        preferredLanguageFound = false
+        weight = "C"
+        for (let preferredLanguageId of preferredLanguageIds) {
+          for (let valueId of object.usageIds || []) {
+            let text = await getLanguageTextFromId(valueId, preferredLanguageId, languageIds, { objectByIdCache })
             if (text === null) continue
             let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
             if (searchableTextsByWeight === undefined) {
@@ -523,14 +463,15 @@ export async function generateObjectTextSearch(object) {
             let searchableTexts = searchableTextsByWeight[weight]
             if (searchableTexts === undefined) searchableTextsByWeight[weight] = searchableTexts = []
             searchableTexts.push(text)
+            preferredLanguageFound = true
           }
+          if (preferredLanguageFound) break
         }
       }
     }
   } else if (object.type === "User") {
     table = "users"
     // languages = [object.language]
-    languages = config.languages
     // for (let language of languages) {
     //   autocompleteByLanguage[language] = `${object.name} <${object.email}>`
     // }
@@ -549,15 +490,17 @@ export async function generateObjectTextSearch(object) {
     }
   } else if (object.type === "Value") {
     table = "values"
-    languages = config.languages
     for (let language of languages) {
       let languageId = getIdFromSymbol(language)
-      let text = await getLanguageText(languageId, englishId, object)
-      if (text === null) continue
-      autocompleteByLanguage[language] = text
-      searchableTextsByWeightByLanguage[language] = { A: [text] }
+      let preferredLanguageIds = languageId === englishId ? [languageId, null] : [languageId, englishId, null]
+      for (let preferredLanguageId of preferredLanguageIds) {
+        let text = await getLanguageText(object, preferredLanguageId, languageIds, { objectByIdCache })
+        if (text === null) continue
+        autocompleteByLanguage[language] = text
+        searchableTextsByWeightByLanguage[language] = { A: [text] }
+        break
+      }
     }
-    // TODO: searchableTextsByLanguage
   }
 
   if (table) {
@@ -636,20 +579,77 @@ export async function generateObjectTextSearch(object) {
   }
 }
 
-async function getLanguageText(languageId, defaultLanguageId, typedValue) {
-  if (typedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
-    let textId = typedValue.value[languageId]
-    if (textId === undefined) textId = typedValue.value[defaultLanguageId]
-    if (textId === undefined) textId = Object.values(typedValue.value)[0]
-    if (textId === undefined) return null
-    let typedText = await getObjectFromId(textId)
-    if (typedText === null) return null
-    return typedText.value
-  } else if (typedValue.schemaId === getIdFromSymbol("schema:string")) {
-    return typedValue.value
-  } else {
-    return String(typedValue.value)
+async function getLanguageText(
+  typedValue,
+  languageId,
+  languageIds,
+  { objectByIdCache = null, visitedIds = null } = null,
+) {
+  if (typedValue === null) {
+    return null
   }
+  if (languageId === null) {
+    return typedValue.schemaId === getIdFromSymbol("schema:string") ? typedValue.value : String(typedValue.value)
+  }
+  if (typedValue.schemaId !== getIdFromSymbol("schema:string")) {
+    return null
+  }
+  let properties = typedValue.properties
+  if (!properties) {
+    return null
+  }
+  let textIds = properties[languageId]
+  if (textIds !== undefined) {
+    // Some values for the requested language have bien found, return the best value (aka the first one).
+    let textId = Array.isArray(textIds) ? textIds[0] : textIds
+    if (textId === typedValue.id) {
+      return typedValue.value
+    }
+    return await getLanguageTextFromId(textId, null, languageIds, { objectByIdCache, visitedIds })
+  }
+
+  // There is no direct localization for the requested language.
+  // Ask to the other localizations (because they can themselves be localized to the requested language).
+  if (visitedIds === null) {
+    visitedIds = new Set([])
+  } else if (visitedIds.has(typedValue.id)) {
+    return null
+  }
+  visitedIds.add(typedValue.id)
+  for (let [otherLanguageId, textIds] of Object.entries(properties)) {
+    if (!languageIds.has(otherLanguageId)) {
+      // This is not the ID of a language => Skip it.
+      continue
+    }
+    if (!Array.isArray(textIds)) textIds = [textIds]
+    for (let textId of textIds) {
+      let text = await getLanguageTextFromId(textId, languageId, languageIds, { objectByIdCache, visitedIds })
+      if (text !== null) {
+        return text
+      }
+    }
+  }
+
+  // There is no localization for the requested language.
+  return null
+}
+
+async function getLanguageTextFromId(
+  valueId,
+  languageId,
+  languageIds,
+  { objectByIdCache = null, visitedIds = null } = null,
+) {
+  let typedValue
+  if (objectByIdCache === null) {
+    typedValue = await getObjectFromId(valueId)
+  } else {
+    typedValue = objectByIdCache[valueId]
+    if (typedValue === undefined) {
+      objectByIdCache[valueId] = typedValue = await getObjectFromId(valueId)
+    }
+  }
+  return await getLanguageText(typedValue, languageId, languageIds, { objectByIdCache, visitedIds })
 }
 
 export async function getObjectFromId(id) {
@@ -760,25 +760,55 @@ export async function getOrNewLanguagesSetId(languages) {
 export async function getOrNewLocalizedString(
   language,
   string,
-  widgetIdOrSymbolFromId,
+  widgetIdOrSymbol,
   { cache = null, inactiveStatementIds = null, properties = null, userId = null } = {},
 ) {
   assert.strictEqual(typeof string, "string")
-  let widgetId = getIdFromIdOrSymbol(widgetIdOrSymbolFromId)
-  let stringId = (await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string, {
-    cache,
-    inactiveStatementIds,
-    userId,
-  })).id
-  let localizedString = {
-    [getIdFromSymbol(language)]: stringId,
-  }
-  return await getOrNewValue(getIdFromSymbol("schema:localized-string"), widgetId, localizedString, {
+  let widgetId = getIdFromIdOrSymbol(widgetIdOrSymbol)
+  let typedString = await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string, {
     cache,
     inactiveStatementIds,
     properties,
     userId,
   })
+  if (userId) {
+    // Set string as its own localization in given language.
+    let languageId = getIdFromSymbol(language)
+    await getOrNewProperty(typedString.id, languageId, typedString.id, 1, {
+      inactiveStatementIds,
+      userId,
+    })
+    // Do optimistic optimization.
+    properties = typedString.properties
+    let propertiesChanged = false
+    if (properties === null) {
+      typedString.properties = properties = {}
+    }
+    let valueIds = properties[languageId]
+    if (valueIds === undefined) {
+      properties[languageId] = typedString.id
+      propertiesChanged = true
+    } else if (Array.isArray(valueIds)) {
+      if (!valueIds.includes(typedString.id)) {
+        properties[languageId] = [...valueIds, typedString.id]
+        propertiesChanged = true
+      }
+    } else if (valueIds !== typedString.id) {
+      properties[languageId] = [valueIds, typedString.id]
+      propertiesChanged = true
+    }
+    if (propertiesChanged) {
+      await db.none(
+        `
+          UPDATE objects
+          SET properties = $<properties:json>
+          WHERE id = $<id>
+        `,
+        typedString,
+      )
+    }
+  }
+  return typedString
 }
 
 export async function getOrNewProperty(
@@ -876,11 +906,10 @@ export async function getOrNewProperty(
     if (inactiveStatementIds) inactiveStatementIds.delete(property.id)
   }
   if (properties) {
-    property.propertyByKeyId = {}
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      property.propertyByKeyId[keyId] = await getOrNewProperty(property.id, keyId, valueId, 1, {
+      await getOrNewProperty(property.id, keyId, valueId, 1, {
         inactiveStatementIds,
         userId,
       })
@@ -903,15 +932,6 @@ export async function getOrNewValue(
     cacheKey = JSON.stringify({ schemaId, type: "Value", value, widgetId })
     let cacheValue = cache[cacheKey]
     if (cacheValue !== undefined) return cacheValue
-  }
-
-  // Note: getOrNewValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
-  // possible to use function getIdFromSymbol("schema:localized-string").
-  let localizedStringSchemaId = idBySymbol["schema:localized-string"]
-  if (localizedStringSchemaId && schemaId === localizedStringSchemaId) {
-    // A localized string contains its value in its properties
-    if (!properties) properties = {}
-    Object.assign(properties, value)
   }
 
   let typedValue = await getValue(schemaId, widgetId, value)
@@ -948,11 +968,10 @@ export async function getOrNewValue(
     await generateObjectTextSearch(typedValue)
   }
   if (properties) {
-    typedValue.propertyByKeyId = {}
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      typedValue.propertyByKeyId[keyId] = await getOrNewProperty(typedValue.id, keyId, valueId, 1, {
+      await getOrNewProperty(typedValue.id, keyId, valueId, 1, {
         inactiveStatementIds,
         userId,
       })
@@ -979,12 +998,12 @@ export async function getSubTypeIdsFromProperties(properties) {
       let validSubTypeIds = new Set()
       for (let subTypeId of subTypeIds) {
         let subTypeTypedValue = await getObjectFromId(subTypeId)
-        if (subTypeTypedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
+        if (subTypeTypedValue.schemaId === getIdFromSymbol("schema:string")) {
           validSubTypeIds.add(subTypeId)
         } else if (subTypeTypedValue.schemaId === getIdFromSymbol("schema:ids-array")) {
           for (let itemId of subTypeTypedValue.value) {
             let typedItem = await getObjectFromId(itemId)
-            if (typedItem.schemaId === getIdFromSymbol("schema:localized-string")) {
+            if (typedItem.schemaId === getIdFromSymbol("schema:string")) {
               validSubTypeIds.add(itemId)
             }
           }
@@ -1011,12 +1030,12 @@ export async function getTagIdsFromProperties(properties) {
       let validTagIds = new Set()
       for (let tagId of tagIds) {
         let tagTypedValue = await getObjectFromId(tagId)
-        if (tagTypedValue.schemaId === getIdFromSymbol("schema:localized-string")) {
+        if (tagTypedValue.schemaId === getIdFromSymbol("schema:string")) {
           validTagIds.add(tagId)
         } else if (tagTypedValue.schemaId === getIdFromSymbol("schema:ids-array")) {
           for (let itemId of tagTypedValue.value) {
             let typedItem = await getObjectFromId(itemId)
-            if (typedItem.schemaId === getIdFromSymbol("schema:localized-string")) {
+            if (typedItem.schemaId === getIdFromSymbol("schema:string")) {
               validTagIds.add(itemId)
             }
           }
@@ -1030,25 +1049,20 @@ export async function getTagIdsFromProperties(properties) {
 }
 
 export async function getValue(schemaId, widgetId, value) {
-  // Note: getValue may be called before the ID of the symbol "schema:localized-string" is known. So it is not
-  // possible to use function getIdFromSymbol("schema:localized-string").
-  let localizedStringSchemaId = idBySymbol["schema:localized-string"]
-  let valueClause =
-    localizedStringSchemaId && schemaId === localizedStringSchemaId ? "value @> $<value:json>" : "value = $<value:json>"
   // Note: The ORDER BY objects.id LIMIT 1 is a tentative to reduce the number of used duplicate values.
   return entryToValue(
     await db.oneOrNone(
       `
-      SELECT objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed
-      FROM objects
-      INNER JOIN values ON objects.id = values.id
-      LEFT JOIN statements ON values.id = statements.id
-      LEFT JOIN symbols ON values.id = symbols.id
-      WHERE schema_id = $<schemaId>
-      AND ${valueClause}
-      ORDER BY objects.id
-      LIMIT 1
-    `,
+        SELECT objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed
+        FROM objects
+        INNER JOIN values ON objects.id = values.id
+        LEFT JOIN statements ON values.id = statements.id
+        LEFT JOIN symbols ON values.id = symbols.id
+        WHERE schema_id = $<schemaId>
+        AND value = $<value:json>
+        ORDER BY objects.id
+        LIMIT 1
+      `,
       {
         schemaId,
         value,
@@ -1114,11 +1128,10 @@ export async function newCard({ inactiveStatementIds = null, properties = null, 
     await rateStatement(card, userId, 1)
   }
   if (properties) {
-    card.propertyByKeyId = {}
     for (let [keyId, valueId] of Object.entries(properties)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
-      card.propertyByKeyId[keyId] = await getOrNewProperty(card.id, keyId, valueId, 1, { inactiveStatementIds, userId })
+      await getOrNewProperty(card.id, keyId, valueId, 1, { inactiveStatementIds, userId })
     }
   }
 
@@ -1502,14 +1515,6 @@ export async function toDataJson1(
 export async function toSchemaValueJson(schema, value) {
   if (schema.$ref === "/schemas/id") {
     return getIdOrSymbolFromId(value)
-  } else if (schema.$ref === "/schemas/localized-string") {
-    let stringByLanguage = {}
-    for (let [languageId, stringId] of Object.entries(value)) {
-      let language = getIdOrSymbolFromId(languageId)
-      let typedString = await getObjectFromId(stringId)
-      stringByLanguage[language] = typedString.value
-    }
-    return stringByLanguage
   } else if (schema.type === "array") {
     if (Array.isArray(schema.items)) {
       let valueJson = []
@@ -1541,7 +1546,6 @@ export async function toObjectJson(object, { showApiKey = false, showEmail = fal
       if (keySymbol !== keyId) delete properties[keyId]
     }
   }
-  delete objectJson.propertyByKeyId
   if (objectJson.subTypeIds) {
     objectJson.subTypeIds = object.subTypeIds.map(getIdOrSymbolFromId)
   }

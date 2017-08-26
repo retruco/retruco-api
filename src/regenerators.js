@@ -41,14 +41,14 @@ export async function regenerateArguments(statementId, argumentKeysId) {
 
   let entry = await db.one(
     `
-        SELECT count(properties.id) AS argument_count
-        FROM statements
-        INNER JOIN properties ON statements.id = properties.id
-        WHERE properties.object_id = $<statementId>
-        AND properties.key_id IN ($<argumentKeysId:csv>)
-        AND NOT statements.trashed
-        AND statements.rating_sum > 0
-      `,
+      SELECT count(properties.id) AS argument_count
+      FROM statements
+      INNER JOIN properties ON statements.id = properties.id
+      WHERE properties.object_id = $<statementId>
+      AND properties.key_id IN ($<argumentKeysId:csv>)
+      AND NOT statements.trashed
+      AND statements.rating_sum > 0
+    `,
     {
       argumentKeysId,
       statementId,
@@ -61,10 +61,10 @@ export async function regenerateArguments(statementId, argumentKeysId) {
   if (argumentCountChanged) {
     await db.none(
       `
-          UPDATE statements
-          SET argument_count = $<argumentCount>
-          WHERE id = $<id>
-        `,
+        UPDATE statements
+        SET argument_count = $<argumentCount>
+        WHERE id = $<id>
+      `,
       object,
     )
   }
@@ -89,7 +89,7 @@ export async function regeneratePropertiesItem(objectId, keyId, { quiet = false 
       AND NOT statements.trashed
       AND statements.rating_sum > 0
       ORDER BY statements.rating_sum DESC, objects.id DESC
-      `,
+    `,
     {
       keyId,
       objectId,
