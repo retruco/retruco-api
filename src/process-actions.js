@@ -35,9 +35,9 @@ import {
   entryToProperty,
 } from "./model"
 import { regenerateArguments, regeneratePropertiesItem } from "./regenerators"
-import { getIdFromSymbol } from "./symbols"
+import { getIdFromSymbol, debateKeySymbols } from "./symbols"
 
-let argumentKeysId = null // Set by processActions.
+let debateKeyIds = null // Set by processActions.
 let consId = null // Set by processActions.
 let prosId = null // Set by processActions.
 let trashedKeyId = null // Set by processActions.
@@ -206,13 +206,13 @@ async function processAction(action) {
         INNER JOIN properties ON statements.id = properties.id
         LEFT JOIN symbols ON properties.id = symbols.id
         WHERE properties.object_id = $<objectId>
-        AND properties.key_id IN ($<argumentKeysId:csv>)
+        AND properties.key_id IN ($<debateKeyIds:csv>)
         AND NOT statements.trashed
         AND statements.rating_sum > 0
         ORDER BY rating_sum DESC, created_at DESC
       `,
       {
-        argumentKeysId,
+        debateKeyIds,
         objectId: object.id,
       },
     )).map(entryToProperty)
@@ -295,8 +295,8 @@ async function processAction(action) {
         // Nothing to do yet.
       } else if (object.type === "Property") {
         await regeneratePropertiesItem(object.objectId, object.keyId)
-        if (argumentKeysId.includes(object.keyId)) {
-          await regenerateArguments(object.objectId, argumentKeysId)
+        if (debateKeyIds.includes(object.keyId)) {
+          await regenerateArguments(object.objectId, debateKeyIds)
         } else if (object.keyId === trashedKeyId) {
           await handleTrashedChange(object.objectId, ratingSum > 0)
         }
@@ -324,7 +324,7 @@ async function processAction(action) {
 async function processActions() {
   consId = getIdFromSymbol("cons")
   prosId = getIdFromSymbol("pros")
-  argumentKeysId = [consId, prosId]
+  debateKeyIds = debateKeySymbols.map(getIdFromSymbol)
   trashedKeyId = getIdFromSymbol("trashed")
 
   let processingActions = false

@@ -29,7 +29,7 @@ import { addAction, generateObjectTextSearch, getObjectFromId } from "./model"
 
 const matrixConfig = config.matrix
 
-export async function regenerateArguments(statementId, argumentKeysId) {
+export async function regenerateArguments(statementId, debateKeyIds) {
   let object = await getObjectFromId(statementId)
   assert.ok(object, `Missing objet at ID ${statementId}`)
   if (object.ratingSum === undefined) {
@@ -45,12 +45,12 @@ export async function regenerateArguments(statementId, argumentKeysId) {
       FROM statements
       INNER JOIN properties ON statements.id = properties.id
       WHERE properties.object_id = $<statementId>
-      AND properties.key_id IN ($<argumentKeysId:csv>)
+      AND properties.key_id IN ($<debateKeyIds:csv>)
       AND NOT statements.trashed
       AND statements.rating_sum > 0
     `,
     {
-      argumentKeysId,
+      debateKeyIds,
       statementId,
     },
   )

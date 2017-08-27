@@ -22,7 +22,7 @@ import assert from "assert"
 import pgPromiseFactory from "pg-promise"
 
 import config from "./config"
-import { symbols, idBySymbol, symbolById } from "./symbols"
+import { idBySymbol, symbolById, symbols } from "./symbols"
 
 const pgPromise = pgPromiseFactory()
 export const db = pgPromise({

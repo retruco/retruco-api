@@ -20,16 +20,14 @@
 
 import { checkDatabase, db } from "./database"
 import { regenerateArguments } from "./regenerators"
-import { getIdFromSymbol } from "./symbols"
+import { debateKeySymbols, getIdFromSymbol } from "./symbols"
 
 async function generateArguments() {
-  const consId = getIdFromSymbol("cons")
-  const prosId = getIdFromSymbol("pros")
-  const argumentKeysId = [consId, prosId]
+  const debateKeyIds = debateKeySymbols.map(getIdFromSymbol)
 
   let ids = (await db.any("SELECT id FROM statements")).map(entry => entry.id)
   for (let id of ids) {
-    await regenerateArguments(id, argumentKeysId)
+    await regenerateArguments(id, debateKeyIds)
   }
 
   process.exit(0)

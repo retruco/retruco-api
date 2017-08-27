@@ -20,6 +20,12 @@
 
 // import {schemaByPath} from "./schemas"
 
+export const debateKeySymbols = [
+  "cons",
+  "options",
+  "pros",
+  "sources",
+]
 export const idBySymbol = {}
 
 export const symbolizedTypedValues = [
@@ -493,8 +499,7 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
 
-
-  // Keys of non-language properties
+  // Keys of debate properties
 
   {
     symbol: "cons", // pros & cons
@@ -503,6 +508,30 @@ export const symbolizedTypedValues = [
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
+  {
+    symbol: "pros", // pros & cons
+    schemaSymbol: "schema:string",
+    value: "Pros", // For
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
+  },
+  {
+    symbol: "options", // Alternatives for consideration to a question
+    schemaSymbol: "schema:string",
+    value: "Options",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
+  },
+  {
+    symbol: "sources", // Sources for an affirmation or an argument.
+    schemaSymbol: "schema:string",
+    value: "Sources",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
+  },
+
+  // Keys of other properties
+
   {
     symbol: "description",
     schemaSymbol: "schema:string",
@@ -537,13 +566,6 @@ export const symbolizedTypedValues = [
     value: "Name",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
-  },
-  {
-    symbol: "pros", // pros & cons
-    schemaSymbol: "schema:string",
-    value: "Pros", // For
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
     symbol: "screenshot",
@@ -999,13 +1021,10 @@ const valueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
   return d
 }, {})
 
-// function clean(object) {
-//   // Clean up a schema or widget
-//   let clone = Object.assign({}, object)
-//   delete clone.description
-//   delete clone.title
-//   return clone
-// }
+export function generateDebateIdBySymbol() {
+  consId = debateIdBySymbol["cons"] = getIdFromSymbol("cons")
+  prosId = debateIdBySymbol["pros"] = getIdFromSymbol("pros")
+}
 
 export function getIdFromIdOrSymbol(idOrSymbol) {
   if (idOrSymbol === null) return null
