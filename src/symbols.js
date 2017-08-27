@@ -322,7 +322,7 @@ export const symbolizedTypedValues = [
     widgetSymbol: "widget:input-checkbox",
   },
 
-  // Keys of properties
+  // Keys of language properties
 
   {
     symbol: "en",
@@ -331,31 +331,10 @@ export const symbolizedTypedValues = [
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
-  {
-    symbol: "cons", // pros & cons
-    schemaSymbol: "schema:string",
-    value: "Cons", // Against
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
-  },
-  {
-    symbol: "description",
-    schemaSymbol: "schema:string",
-    value: "Description",
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:string", ["widget:textarea", "widget:input-text"]]],
-  },
-  {
+    {
     symbol: "bg",
     schemaSymbol: "schema:string",
     value: "Bulgarian Localization",
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
-  },
-  {
-    symbol: "hr",
-    schemaSymbol: "schema:string",
-    value: "Croatian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
@@ -374,9 +353,23 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
-    symbol: "nl",
+    symbol: "de",
     schemaSymbol: "schema:string",
-    value: "Dutch Localization",
+    value: "German Localization",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
+  },
+  {
+    symbol: "el",
+    schemaSymbol: "schema:string",
+    value: "Greek Localization",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
+  },
+  {
+    symbol: "es",
+    schemaSymbol: "schema:string",
+    value: "Spanish Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
@@ -402,23 +395,16 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
-    symbol: "de",
-    schemaSymbol: "schema:string",
-    value: "German Localization",
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
-  },
-  {
-    symbol: "el",
-    schemaSymbol: "schema:string",
-    value: "Greek Localization",
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
-  },
-  {
     symbol: "ga",
     schemaSymbol: "schema:string",
     value: "Irish Localization",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
+  },
+  {
+    symbol: "hr",
+    schemaSymbol: "schema:string",
+    value: "Croatian Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
@@ -458,6 +444,13 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
+    symbol: "nl",
+    schemaSymbol: "schema:string",
+    value: "Dutch Localization",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
+  },
+  {
     symbol: "pl",
     schemaSymbol: "schema:string",
     value: "Ploish Localization",
@@ -493,18 +486,29 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
   {
-    symbol: "es",
-    schemaSymbol: "schema:string",
-    value: "Spanish Localization",
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
-  },
-  {
     symbol: "sv",
     schemaSymbol: "schema:string",
     value: "Swedish Localization",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
+  },
+
+
+  // Keys of non-language properties
+
+  {
+    symbol: "cons", // pros & cons
+    schemaSymbol: "schema:string",
+    value: "Cons", // Against
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
+  },
+  {
+    symbol: "description",
+    schemaSymbol: "schema:string",
+    value: "Description",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:string", ["widget:textarea", "widget:input-text"]]],
   },
   {
     symbol: "license",
