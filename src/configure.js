@@ -774,21 +774,17 @@ async function configureDatabase() {
     languageSymbols.splice(languageSymbols.indexOf("en"), 1)
     languageSymbols.unshift("en")
 
-    while (true) {
-      let localizedString = await db.oneOrNone(
-        `
-          SELECT *
-          FROM values
-          WHERE schema_id = $<localizedStringSchemaId>
-          LIMIT 1
-        `,
-        {
-          localizedStringSchemaId,
-        },
-      )
-      if (localizedString === null) {
-        break
-      }
+    let localizedStrings = await db.any(
+      `
+        SELECT *
+        FROM values
+        WHERE schema_id = $<localizedStringSchemaId>
+      `,
+      {
+        localizedStringSchemaId,
+      },
+    )
+    for (let localizedString of localizedStrings) {
       for (let languageSymbol of languageSymbols) {
         let localizationProperty = await db.oneOrNone(
           `
@@ -800,7 +796,7 @@ async function configureDatabase() {
             AND object_id = $<objectId>
             ORDER BY rating_sum DESC, created_at DESC
             LIMIT 1
-          `,
+            `,
           {
             keyId: await getUpdatedIdForSymbol(languageSymbol),
             objectId: localizedString.id,
