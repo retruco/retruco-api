@@ -762,7 +762,7 @@ async function configureDatabase() {
     requiresPropertiesRegeneration = true
   }
 
-  if (versionNumber < 28) {
+  if (version.number < 28) {
     let idBySymbol = {}
     let results = await db.any("SELECT id, symbol FROM symbols")
     for (let { id, symbol } of results) {
