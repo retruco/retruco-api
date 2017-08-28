@@ -82,8 +82,7 @@ export async function collectGarbage() {
   console.log("Collecting garbage of incomplete values...")
   let entries = await db.any(
     `
-      SELECT
-        objects.id
+      SELECT objects.id
       FROM objects
       LEFT JOIN values ON objects.id = values.id
       LEFT JOIN statements ON objects.id = statements.id
@@ -115,8 +114,7 @@ export async function collectGarbage() {
   console.log("Collecting garbage of unused values...")
   let typedValues = (await db.any(
     `
-      SELECT
-        objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed
+      SELECT objects.*, values.*, argument_count, rating, rating_count, rating_sum, symbol, trashed
       FROM objects
       INNER JOIN values ON objects.id = values.id
       LEFT JOIN statements ON objects.id = statements.id
@@ -143,6 +141,22 @@ export async function collectGarbage() {
     await db.none("DELETE FROM objects WHERE id = $<id>", typedValue)
   }
   console.log("Garbage collection of unused values done.")
+
+  console.log("Collecting garbage of incomplete properties...")
+  entries = await db.any(
+    `
+      SELECT objects.id
+      FROM objects
+      LEFT JOIN properties ON objects.id = properties.id
+      WHERE objects.type = 'Property'
+      AND properties.id IS null
+    `,
+  )
+  for (let entry of entries) {
+    console.log(`  Deleting ${entry.id}...`)
+    await db.none("DELETE FROM objects WHERE id = $<id>", entry)
+  }
+  console.log("Garbage collection of incomplete properties done.")
 }
 
 export async function replaceId(oldId, newId, idBySymbol) {
