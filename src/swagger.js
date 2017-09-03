@@ -1935,6 +1935,9 @@ const SPEC = {
             $ref: "#/parameters/showParam",
           },
           {
+            $ref: "#/parameters/sortQueryParam",
+          },
+          {
             $ref: "#/parameters/termQueryParam",
           },
           {
@@ -2788,6 +2791,13 @@ const SPEC = {
         type: "string",
       },
       collectionFormat: "multi",
+    },
+    sortQueryParam: {
+      // description: "",
+      in: "query",
+      name: "sort",
+      type: "string",
+      enum: ["popular", "old", "recent", "trending"],
     },
     statementIdParam: {
       // description: "",

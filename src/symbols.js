@@ -20,12 +20,7 @@
 
 // import {schemaByPath} from "./schemas"
 
-export const debateKeySymbols = [
-  "cons",
-  "options",
-  "pros",
-  "sources",
-]
+export const debateKeySymbols = ["cons", "options", "pros", "sources"]
 export const idBySymbol = {}
 
 export const symbolizedTypedValues = [
@@ -337,7 +332,7 @@ export const symbolizedTypedValues = [
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:string", ["widget:input-text", "widget:textarea"]]],
   },
-    {
+  {
     symbol: "bg",
     schemaSymbol: "schema:string",
     value: "Bulgarian Localization",

@@ -309,6 +309,7 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
   let offset = req.query.offset || 0
   let rated = req.query.rated || false
   let show = req.query.show || []
+  let sort = req.query.sort
   let term = req.query.term
   let trashed = show.includes("trashed")
 
@@ -361,6 +362,10 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
     )).count,
   )
 
+  let orderByClause =
+    sort === "old"
+      ? "ORDER BY created_at ASC"
+      : sort === "popular" ? "ORDER BY rating_sum DESC, created_at DESC" : "ORDER BY created_at DESC"
   let values = (await db.any(
     `
       SELECT
@@ -370,14 +375,15 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
       ${rated ? "INNER" : "LEFT"} JOIN statements ON objects.id = statements.id
       LEFT JOIN symbols ON objects.id = symbols.id
       ${whereClause}
-      ORDER BY created_at DESC
+      ${orderByClause}
       LIMIT $<limit>
       OFFSET $<offset>
     `,
-    Object.assign({}, coreArguments, {
+    {
+      ...coreArguments,
       limit,
       offset,
-    }),
+    },
   )).map(entryToValue)
 
   res.json({
