@@ -159,18 +159,13 @@ swaggerMiddleware.init(
       objectsController.nextProperties,
     )
     app.get(
-      "/objects/:idOrSymbol/properties",
-      usersController.authenticate(false),
-      objectsController.requireObject,
-      objectsController.listObjectProperties,
-    )
-    app.get(
       "/objects/:idOrSymbol/properties/:keyIdOrSymbol",
       usersController.authenticate(false),
       objectsController.requireObject,
       objectsController.listObjectSameKeyProperties,
     )
 
+    app.get("/properties", usersController.authenticate(false), propertiesController.listProperties)
     app.post("/properties", usersController.authenticate(true), propertiesController.getOrCreateProperty)
     app.get("/properties/keys/autocomplete", propertiesController.autocompletePropertiesKeys)
 

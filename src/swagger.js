@@ -923,63 +923,6 @@ const SPEC = {
         // security: {},
       },
     },
-    "/objects/{idOrSymbol}/properties": {
-      get: {
-        tags: ["object", "property"],
-        summary: "List all or some properties of an existing object",
-        // description: "",
-        // externalDocs: {},
-        operationId: "objects.listObjectProperties",
-        // consumes: ["application/json"],
-        // produces: ["application/json"],
-        parameters: [
-          {
-            $ref: "#/parameters/idOrSymbolPathParam",
-          },
-          {
-            $ref: "#/parameters/depthParam",
-          },
-          {
-            $ref: "#/parameters/keyIdsOrSymbolsQueryParam",
-          },
-          {
-            $ref: "#/parameters/showParam",
-          },
-          {
-            $ref: "#/parameters/valueIdsOrSymbolsQueryParam",
-          },
-          {
-            $ref: "#/parameters/apiKeyOptionalParam",
-          },
-        ],
-        responses: {
-          "200": {
-            description: "A wrapper containing the requested properties",
-            schema: {
-              type: "object",
-              properties: {
-                apiVersion: {
-                  type: "string",
-                },
-                data: {
-                  $ref: "#/definitions/DataIdsList",
-                },
-              },
-              required: ["apiVersion", "data"],
-            },
-          },
-          default: {
-            description: "Error payload",
-            schema: {
-              $ref: "#/definitions/Error",
-            },
-          },
-        },
-        // deprecated: true,
-        // schemes: ["http", "https", "ws", "wss"],
-        // security: {},
-      },
-    },
     "/objects/{idOrSymbol}/properties/{keyIdOrSymbol}": {
       get: {
         tags: ["object", "property"],
@@ -1035,6 +978,61 @@ const SPEC = {
       },
     },
     "/properties": {
+      get: {
+        tags: ["object", "property"],
+        summary: "List all or some properties",
+        // description: "",
+        // externalDocs: {},
+        operationId: "properties.listProperties",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/depthParam",
+          },
+          {
+            $ref: "#/parameters/keyIdsOrSymbolsQueryParam",
+          },
+          {
+            $ref: "#/parameters/objectIdsOrSymbolsQueryParam",
+          },
+          {
+            $ref: "#/parameters/showParam",
+          },
+          {
+            $ref: "#/parameters/valueIdsOrSymbolsQueryParam",
+          },
+          {
+            $ref: "#/parameters/apiKeyOptionalParam",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "A wrapper containing the requested properties",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataIdsList",
+                },
+              },
+              required: ["apiVersion", "data"],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: {},
+      },
       post: {
         tags: ["property"],
         summary: "Create a new property or retrieve the existing one and return it",
@@ -2705,6 +2703,16 @@ const SPEC = {
       minimum: 1,
       name: "limit",
       type: "integer",
+    },
+    objectIdsOrSymbolsQueryParam: {
+      description: "Either an object ID or an object symbol for a property key",
+      in: "query",
+      name: "objectId",
+      type: "array",
+      items: {
+        type: "string",
+      },
+      collectionFormat: "multi",
     },
     offsetQueryParam: {
       // description: "",

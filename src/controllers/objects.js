@@ -20,65 +20,13 @@
 
 import { db } from "../database"
 import { entryToProperty, getObjectFromId, toDataJson, toObjectJson, wrapAsyncMiddleware } from "../model"
-import { getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId } from "../symbols"
+import { getIdFromIdOrSymbol, getIdOrSymbolFromId } from "../symbols"
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
   let show = req.query.show || []
   res.json({
     apiVersion: "1",
     data: await toDataJson(req.object, req.authenticatedUser, {
-      depth: req.query.depth || 0,
-      showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
-      showReferences: show.includes("references"),
-      showValues: show.includes("values"),
-    }),
-  })
-})
-
-export const listObjectProperties = wrapAsyncMiddleware(async function listObjectDebateProperties(req, res) {
-  let keyIds = (req.query.keyId || []).map(getIdFromIdOrSymbol).filter(id => id)
-  let objectId = req.object.id
-  let show = req.query.show || []
-  let trashed = show.includes("trashed")
-  let valueIds = (req.query.valueId || []).map(getIdFromIdOrSymbol).filter(id => id)
-
-  let whereClauses = ["properties.object_id = $<objectId>"]
-
-  if (!trashed) {
-    whereClauses.push("NOT statements.trashed")
-  }
-
-  if (keyIds.length > 0) {
-    whereClauses.push("properties.key_id IN ($<keyIds:csv>)")
-  }
-
-  if (valueIds.length > 0) {
-    whereClauses.push("properties.value_id IN ($<valueIds:csv>)")
-  }
-
-  let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
-
-  let debateProperties = (await db.any(
-    `
-      SELECT objects.*, statements.*, properties.*, symbol
-      FROM objects
-      INNER JOIN statements ON objects.id = statements.id
-      INNER JOIN properties ON statements.id = properties.id
-      LEFT JOIN symbols ON properties.id = symbols.id
-      ${whereClause}
-      ORDER BY rating_sum DESC, created_at DESC
-    `,
-    {
-      keyIds,
-      objectId,
-      valueIds,
-    },
-  )).map(entryToProperty)
-
-  res.json({
-    apiVersion: "1",
-    data: await toDataJson(debateProperties, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
       showProperties: show.includes("properties"),
