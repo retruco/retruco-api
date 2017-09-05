@@ -535,6 +535,13 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:textarea", "widget:input-text"]]],
   },
   {
+    symbol: "duplicate-of",
+    schemaSymbol: "schema:string",
+    value: "Duplicate of",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:id", ["widget:autocomplete"]]],
+  },
+  {
     symbol: "license",
     schemaSymbol: "schema:string",
     value: "License",
