@@ -33,25 +33,33 @@ import { getIdFromIdOrSymbol } from "../symbols"
 export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function autocompletePropertiesKeys(req, res) {
   let language = req.query.language
   let limit = req.query.limit || 20
-  let objectType = req.query.class || []
+  let objectType = req.query.class
   let subTypes = req.query.type || []
   let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
   let tags = req.query.tag || []
   let tagIds = tags.map(getIdFromIdOrSymbol).filter(tag => tag)
   let term = req.query.term
 
-  let whereClauses = ["parent_objects.type = $<objectType>"]
+  let useObject = false
+  let whereClauses = []
 
   if (language) {
     whereClauses.push("$<language> = ANY(languages_sets.languages)")
   }
 
+  if (objectType) {
+    whereClauses.push("parent_objects.type = $<objectType>")
+    useObject = true
+  }
+
   if (subTypeIds.length > 0) {
     whereClauses.push("parent_objects.sub_types && $<subTypeIds>")
+    useObject = true
   }
 
   if (tagIds.length > 0) {
     whereClauses.push("parent_objects.tags @> $<tagIds>")
+    useObject = true
   }
 
   let whereClause = whereClauses.length === 0 ? "" : "WHERE " + whereClauses.join(" AND ")
@@ -66,7 +74,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
       LEFT JOIN statements ON objects.id = statements.id
       INNER JOIN values_autocomplete ON values.id = values_autocomplete.id
       INNER JOIN languages_sets ON values_autocomplete.languages_set_id = languages_sets.id
-      INNER JOIN objects AS parent_objects ON properties.object_id = parent_objects.id
+      ${useObject ? "INNER JOIN objects AS parent_objects ON properties.object_id = parent_objects.id": ""}
       ${whereClause}
       GROUP BY objects.id, statements.id, values.id, values_autocomplete.autocomplete
       ORDER BY distance ASC, count(objects.id) DESC

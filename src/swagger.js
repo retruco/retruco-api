@@ -1091,7 +1091,7 @@ const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/classQueryRequiredParam",
+            $ref: "#/parameters/classQueryParam",
           },
           {
             $ref: "#/parameters/languageParam",
@@ -2623,11 +2623,10 @@ const SPEC = {
         required: ["cards", "key", "language"],
       },
     },
-    classQueryRequiredParam: {
+    classQueryParam: {
       // description: "",
       in: "query",
       name: "class",
-      required: true,
       type: "string",
       enum: types,
     },
