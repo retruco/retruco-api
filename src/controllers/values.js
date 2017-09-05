@@ -365,7 +365,9 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
   let orderByClause =
     sort === "old"
       ? "ORDER BY created_at ASC"
-      : sort === "popular" ? "ORDER BY rating_sum DESC, created_at DESC" : "ORDER BY created_at DESC"
+      : sort === "popular" ? "ORDER BY rating_sum DESC, created_at DESC"
+      : sort === "trending" ? "ORDER BY trending DESC"
+      : "ORDER BY created_at DESC"
   let values = (await db.any(
     `
       SELECT

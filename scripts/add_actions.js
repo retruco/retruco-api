@@ -20,28 +20,17 @@
 
 import commandLineArgs from "command-line-args"
 
-import { checkDatabase, db } from "../src/database"
-import { addAction } from "../src/model"
+import { checkDatabase } from "../src/database"
+import { regenerateActions } from "../src/regenerators"
 
-const optionsDefinition = [{ alias: "t", name: "type", type: String, multiple: true, defaultValue: [] }]
+const optionsDefinition = [
+  { alias: "r", name: "reset", type: Boolean, defaultValue: false },
+  { alias: "t", name: "type", type: String, multiple: true, defaultValue: [] },
+]
 const options = commandLineArgs(optionsDefinition)
 
 async function addActions() {
-  let whereClause = options.type.length === 0 ? "" : "WHERE type IN ($<types:csv>)"
-  let ids = (await db.any(
-    `
-      SELECT id
-      FROM objects
-      ${whereClause}
-    `,
-    {
-      types: options.type,
-    },
-  )).map(object => object.id)
-  for (let id of ids) {
-    await addAction(id, "properties")
-  }
-
+  await regenerateActions(options.type, options.reset ? "reset" : "update")
   process.exit(0)
 }
 

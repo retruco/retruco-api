@@ -24,7 +24,7 @@ import slugify from "slug"
 import config from "./config"
 import { db, versionNumber } from "./database"
 import { entryToValue, getValue, types } from "./model"
-import { regeneratePropertiesItem } from "./regenerators"
+import { regenerateActions, regeneratePropertiesItem } from "./regenerators"
 import { cleanupObjectsProperties, collectGarbage, replaceId } from "./repairs"
 import { getIdFromSymbol, symbolizedTypedValues, idBySymbol, symbolById } from "./symbols"
 
@@ -60,6 +60,7 @@ async function configureDatabase() {
   let requiresArgumentsRegeneration = false
   let requiresGarbageCollection = false
   let requiresPropertiesRegeneration = false
+  let requiresStatementsRegeneration = false
 
   if (version.number < 1) {
     // Remove non UNIQUE index to recreate it.
@@ -152,6 +153,18 @@ async function configureDatabase() {
         ON DELETE RESTRICT
       `,
     )
+  }
+  if (version.number < 29) {
+    await db.none("ALTER TABLE statements ADD COLUMN IF NOT EXISTS trending double precision NOT NULL DEFAULT 0")
+    console.log(
+      `
+        Database schema has changed and is not upgradable.
+        YOU MUST manually execute the following SQL commands:
+          DROP TABLE actions;
+          DROP TYPE event_type;
+      `,
+    )
+    requiresStatementsRegeneration = true
   }
 
   // Languages sets
@@ -372,10 +385,12 @@ async function configureDatabase() {
         rating double precision NOT NULL DEFAULT 0,
         rating_count integer NOT NULL DEFAULT 0,
         rating_sum integer NOT NULL DEFAULT 0,
-        trashed boolean NOT NULL DEFAULT FALSE
+        trashed boolean NOT NULL DEFAULT FALSE,
+        trending double precision NOT NULL DEFAULT 0
       )
     `,
   )
+  await db.none("CREATE INDEX IF NOT EXISTS statements_trending_idx ON statements(trending)")
 
   // Table: cards
   await db.none(
@@ -444,8 +459,8 @@ async function configureDatabase() {
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'event_type') THEN
           CREATE TYPE event_type AS ENUM (
-            'properties',
-            'rating'
+            'reset',
+            'update'
           );
         END IF;
       END$$
@@ -852,6 +867,10 @@ async function configureDatabase() {
 
   if (requiresGarbageCollection) {
     await collectGarbage()
+  }
+
+  if (requiresStatementsRegeneration) {
+    await regenerateActions(["Card", "Property", "Value"], "reset")
   }
 }
 

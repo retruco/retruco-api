@@ -1200,7 +1200,7 @@ export async function rateStatementId(statementId, voterId, rating) {
       ballot,
     )
     ballot.updatedAt = result.updated_at
-    await addAction(statementId, "rating")
+    await addAction(statementId, "update")
   } else if (rating !== oldBallot.rating) {
     let result = await db.one(
       `UPDATE ballots
@@ -1210,7 +1210,7 @@ export async function rateStatementId(statementId, voterId, rating) {
       ballot,
     )
     ballot.updatedAt = result.updated_at
-    await addAction(statementId, "rating")
+    await addAction(statementId, "update")
   } else {
     ballot = oldBallot
   }
@@ -1638,7 +1638,7 @@ export async function unrateStatementId(statementId, voterId) {
   )
   if (oldBallot !== null) {
     await db.none("DELETE FROM ballots WHERE statement_id = $<statementId> AND voter_id = $<voterId>", ballot)
-    await addAction(statementId, "rating")
+    await addAction(statementId, "update")
   }
   return oldBallot
 }

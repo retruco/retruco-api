@@ -41,6 +41,7 @@ let debateKeyIds = null // Set by processActions.
 let consId = null // Set by processActions.
 let prosId = null // Set by processActions.
 let trashedKeyId = null // Set by processActions.
+const trendingStartTime = new Date(2016, 12, 1) / 1000
 
 async function handleTrashedChange(objectId, trashed) {
   let object = await getObjectFromId(objectId)
@@ -135,7 +136,7 @@ async function processAction(action) {
     })
     contentChanged = true
     textSearchUpdateNeeded = true
-    // await addAction(object.id, "value")  TODO?
+    // await addAction(object.id, "update")  TODO?
   }
 
   // Compute object usage tags for OGP toolbox tools.
@@ -166,7 +167,7 @@ async function processAction(action) {
     })
     contentChanged = true
     textSearchUpdateNeeded = true
-    // await addAction(object.id, "value")  TODO?
+    // await addAction(object.id, "update")  TODO?
   }
 
   // Compute object tags from properties.
@@ -183,7 +184,7 @@ async function processAction(action) {
     })
     contentChanged = true
     textSearchUpdateNeeded = true
-    // await addAction(object.id, "value")  TODO?
+    // await addAction(object.id, "update")  TODO?
   }
 
   if (object.ratingSum !== undefined) {
@@ -255,7 +256,7 @@ async function processAction(action) {
       ratingSum += ogpToolboxScore
     }
 
-    if (ratingCount != object.ratingCount || ratingSum != object.ratingSum) {
+    if (action.type === "reset" || ratingCount != object.ratingCount || ratingSum != object.ratingSum) {
       // Save statement rating.
       let rating
       if (ratingCount === 0) {
@@ -263,37 +264,44 @@ async function processAction(action) {
           rating: 0,
           ratingCount: 0,
           ratingSum: 0,
+          trending: 0,
         })
         await db.none(
           `
             UPDATE statements
-            SET rating = DEFAULT, rating_count = DEFAULT, rating_sum = DEFAULT
+            SET rating = DEFAULT, rating_count = DEFAULT, rating_sum = DEFAULT, trending = DEFAULT
             WHERE id = $<id>
           `,
           object,
         )
       } else {
         rating = ratingSum / ratingCount
+
+        // Compute trending rating using Reddit formula.
+        // Cf https://moz.com/blog/reddit-stumbleupon-delicious-and-hacker-news-algorithms-exposed
+        let trending =
+          Math.log10(Math.max(ratingSum, 1)) +
+          Math.sign(ratingSum) * (object.createdAt / 1000 - trendingStartTime) / 45000
+
         Object.assign(object, {
           rating,
           ratingCount,
           ratingSum,
+          trending,
         })
         await db.none(
           `
-            INSERT INTO statements(id, rating, rating_count, rating_sum)
-            VALUES ($<id>, $<rating>, $<ratingCount>, $<ratingSum>)
+            INSERT INTO statements(id, rating, rating_count, rating_sum, trending)
+            VALUES ($<id>, $<rating>, $<ratingCount>, $<ratingSum>, $<trending>)
             ON CONFLICT (id)
             DO UPDATE
-            SET rating = $<rating>, rating_count = $<ratingCount>, rating_sum = $<ratingSum>
+            SET rating = $<rating>, rating_count = $<ratingCount>, rating_sum = $<ratingSum>, trending = $<trending>
           `,
           object,
         )
       }
 
-      if (object.type === "Card") {
-        // Nothing to do yet.
-      } else if (object.type === "Property") {
+      if (object.type === "Property") {
         await regeneratePropertiesItem(object.objectId, object.keyId)
         if (debateKeyIds.includes(object.keyId)) {
           await regenerateArguments(object.objectId, debateKeyIds)
@@ -314,7 +322,7 @@ async function processAction(action) {
   }
 
   if (contentChanged) {
-    // Propagate rating change to every reference of object.
+    // Propagate change of computed attributes to every reference of object.
     for (let referencedId of referencedIds) {
       addAction(referencedId, action.type)
     }

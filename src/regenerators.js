@@ -29,6 +29,23 @@ import { addAction, generateObjectTextSearch, getObjectFromId } from "./model"
 
 const matrixConfig = config.matrix
 
+export async function regenerateActions(types, actionType) {
+  let whereClause = types.length === 0 ? "" : "WHERE type IN ($<types:csv>)"
+  let ids = (await db.any(
+    `
+      SELECT id
+      FROM objects
+      ${whereClause}
+    `,
+    {
+      types,
+    },
+  )).map(object => object.id)
+  for (let id of ids) {
+    await addAction(id, actionType)
+  }
+}
+
 export async function regenerateArguments(statementId, debateKeyIds) {
   let object = await getObjectFromId(statementId)
   assert.ok(object, `Missing objet at ID ${statementId}`)
@@ -128,7 +145,7 @@ export async function regeneratePropertiesItem(objectId, keyId, { quiet = false 
       object,
     )
     await generateObjectTextSearch(object)
-    await addAction(object.id, "properties")
+    await addAction(object.id, "update")
 
     if (!quiet && matrixConfig !== null) {
       fetch(
