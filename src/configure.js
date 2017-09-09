@@ -855,7 +855,7 @@ async function configureDatabase() {
         console.log(`  Regenerating properties of object ${entry.object_id}...`)
         previousObjectId = entry.object_id
       }
-      await regeneratePropertiesItem(entry.object_id, entry.key_id, { quiet: true })
+      await regeneratePropertiesItem(entry.object_id, entry.key_id)
     }
     requiresGarbageCollection = true
     console.log("All properties have been regenerated.")

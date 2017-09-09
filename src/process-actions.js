@@ -22,6 +22,7 @@ import assert from "assert"
 import deepEqual from "deep-equal"
 
 import { checkDatabase, db, dbSharedConnectionObject } from "./database"
+import { sendMatrixMessage } from "./matrix"
 import {
   addAction,
   addReferences,
@@ -60,6 +61,7 @@ async function handleTrashedChange(objectId, trashed) {
       `,
       object,
     )
+    sendMatrixMessage(`${await describe(object)} has been ${trashed ? "" : "un"}trashed.`)
   }
 }
 
@@ -258,6 +260,10 @@ async function processAction(action) {
 
     if (action.type === "reset" || ratingCount != object.ratingCount || ratingSum != object.ratingSum) {
       // Save statement rating.
+      if (action.type !== "reset") {
+        sendMatrixMessage(`${await describe(object)} rating has changed from ${object.ratingSum}/${object.ratingCount
+        } to ${ratingSum}/${ratingCount}.`)
+      }
       let rating
       if (ratingCount === 0) {
         Object.assign(object, {

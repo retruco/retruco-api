@@ -20,14 +20,9 @@
 
 import assert from "assert"
 import deepEqual from "deep-equal"
-import fetch from "node-fetch"
-import https from "https"
 
-import config from "./config"
 import { db } from "./database"
 import { addAction, generateObjectTextSearch, getObjectFromId } from "./model"
-
-const matrixConfig = config.matrix
 
 export async function regenerateActions(types, actionType) {
   let whereClause = types.length === 0 ? "" : "WHERE type IN ($<types:csv>)"
@@ -87,7 +82,7 @@ export async function regenerateArguments(statementId, debateKeyIds) {
   }
 }
 
-export async function regeneratePropertiesItem(objectId, keyId, { quiet = false } = {}) {
+export async function regeneratePropertiesItem(objectId, keyId) {
   let object = await getObjectFromId(objectId)
   assert.ok(object, `Missing objet at ID ${objectId}`)
 
@@ -146,30 +141,5 @@ export async function regeneratePropertiesItem(objectId, keyId, { quiet = false 
     )
     await generateObjectTextSearch(object)
     await addAction(object.id, "update")
-
-    if (!quiet && matrixConfig !== null) {
-      fetch(
-        matrixConfig.serverUrl +
-          "/_matrix/client/r0/rooms/" +
-          encodeURIComponent(matrixConfig.roomId) +
-          "/send/m.room.message?access_token=" +
-          matrixConfig.accessToken,
-        {
-          agent: new https.Agent({
-            rejectUnauthorized: matrixConfig.rejectUnauthorized === undefined ? true : matrixConfig.rejectUnauthorized,
-          }),
-          body: JSON.stringify({
-            body: `${object.type} ${object.id} has been modified.`,
-            msgtype: "m.text",
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        },
-      )
-      // .then(res => res.json())
-      // .then(json => console.log(json))
-    }
   }
 }
