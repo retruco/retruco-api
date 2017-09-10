@@ -40,8 +40,8 @@ import { regenerateArguments, regeneratePropertiesItem } from "./regenerators"
 import { getIdFromSymbol, debateKeySymbols } from "./symbols"
 
 let debateKeyIds = null // Set by processActions.
-let consId = null // Set by processActions.
-let prosId = null // Set by processActions.
+let conId = null // Set by processActions.
+let proId = null // Set by processActions.
 let trashedKeyId = null // Set by processActions.
 const trendingStartTime = new Date(2016, 12, 1) / 1000
 
@@ -226,7 +226,7 @@ async function processAction(action) {
       if (argumentGround !== null && argumentGround.ratingSum !== undefined && argumentGround.ratingSum > 0) {
         ratingCount += debateProperty.ratingCount
         ratingSum +=
-          (debateProperty.keyId === consId ? -1 : debateProperty.keyId === prosId ? 1 : 0) * debateProperty.ratingSum
+          (debateProperty.keyId === conId ? -1 : debateProperty.keyId === proId ? 1 : 0) * debateProperty.ratingSum
       }
     }
 
@@ -337,8 +337,8 @@ async function processAction(action) {
 }
 
 async function processActions() {
-  consId = getIdFromSymbol("cons")
-  prosId = getIdFromSymbol("pros")
+  conId = getIdFromSymbol("con")
+  proId = getIdFromSymbol("pro")
   debateKeyIds = debateKeySymbols.map(getIdFromSymbol)
   trashedKeyId = getIdFromSymbol("trashed")
 

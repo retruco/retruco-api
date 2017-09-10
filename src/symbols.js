@@ -20,7 +20,7 @@
 
 // import {schemaByPath} from "./schemas"
 
-export const debateKeySymbols = ["cons", "options", "pros", "sources"]
+export const debateKeySymbols = ["con", "option", "pro", "remark", "source"]
 export const idBySymbol = {}
 
 export const symbolizedTypedValues = [
@@ -497,30 +497,37 @@ export const symbolizedTypedValues = [
   // Keys of debate properties
 
   {
-    symbol: "cons", // pros & cons
+    symbol: "con", // pros & cons
     schemaSymbol: "schema:string",
-    value: "Cons", // Against
+    value: "Con", // Against
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
-    symbol: "pros", // pros & cons
+    symbol: "pro", // pros & cons
     schemaSymbol: "schema:string",
-    value: "Pros", // For
+    value: "Pro", // For
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
-    symbol: "options", // Alternatives for consideration to a question
+    symbol: "option", // Alternatives for consideration to a question
     schemaSymbol: "schema:string",
-    value: "Options",
+    value: "Option",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
   {
-    symbol: "sources", // Sources for an affirmation or an argument.
+    symbol: "remark",
     schemaSymbol: "schema:string",
-    value: "Sources",
+    value: "Remark",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
+  },
+  {
+    symbol: "source", // Sources for an affirmation or an argument.
+    schemaSymbol: "schema:string",
+    value: "Source",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
@@ -1022,11 +1029,6 @@ const valueBySymbol = symbolizedTypedValues.reduce((d, typedValue) => {
   d[typedValue.symbol] = typedValue.value
   return d
 }, {})
-
-export function generateDebateIdBySymbol() {
-  consId = debateIdBySymbol["cons"] = getIdFromSymbol("cons")
-  prosId = debateIdBySymbol["pros"] = getIdFromSymbol("pros")
-}
 
 export function getIdFromIdOrSymbol(idOrSymbol) {
   if (idOrSymbol === null) return null
