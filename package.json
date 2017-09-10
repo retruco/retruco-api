@@ -21,7 +21,8 @@
     "pg-promise": "^6.3.5",
     "quickthumb": "0.0.12",
     "slug": "^0.9.1",
-    "swagger-express-middleware": "^1.0.0-alpha.12"
+    "swagger-express-middleware": "^1.0.0-alpha.12",
+    "url-join": "^2.0.2"
   },
   "devDependencies": {
     "babel-cli": "^6.16.0",

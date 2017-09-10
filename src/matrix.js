@@ -39,6 +39,8 @@ export function sendMatrixMessage(text) {
         }),
         body: JSON.stringify({
           body: text,
+          format: "org.matrix.custom.html",
+          formatted_body: text,
           msgtype: "m.text",
         }),
         headers: {

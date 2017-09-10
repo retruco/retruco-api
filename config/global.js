@@ -100,6 +100,9 @@ export default {
         rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED || false,  // Accept self-signed certificates.
     },
   },
-  title: process.env.RTAPI_TITLE ||"Retruco-API",
+  title: process.env.RTAPI_TITLE || "Retruco-API",
+  ui: {
+    url: "http://localhost:3001",
+  },
   uploads: path.normalize(path.join(__dirname, "..", "uploads")),
 }

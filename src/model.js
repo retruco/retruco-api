@@ -19,6 +19,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import assert from "assert"
+import urlJoin from "url-join"
 
 import config from "./config"
 import { db } from "./database"
@@ -267,6 +268,35 @@ export async function describe(object) {
   } else {
     return `object @${object.id} of unknown type ${type}`
   }
+}
+
+export async function describeHtml(object, {withLink = true} = {}) {
+  if (object === null) return "<i>Missing object</i>"
+  let description
+  const type = object.type
+  if (type === "Card") {
+    description = `<i>Card</i> @${object.id}`
+  } else if (type === "Property") {
+    const keyDescription = await describeHtml(await getObjectFromId(object.keyId), {withLink: false})
+    const objectDescription = await describeHtml(await getObjectFromId(object.objectId), {withLink: false})
+    const valueDescription = await describeHtml(await getObjectFromId(object.valueId), {withLink: false})
+    description = `<i>Property</i> ${objectDescription}: ${keyDescription} = ${valueDescription}`
+  } else if (type === "User") {
+    description = `<i>User</i> @${object.id}  ${object.name} <${object.email}>`
+  } else if (type === "Value") {
+    let typedSchema = await getObjectFromId(object.schemaId)
+    let valueJson = await toSchemaValueJson(typedSchema.value, object.value)
+    description = `${JSON.stringify(valueJson)}`
+  } else {
+    description = `<i>Object</i> @${object.id} of unknown type ${type}`
+    withLink = false
+  }
+  if (withLink) {
+    let objectsUrlName = type === "Card" ? "cards" : type === "Property" ? "properties" : "values"
+    let url = urlJoin(config.ui.url, "en", objectsUrlName, object.id)
+    description = `<a href="${url}">${description}</a>`
+  }
+  return description
 }
 
 export function entryToAction(entry) {
