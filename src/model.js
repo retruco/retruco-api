@@ -270,16 +270,16 @@ export async function describe(object) {
   }
 }
 
-export async function describeHtml(object, {withLink = true} = {}) {
+export async function describeHtml(object, { withLink = true } = {}) {
   if (object === null) return "<i>Missing object</i>"
   let description
   const type = object.type
   if (type === "Card") {
     description = `<i>Card</i> @${object.id}`
   } else if (type === "Property") {
-    const keyDescription = await describeHtml(await getObjectFromId(object.keyId), {withLink: false})
-    const objectDescription = await describeHtml(await getObjectFromId(object.objectId), {withLink: false})
-    const valueDescription = await describeHtml(await getObjectFromId(object.valueId), {withLink: false})
+    const keyDescription = await describeHtml(await getObjectFromId(object.keyId), { withLink: false })
+    const objectDescription = await describeHtml(await getObjectFromId(object.objectId), { withLink: false })
+    const valueDescription = await describeHtml(await getObjectFromId(object.valueId), { withLink: false })
     description = `<i>Property</i> ${objectDescription}: ${keyDescription} = ${valueDescription}`
   } else if (type === "User") {
     description = `<i>User</i> @${object.id}  ${object.name} <${object.email}>`

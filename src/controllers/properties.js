@@ -74,7 +74,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
       LEFT JOIN statements ON objects.id = statements.id
       INNER JOIN values_autocomplete ON values.id = values_autocomplete.id
       INNER JOIN languages_sets ON values_autocomplete.languages_set_id = languages_sets.id
-      ${useObject ? "INNER JOIN objects AS parent_objects ON properties.object_id = parent_objects.id": ""}
+      ${useObject ? "INNER JOIN objects AS parent_objects ON properties.object_id = parent_objects.id" : ""}
       ${whereClause}
       GROUP BY objects.id, statements.id, values.id, values_autocomplete.autocomplete
       ORDER BY distance ASC, count(objects.id) DESC
