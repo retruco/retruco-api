@@ -39,32 +39,13 @@ import {
 import { regenerateArguments, regeneratePropertiesItem } from "./regenerators"
 import { getIdFromSymbol, debateKeySymbols } from "./symbols"
 
-let debateKeyIds = null // Set by processActions.
-let conId = null // Set by processActions.
-let proId = null // Set by processActions.
-let trashedKeyId = null // Set by processActions.
+let conAndProKeyIds = null // Set by processActions
+let debateKeyIds = null // Set by processActions
+let conId = null // Set by processActions
+let proId = null // Set by processActions
+let trashedKeyId = null // Set by processActions
+let trueId = null // Set by processActions
 const trendingStartTime = new Date(2016, 12, 1) / 1000
-
-async function handleTrashedChange(objectId, trashed) {
-  let object = await getObjectFromId(objectId)
-  assert.ok(object, `Missing objet at ID ${objectId}`)
-  if (object.trashed === undefined) {
-    // object is not a statement (aka not a rated object) => It has no trashed flag.
-    return
-  }
-  if (trashed !== object.trashed) {
-    object.trashed = trashed
-    await db.none(
-      `
-        UPDATE statements
-        SET trashed = $<trashed>
-        WHERE id = $<id>
-      `,
-      object,
-    )
-    sendMatrixMessage(`${await describeHtml(object)} has been ${trashed ? "" : "un"}trashed.`)
-  }
-}
 
 async function processAction(action) {
   // TODO: action.type is not handled. It should be removed.
@@ -190,6 +171,8 @@ async function processAction(action) {
     // await addAction(object.id, "update")  TODO?
   }
 
+  let ratingChanged = false
+  let trashedChanged = false
   if (object.ratingSum !== undefined) {
     // object is a statement (aka a rated object)
     // Compute statement rating.
@@ -202,7 +185,7 @@ async function processAction(action) {
       ratingCount += 1
       if (ballot.rating) ratingSum += ballot.rating
     }
-    let debateProperties = (await db.any(
+    let conAndPropProperties = (await db.any(
       `
         SELECT objects.*, statements.*, properties.*, symbol
         FROM objects
@@ -210,24 +193,20 @@ async function processAction(action) {
         INNER JOIN properties ON statements.id = properties.id
         LEFT JOIN symbols ON properties.id = symbols.id
         WHERE properties.object_id = $<objectId>
-        AND properties.key_id IN ($<debateKeyIds:csv>)
+        AND properties.key_id IN ($<conAndProKeyIds:csv>)
         AND NOT statements.trashed
         AND statements.rating_sum > 0
         ORDER BY rating_sum DESC, created_at DESC
       `,
       {
-        debateKeyIds,
+        conAndProKeyIds,
         objectId: object.id,
       },
     )).map(entryToProperty)
-    for (let debateProperty of debateProperties) {
-      // Ignore arguments whose ground has a negative or null rating.
-      let argumentGround = await getObjectFromId(debateProperty.valueId)
-      if (argumentGround !== null && argumentGround.ratingSum !== undefined && argumentGround.ratingSum > 0) {
-        ratingCount += debateProperty.ratingCount
-        ratingSum +=
-          (debateProperty.keyId === conId ? -1 : debateProperty.keyId === proId ? 1 : 0) * debateProperty.ratingSum
-      }
+    for (let debateProperty of conAndPropProperties) {
+      ratingCount += debateProperty.ratingCount
+      ratingSum +=
+        (debateProperty.keyId === conId ? -1 : debateProperty.keyId === proId ? 1 : 0) * debateProperty.ratingSum
     }
 
     if (object.type === "Card") {
@@ -257,14 +236,27 @@ async function processAction(action) {
       ogpToolboxScore = Math.round(ogpToolboxScore)
       ratingCount += ogpToolboxScore
       ratingSum += ogpToolboxScore
+    } else if (object.type == "Property") {
+      // When property is a pro or con and its ground (aka its value) is not valid, the property is also not valid.
+      if (conAndProKeyIds.includes(object.keyId)) {
+        let ground = await getObjectFromId(object.valueId)
+        if (ground === null || ground.trashed || ground.ratingSum === undefined || ground.ratingSum <= 0) {
+          ratingSum = 0
+        }
+      }
     }
 
     if (action.type === "reset" || ratingCount != object.ratingCount || ratingSum != object.ratingSum) {
-      // Save statement rating.
+      ratingChanged = true
+
       if (action.type !== "reset") {
-        sendMatrixMessage(`${await describeHtml(object)} rating has changed from ${object.ratingSum}/${
-          object.ratingCount} to ${ratingSum}/${ratingCount}.`)
+        sendMatrixMessage(
+          `${await describeHtml(
+            object,
+          )} rating has changed from ${object.ratingSum}/${object.ratingCount} to ${ratingSum}/${ratingCount}.`,
+        )
       }
+
       let rating
       if (ratingCount === 0) {
         Object.assign(object, {
@@ -312,15 +304,46 @@ async function processAction(action) {
         await regeneratePropertiesItem(object.objectId, object.keyId)
         if (debateKeyIds.includes(object.keyId)) {
           await regenerateArguments(object.objectId, debateKeyIds)
-        } else if (object.keyId === trashedKeyId) {
-          await handleTrashedChange(object.objectId, ratingSum > 0)
         }
       }
+    }
 
-      // Propagate rating change to every objects referenced or referencing current object.
-      for (let referenceId of referenceIds) {
-        addAction(referenceId, action.type)
-      }
+    // Compute trashed attribute.
+    let trashedProperty = entryToProperty(
+      await db.oneOrNone(
+        `
+        SELECT objects.*, statements.*, properties.*, symbol
+        FROM objects
+        INNER JOIN statements ON objects.id = statements.id
+        INNER JOIN properties ON statements.id = properties.id
+        LEFT JOIN symbols ON properties.id = symbols.id
+        WHERE properties.object_id = $<objectId>
+        AND properties.key_id = $<trashedKeyId>
+        AND properties.value_id = $<trueId>
+        AND NOT statements.trashed
+        AND statements.rating_sum > 0
+        LIMIT 1
+      `,
+        {
+          trashedKeyId,
+          trueId,
+          objectId: object.id,
+        },
+      ),
+    )
+    let trashed = trashedProperty !== null
+    if (trashed !== object.trashed) {
+      trashedChanged = true
+      object.trashed = trashed
+      await db.none(
+        `
+          UPDATE statements
+          SET trashed = $<trashed>
+          WHERE id = $<id>
+        `,
+        object,
+      )
+      sendMatrixMessage(`${await describeHtml(object)} has been ${trashed ? "" : "un"}trashed.`)
     }
   }
 
@@ -328,8 +351,16 @@ async function processAction(action) {
     await generateObjectTextSearch(object)
   }
 
-  if (contentChanged) {
-    // Propagate change of computed attributes to every reference of object.
+  if (ratingChanged || trashedChanged) {
+    // Propagate to every objects referenced by or referencing current object.
+    for (let referenceId of referenceIds) {
+      addAction(referenceId, action.type)
+    }
+    if (object.type === "Property") {
+      addAction(object.objectId, action.type)
+    }
+  } else if (contentChanged) {
+    // Propagate change to every reference of object.
     for (let referencedId of referencedIds) {
       addAction(referencedId, action.type)
     }
@@ -339,8 +370,10 @@ async function processAction(action) {
 async function processActions() {
   conId = getIdFromSymbol("con")
   proId = getIdFromSymbol("pro")
+  conAndProKeyIds = [conId, proId]
   debateKeyIds = debateKeySymbols.map(getIdFromSymbol)
   trashedKeyId = getIdFromSymbol("trashed")
+  trueId = getIdFromSymbol("true")
 
   let processingActions = false
 

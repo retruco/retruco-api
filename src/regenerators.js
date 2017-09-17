@@ -86,7 +86,7 @@ export async function regeneratePropertiesItem(objectId, keyId) {
   let object = await getObjectFromId(objectId)
   assert.ok(object, `Missing objet at ID ${objectId}`)
 
-  // Retrieve all the valid properties of the card having the same key.
+  // Retrieve all the valid properties of the given object having the given key.
   let valueIds = (await db.any(
     `
       SELECT values.id as value_id
