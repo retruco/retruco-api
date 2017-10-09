@@ -259,12 +259,13 @@ async function processAction(action) {
 
       let rating
       if (ratingCount === 0) {
-        Object.assign(object, {
+        object = {
+          ...object,
           rating: 0,
           ratingCount: 0,
           ratingSum: 0,
           trending: 0,
-        })
+        }
         await db.none(
           `
             UPDATE statements
@@ -282,12 +283,13 @@ async function processAction(action) {
           Math.log10(Math.max(ratingSum, 1)) +
           Math.sign(ratingSum) * (object.createdAt / 1000 - trendingStartTime) / 45000
 
-        Object.assign(object, {
+        object = {
+          ...object,
           rating,
           ratingCount,
           ratingSum,
           trending,
-        })
+        }
         await db.none(
           `
             INSERT INTO statements(id, rating, rating_count, rating_sum, trending)

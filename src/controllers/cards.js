@@ -726,9 +726,9 @@ async function getOrNewTypedValueFromBundleField(
         if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
         attributeWarnings[String(index)] = `Unknown key "${item}" for referenced card`
 
-        schema = Object.assign({}, schema)
+        schema = {...schema}
         if (Array.isArray(schema.items)) schema.items = [...schema.items]
-        else schema.items = value.map(() => Object.assign({}, schema.items))
+        else schema.items = value.map(() => ({...schema.items}))
         schema.items[index] = { type: "string" }
         // TODO: Change widget.
       } else {
@@ -904,10 +904,11 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       LIMIT $<limit>
       OFFSET $<offset>
     `,
-    Object.assign({}, coreArguments, {
+    {
+      ...coreArguments,
       limit,
       offset,
-    }),
+    },
   )).map(entryToCard)
 
   res.json({
@@ -974,10 +975,11 @@ export const listTagsPopularity = wrapAsyncMiddleware(async function listTagsPop
       LIMIT $<limit>
       OFFSET $<offset>
     `,
-    Object.assign({}, coreArguments, {
+    {
+      ...coreArguments,
       limit,
       offset,
-    }),
+    },
   ))
     .filter(entry => !tagIds.includes(entry.tag))
     .map(entry => ({
@@ -1106,10 +1108,11 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
         LIMIT $<limit>
         OFFSET $<offset>
       `,
-      Object.assign({}, coreArguments, {
+      {
+        ...coreArguments,
         limit,
         offset,
-      }),
+      },
     )
   } else {
     coreArguments = {
@@ -1147,10 +1150,11 @@ export const listTagsPopularityOgp = wrapAsyncMiddleware(async function listTags
         LIMIT $<limit>
         OFFSET $<offset>
       `,
-      Object.assign({}, coreArguments, {
+      {
+        ...coreArguments,
         limit,
         offset,
-      }),
+      },
     )
   }
 

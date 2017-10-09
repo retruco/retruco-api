@@ -30,7 +30,7 @@ export const activatorUser = {
   find: function(id, callback) {
     db
       .oneOrNone(
-        `
+      `
         SELECT * FROM objects
         INNER JOIN users ON objects.id = users.id
         WHERE objects.id = $1

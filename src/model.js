@@ -323,17 +323,18 @@ export function entryToBallot(entry) {
 }
 
 export function entryToCard(entry) {
-  return entry === null ? null : Object.assign({}, entryToStatement(entry))
+  return entry === null ? null : {...entryToStatement(entry)}
 }
 
 export function entryToProperty(entry) {
   return entry === null
     ? null
-    : Object.assign({}, entryToStatement(entry), {
+    : {
+        ...entryToStatement(entry),
         keyId: entry.key_id,
         objectId: entry.object_id,
         valueId: entry.value_id,
-      })
+      }
 }
 
 export function entryToObject(entry) {
@@ -354,31 +355,34 @@ export function entryToObject(entry) {
 export function entryToOptionalStatement(entry) {
   return entry === null
     ? null
-    : Object.assign({}, entryToObject(entry), {
+    : {
+        ...entryToObject(entry),
         argumentCount: parseInt(entry.argument_count || "0"),
         rating: parseFloat(entry.rating || "0"),
         ratingCount: parseInt(entry.rating_count || "0"),
         ratingSum: parseInt(entry.rating_sum || "0"),
         trashed: entry.trashed || false,
-      })
+      }
 }
 
 export function entryToStatement(entry) {
   return entry === null
     ? null
-    : Object.assign({}, entryToObject(entry), {
+    : {
+        ...entryToObject(entry),
         argumentCount: parseInt(entry.argument_count),
         rating: parseFloat(entry.rating),
         ratingCount: parseInt(entry.rating_count),
         ratingSum: parseInt(entry.rating_sum),
         trashed: entry.trashed,
-      })
+      }
 }
 
 export function entryToUser(entry) {
   return entry === null
     ? null
-    : Object.assign({}, entryToObject(entry), {
+    : {
+        ...entryToObject(entry),
         activated: entry.activated,
         apiKey: entry.api_key,
         email: entry.email,
@@ -387,17 +391,18 @@ export function entryToUser(entry) {
         passwordDigest: entry.password_digest,
         salt: entry.salt,
         urlName: entry.url_name,
-      })
+      }
 }
 
 export function entryToValue(entry) {
   return entry === null
     ? null
-    : Object.assign({}, entryToOptionalStatement(entry), {
+    : {
+        ...entryToOptionalStatement(entry),
         schemaId: entry.schema_id,
         value: entry.value,
         widgetId: entry.widget_id,
-      })
+      }
 }
 
 export async function generateObjectTextSearch(object) {
@@ -706,7 +711,7 @@ export async function getObjectFromId(id) {
       console.log(`Missing cards row for object of type Card at ID ${entry.id}`)
       return null
     }
-    return entryToCard(Object.assign(entry, cardEntry))
+    return entryToCard({...entry, ...cardEntry})
   } else if (entry.type === "Property") {
     let propertyEntry = await db.oneOrNone(
       `
@@ -722,7 +727,7 @@ export async function getObjectFromId(id) {
       console.log(`Missing properties row for object of type Property at ID ${entry.id}`)
       return null
     }
-    return entryToProperty(Object.assign(entry, propertyEntry))
+    return entryToProperty({...entry, ...propertyEntry})
   } else if (entry.type === "User") {
     let userEntry = await db.oneOrNone(
       `
@@ -737,7 +742,7 @@ export async function getObjectFromId(id) {
       console.log(`Missing users row for object of type User at ID ${entry.id}`)
       return null
     }
-    return entryToUser(Object.assign(entry, userEntry))
+    return entryToUser({...entry, ...userEntry})
   } else if (entry.type === "Value") {
     let valueEntry = await db.oneOrNone(
       `
@@ -753,7 +758,7 @@ export async function getObjectFromId(id) {
       console.log(`Missing values row for object of type Value at ID ${entry.id}`)
       return null
     }
-    return entryToValue(Object.assign(entry, valueEntry))
+    return entryToValue({...entry, ...valueEntry})
   } else {
     throw `Unknown object type "${entry.type}" at ID ${id}`
   }
@@ -920,13 +925,14 @@ export async function getOrNewProperty(
       `,
       property,
     )
-    Object.assign(property, {
+    property = {
+      ...property,
       argumentCount: result.argument_count,
       rating: result.rating,
       ratingCount: result.rating_count,
       ratingSum: result.rating_sum,
       trashed: result.trashed,
-    })
+    }
     await db.none(
       `
         INSERT INTO properties(id, key_id, object_id, value_id)
@@ -1144,13 +1150,14 @@ export async function newCard({ inactiveStatementIds = null, properties = null, 
     `,
     card,
   )
-  Object.assign(card, {
+  card = {
+    ...card,
     argumentCount: result.argument_count,
     rating: result.rating,
     ratingCount: result.rating_count,
     ratingSum: result.rating_sum,
     trashed: result.trashed,
-  })
+  }
   await db.none(
     `
       INSERT INTO cards(id)
@@ -1261,7 +1268,7 @@ async function toBallotData(
     showValues = false,
   } = {},
 ) {
-  objectsCache = objectsCache ? Object.assign({}, objectsCache) : {}
+  objectsCache = objectsCache ? {...objectsCache} : {}
   let data = {
     ballots: { [ballot.id]: toBallotJson(ballot) },
     cards: {},
@@ -1305,8 +1312,7 @@ async function toBallotData(
 }
 
 function toBallotJson(ballot) {
-  // let ballotJson = {...ballot}
-  let ballotJson = Object.assign({}, ballot)
+  let ballotJson = {...ballot}
   if (ballotJson.updatedAt) ballotJson.updatedAt = ballotJson.updatedAt.toISOString()
   return ballotJson
 }
@@ -1323,7 +1329,7 @@ export async function toDataJson(
     showValues = false,
   } = {},
 ) {
-  objectsCache = objectsCache ? Object.assign({}, objectsCache) : {}
+  objectsCache = objectsCache ? {...objectsCache} : {}
   let data = {
     ballots: {},
     cards: {},
@@ -1570,7 +1576,7 @@ export async function toSchemaValueJson(schema, value) {
 }
 
 export async function toObjectJson(object, { showApiKey = false, showEmail = false } = {}) {
-  let objectJson = Object.assign({}, object)
+  let objectJson = {...object}
   objectJson.createdAt = objectJson.createdAt.toISOString()
   if (objectJson.properties) {
     let properties = (objectJson.properties = { ...objectJson.properties })
@@ -1624,8 +1630,7 @@ export async function toObjectJson(object, { showApiKey = false, showEmail = fal
 
 export { toUserJson }
 function toUserJson(user, { showApiKey = false, showEmail = false } = {}) {
-  // let userJson = {...user}
-  let userJson = Object.assign({}, user)
+  let userJson = {...user}
   if (!showApiKey) delete userJson.apiKey
   if (!showEmail) delete userJson.email
   userJson.createdAt = userJson.createdAt.toISOString()

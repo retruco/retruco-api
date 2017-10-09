@@ -198,10 +198,11 @@ export const listCollections = wrapAsyncMiddleware(async function listCollection
       LIMIT $<limit>
       OFFSET $<offset>
     `,
-    Object.assign({}, coreArguments, {
+    {
+      ...coreArguments,
       limit,
       offset,
-    }),
+    },
   )).map(entryToCollection)
 
   res.json({
@@ -247,10 +248,11 @@ export const listUserCollections = wrapAsyncMiddleware(async function listUserCo
       LIMIT $<limit>
       OFFSET $<offset>
     `,
-    Object.assign({}, coreArguments, {
+    {
+      ...coreArguments,
       limit,
       offset,
-    }),
+    },
   )).map(entryToCollection)
 
   res.json({
@@ -311,7 +313,7 @@ async function toCollectionData(
     }
   }
 
-  objectsCache = objectsCache ? Object.assign({}, objectsCache) : {}
+  objectsCache = objectsCache ? {...objectsCache} : {}
   let data = {
     ballots: {},
     cards: {},
@@ -348,7 +350,7 @@ async function toCollectionData(
 }
 
 function toCollectionJson(collection) {
-  let collectionJson = Object.assign({}, collection)
+  let collectionJson = {...collection}
   if (collectionJson.createddAt) collectionJson.createddAt = collectionJson.createddAt.toISOString()
   return collectionJson
 }

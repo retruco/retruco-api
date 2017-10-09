@@ -54,7 +54,8 @@ const SPEC = {
   // schemes: ["http", "https", "ws", "wss"],
   consumes: ["application/json"],
   produces: ["application/json"],
-  paths: Object.assign(schemaSpecificationByPath, {
+  paths: {
+    ...schemaSpecificationByPath,
     "/": {
       get: {
         tags: ["home"],
@@ -2121,7 +2122,7 @@ const SPEC = {
       },
     },
     // parameters: {},
-  }),
+  },
   definitions: {
     AbstractStatement: {
       type: "object",

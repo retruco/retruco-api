@@ -832,10 +832,10 @@ async function configureDatabase() {
     await db.none(`UPDATE symbols SET symbol = 'pro' WHERE symbol = 'pros'`)
     await db.none(`UPDATE values SET value = '"Pro"' WHERE value = '"Pros"'`)
 
-    await db.none(`UPDATE symbols SET symbol = 'option' WHERE symbol = 'options'`)
+    await db.none("UPDATE symbols SET symbol = 'option' WHERE symbol = 'options'")
     await db.none(`UPDATE values SET value = '"Option"' WHERE value = '"Options"'`)
 
-    await db.none(`UPDATE symbols SET symbol = 'source' WHERE symbol = 'sources'`)
+    await db.none("UPDATE symbols SET symbol = 'source' WHERE symbol = 'sources'")
     await db.none(`UPDATE values SET value = '"Source"' WHERE value = '"Source"'`)
   }
 
