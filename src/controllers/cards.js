@@ -544,6 +544,28 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
   res.json(result)
 })
 
+export const createCard = wrapAsyncMiddleware(async function createCard(req, res) {
+  // Create a new empty card.
+  let authenticatedUser = req.authenticatedUser
+  let show = req.query.show || []
+  let userId = authenticatedUser.id
+
+  let card = await newCard({ userId })
+
+  let result = {
+    apiVersion: "1",
+    data: await toDataJson(card, authenticatedUser, {
+      depth: req.query.depth || 0,
+      showBallots: show.includes("ballots"),
+      showProperties: show.includes("properties"),
+      showReferences: show.includes("references"),
+      showValues: show.includes("values"),
+    }),
+  }
+  res.status(201) // Created
+  res.json(result)
+})
+
 export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(req, res) {
   // Create a new card, giving its initial attributes, schemas & widgets.
   let authenticatedUser = req.authenticatedUser

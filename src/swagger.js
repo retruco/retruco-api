@@ -168,6 +168,49 @@ const SPEC = {
         // schemes: ["http", "https", "ws", "wss"],
         // security: {},
       },
+      post: {
+        tags: ["card"],
+        summary: "Create a new empty card and return it",
+        // description: "",
+        // externalDocs: {},
+        operationId: "cards.createCard",
+        // consumes: ["application/json"],
+        // produces: ["application/json"],
+        parameters: [
+          {
+            $ref: "#/parameters/apiKeyRequiredParam",
+          },
+        ],
+        responses: {
+          "201": {
+            description: "A wrapper containing the created card",
+            schema: {
+              type: "object",
+              properties: {
+                apiVersion: {
+                  type: "string",
+                },
+                data: {
+                  $ref: "#/definitions/DataId",
+                },
+                warnings: {
+                  type: "object",
+                },
+              },
+              required: ["apiVersion", "data"],
+            },
+          },
+          default: {
+            description: "Error payload",
+            schema: {
+              $ref: "#/definitions/Error",
+            },
+          },
+        },
+        // deprecated: true,
+        // schemes: ["http", "https", "ws", "wss"],
+        // security: [{apiKey: []}, {basic: []}],
+      },
     },
     "/cards/autocomplete": {
       get: {
