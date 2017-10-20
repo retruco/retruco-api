@@ -323,7 +323,7 @@ export function entryToBallot(entry) {
 }
 
 export function entryToCard(entry) {
-  return entry === null ? null : {...entryToStatement(entry)}
+  return entry === null ? null : { ...entryToStatement(entry) }
 }
 
 export function entryToProperty(entry) {
@@ -711,7 +711,7 @@ export async function getObjectFromId(id) {
       console.log(`Missing cards row for object of type Card at ID ${entry.id}`)
       return null
     }
-    return entryToCard({...entry, ...cardEntry})
+    return entryToCard({ ...entry, ...cardEntry })
   } else if (entry.type === "Property") {
     let propertyEntry = await db.oneOrNone(
       `
@@ -727,7 +727,7 @@ export async function getObjectFromId(id) {
       console.log(`Missing properties row for object of type Property at ID ${entry.id}`)
       return null
     }
-    return entryToProperty({...entry, ...propertyEntry})
+    return entryToProperty({ ...entry, ...propertyEntry })
   } else if (entry.type === "User") {
     let userEntry = await db.oneOrNone(
       `
@@ -742,7 +742,7 @@ export async function getObjectFromId(id) {
       console.log(`Missing users row for object of type User at ID ${entry.id}`)
       return null
     }
-    return entryToUser({...entry, ...userEntry})
+    return entryToUser({ ...entry, ...userEntry })
   } else if (entry.type === "Value") {
     let valueEntry = await db.oneOrNone(
       `
@@ -758,7 +758,7 @@ export async function getObjectFromId(id) {
       console.log(`Missing values row for object of type Value at ID ${entry.id}`)
       return null
     }
-    return entryToValue({...entry, ...valueEntry})
+    return entryToValue({ ...entry, ...valueEntry })
   } else {
     throw `Unknown object type "${entry.type}" at ID ${id}`
   }
@@ -1268,7 +1268,7 @@ async function toBallotData(
     showValues = false,
   } = {},
 ) {
-  objectsCache = objectsCache ? {...objectsCache} : {}
+  objectsCache = objectsCache ? { ...objectsCache } : {}
   let data = {
     ballots: { [ballot.id]: toBallotJson(ballot) },
     cards: {},
@@ -1312,7 +1312,7 @@ async function toBallotData(
 }
 
 function toBallotJson(ballot) {
-  let ballotJson = {...ballot}
+  let ballotJson = { ...ballot }
   if (ballotJson.updatedAt) ballotJson.updatedAt = ballotJson.updatedAt.toISOString()
   return ballotJson
 }
@@ -1329,7 +1329,7 @@ export async function toDataJson(
     showValues = false,
   } = {},
 ) {
-  objectsCache = objectsCache ? {...objectsCache} : {}
+  objectsCache = objectsCache ? { ...objectsCache } : {}
   let data = {
     ballots: {},
     cards: {},
@@ -1576,7 +1576,7 @@ export async function toSchemaValueJson(schema, value) {
 }
 
 export async function toObjectJson(object, { showApiKey = false, showEmail = false } = {}) {
-  let objectJson = {...object}
+  let objectJson = { ...object }
   objectJson.createdAt = objectJson.createdAt.toISOString()
   if (objectJson.properties) {
     let properties = (objectJson.properties = { ...objectJson.properties })
@@ -1630,7 +1630,7 @@ export async function toObjectJson(object, { showApiKey = false, showEmail = fal
 
 export { toUserJson }
 function toUserJson(user, { showApiKey = false, showEmail = false } = {}) {
-  let userJson = {...user}
+  let userJson = { ...user }
   if (!showApiKey) delete userJson.apiKey
   if (!showEmail) delete userJson.email
   userJson.createdAt = userJson.createdAt.toISOString()

@@ -748,9 +748,9 @@ async function getOrNewTypedValueFromBundleField(
         if (attributeWarnings === undefined) cardWarnings[name] = attributeWarnings = {}
         attributeWarnings[String(index)] = `Unknown key "${item}" for referenced card`
 
-        schema = {...schema}
+        schema = { ...schema }
         if (Array.isArray(schema.items)) schema.items = [...schema.items]
-        else schema.items = value.map(() => ({...schema.items}))
+        else schema.items = value.map(() => ({ ...schema.items }))
         schema.items[index] = { type: "string" }
         // TODO: Change widget.
       } else {

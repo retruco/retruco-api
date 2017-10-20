@@ -313,7 +313,7 @@ async function toCollectionData(
     }
   }
 
-  objectsCache = objectsCache ? {...objectsCache} : {}
+  objectsCache = objectsCache ? { ...objectsCache } : {}
   let data = {
     ballots: {},
     cards: {},
@@ -350,7 +350,7 @@ async function toCollectionData(
 }
 
 function toCollectionJson(collection) {
-  let collectionJson = {...collection}
+  let collectionJson = { ...collection }
   if (collectionJson.createddAt) collectionJson.createddAt = collectionJson.createddAt.toISOString()
   return collectionJson
 }
