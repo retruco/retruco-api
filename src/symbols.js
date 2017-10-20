@@ -317,6 +317,12 @@ export const symbolizedTypedValues = [
     widgetSymbol: "widget:input-checkbox",
   },
   {
+    symbol: "situation",
+    schemaSymbol: "schema:string",
+    value: "Situation",
+    widgetSymbol: "widget:input-text",
+  },
+  {
     symbol: "true",
     schemaSymbol: "schema:boolean",
     value: true,
