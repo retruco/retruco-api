@@ -126,6 +126,9 @@ const SPEC = {
             $ref: "#/parameters/showParam",
           },
           {
+            $ref: "#/parameters/sortQueryParam",
+          },
+          {
             $ref: "#/parameters/tagsQueryParam",
           },
           {

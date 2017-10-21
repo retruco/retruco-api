@@ -781,6 +781,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let limit = req.query.limit || 20
   let offset = req.query.offset || 0
   let show = req.query.show || []
+  let sort = req.query.sort
   let subTypes = req.query.type || []
   let subTypeIds = subTypes.map(getIdFromIdOrSymbol).filter(subTypeId => subTypeId)
   let tags = req.query.tag || []
@@ -914,7 +915,13 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     )).count,
   )
 
-  let cards = (await db.any(
+  let orderByClause =
+  sort === "old"
+    ? "ORDER BY created_at ASC"
+    : sort === "popular"
+      ? "ORDER BY rating_sum DESC, created_at DESC"
+      : sort === "trending" ? "ORDER BY trending DESC" : "ORDER BY created_at DESC"
+let cards = (await db.any(
     `
       SELECT objects.*, statements.*, cards.*, symbol
       FROM objects
@@ -922,7 +929,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
       INNER JOIN cards on statements.id = cards.id
       LEFT JOIN symbols ON objects.id = symbols.id
       ${whereClause}
-      ORDER BY rating_sum DESC, created_at DESC
+      ${orderByClause}
       LIMIT $<limit>
       OFFSET $<offset>
     `,
