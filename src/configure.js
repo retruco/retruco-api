@@ -839,6 +839,11 @@ async function configureDatabase() {
     await db.none(`UPDATE values SET value = '"Source"' WHERE value = '"Source"'`)
   }
 
+  if (version.number < 31) {
+    await db.none(`UPDATE symbols SET symbol = 'type' WHERE symbol = 'types'`)
+    await db.none(`UPDATE values SET value = '"Type"' WHERE value = '"Types"'`)
+  }
+
   await configureSymbols()
 
   version.number = versionNumber

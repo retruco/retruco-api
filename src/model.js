@@ -1028,7 +1028,7 @@ export async function getOrNewValue(
 export async function getSubTypeIdsFromProperties(properties) {
   let subTypeIds = null
   if (properties) {
-    subTypeIds = properties[getIdFromSymbol("types")]
+    subTypeIds = properties[getIdFromSymbol("type")]
     if (subTypeIds === undefined) {
       subTypeIds = null
     } else {
