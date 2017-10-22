@@ -100,6 +100,21 @@ export const symbolizedTypedValues = [
     widgetSymbol: null,
   },
   {
+    symbol: "schema:uri-reference",
+    schemaSymbol: "schema:object",
+    value: { type: "string", format: "uri-reference" },
+    widgetSymbol: null,
+  },
+  {
+    symbol: "schema:uri-references-array",
+    schemaSymbol: "schema:object",
+    value: {
+      type: "array",
+      items: { type: "string", format: "uri-reference" },
+    },
+    widgetSymbol: null,
+  },
+  {
     symbol: "schema:uris-array",
     schemaSymbol: "schema:object",
     value: {
@@ -573,7 +588,7 @@ export const symbolizedTypedValues = [
     schemaSymbol: "schema:string",
     value: "Logo",
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:uri", ["widget:image", "widget:input-url"]]],
+    schemasWidgetsOrder: [["schema:uri-reference", ["widget:image", "widget:input-url"]]],
   },
   {
     symbol: "name",
@@ -587,7 +602,7 @@ export const symbolizedTypedValues = [
     schemaSymbol: "schema:string",
     value: "Screenshot",
     widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:uri", ["widget:image", "widget:input-url"]]],
+    schemasWidgetsOrder: [["schema:uri-reference", ["widget:image", "widget:input-url"]]],
   },
   {
     symbol: "source-code",

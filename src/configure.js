@@ -846,6 +846,35 @@ async function configureDatabase() {
 
   await configureSymbols()
 
+  if (version.number < 31) {
+    const schemaUriId = getIdFromSymbol("schema:uri")
+    const schemaUriReferenceId = getIdFromSymbol("schema:uri-reference")
+    await db.none(
+      `
+        UPDATE values
+        SET schema_id = $<schemaUriReferenceId>
+        WHERE schema_id = $<schemaUriId> AND value::text LIKE '"/%'
+      `,
+      {
+        schemaUriId,
+        schemaUriReferenceId,
+      },
+    )
+
+    const widgetImageId = getIdFromSymbol("widget:image")
+    await db.none(
+      `
+        UPDATE values
+        SET widget_id = $<widgetImageId>
+        WHERE schema_id = $<schemaUriReferenceId> AND value::text LIKE '"/images/%'
+      `,
+      {
+        schemaUriReferenceId,
+        widgetImageId,
+      },
+    )
+  }
+
   version.number = versionNumber
   assert(
     version.number >= previousVersionNumber,
