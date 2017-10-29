@@ -39,13 +39,63 @@ import {
 import { regenerateArguments, regeneratePropertiesItem } from "./regenerators"
 import { getIdFromSymbol, debateKeySymbols } from "./symbols"
 
-let conAndProKeyIds = null // Set by processActions
-let debateKeyIds = null // Set by processActions
-let conId = null // Set by processActions
-let proId = null // Set by processActions
-let trashedKeyId = null // Set by processActions
-let trueId = null // Set by processActions
+let conAndProKeyIds = null // Set by listenToActions
+let debateKeyIds = null // Set by listenToActions
+let conId = null // Set by listenToActions
+let proId = null // Set by listenToActions
+let trashedKeyId = null // Set by listenToActions
+let trueId = null // Set by listenToActions
 const trendingStartTime = new Date(2016, 12, 1) / 1000
+
+async function listenToActions() {
+  conId = getIdFromSymbol("con")
+  proId = getIdFromSymbol("pro")
+  conAndProKeyIds = [conId, proId]
+  debateKeyIds = debateKeySymbols.map(getIdFromSymbol)
+  trashedKeyId = getIdFromSymbol("trashed")
+  trueId = getIdFromSymbol("true")
+
+  let processingActions = false
+
+  async function processActions() {
+    if (!processingActions) {
+      processingActions = true
+      console.log("### Processing new actions...")
+      while (true) {
+        let actions = (await db.any("SELECT * FROM actions ORDER BY created_at")).map(entryToAction)
+        if (actions.length === 0) break
+        for (let action of actions) {
+          await processAction(action)
+        }
+      }
+      processingActions = false
+      console.log("### All actions processed.")
+      if ((await db.one("SELECT EXISTS (SELECT 1 FROM actions)")).exists) {
+        // Some actions have been created in the mean time...
+        await processActions()
+      }
+    }
+  }
+
+  dbSharedConnectionObject.client.on("notification", async data => {
+    try {
+      if (data.channel === "new_action") {
+        await processActions()
+      } else {
+        console.log(`Ignoring unknown channel "${data.channel}" (in notification: $}{data}).`)
+      }
+    } catch (error) {
+      console.log(error.stack || error)
+      process.exit(1)
+    }
+  })
+
+  // Wait for new actions.
+  await dbSharedConnectionObject.none("LISTEN $1~", "new_action")
+
+  // Notify new_action to process pending actions.
+  await processActions()
+}
 
 async function processAction(action) {
   // TODO: action.type is not handled. It should be removed.
@@ -369,53 +419,7 @@ async function processAction(action) {
   }
 }
 
-async function processActions() {
-  conId = getIdFromSymbol("con")
-  proId = getIdFromSymbol("pro")
-  conAndProKeyIds = [conId, proId]
-  debateKeyIds = debateKeySymbols.map(getIdFromSymbol)
-  trashedKeyId = getIdFromSymbol("trashed")
-  trueId = getIdFromSymbol("true")
-
-  let processingActions = false
-
-  dbSharedConnectionObject.client.on("notification", async data => {
-    try {
-      if (data.channel === "new_action") {
-        if (!processingActions) {
-          processingActions = true
-          console.log("### Processing new actions...")
-          while (true) {
-            let actions = (await db.any("SELECT * FROM actions ORDER BY created_at")).map(entryToAction)
-            if (actions.length === 0) break
-            for (let action of actions) {
-              await processAction(action)
-            }
-          }
-          processingActions = false
-          console.log("### All actions processed.")
-          if ((await db.one("SELECT EXISTS (SELECT 1 FROM actions)")).exists) {
-            // Some actions have been created in the mean time...
-            db.none("NOTIFY new_action")
-          }
-        }
-      } else {
-        console.log(`Ignoring unknown channel "${data.channel}" (in notification: $}{data}).`)
-      }
-    } catch (error) {
-      console.log(error.stack || error)
-      process.exit(1)
-    }
-  })
-
-  // Wait for new actions.
-  await dbSharedConnectionObject.none("LISTEN $1~", "new_action")
-
-  // Notify new_action to process pending actions.
-  db.none("NOTIFY new_action")
-}
-
-checkDatabase().then(processActions).catch(error => {
+checkDatabase().then(listenToActions).catch(error => {
   console.log(error.stack || error)
   process.exit(1)
 })
