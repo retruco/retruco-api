@@ -88,6 +88,7 @@ export default {
   matrix: null,
   port: process.env.RTAPI_PORT || 3000,
   proxy: process.env.RTAPI_PROXY || false,  // Is this application used behind a trusted proxy?
+  redis: {}, // Cf https://github.com/luin/ioredis
   smtp: {
     host: process.env.SMTP_HOST || "localhost",
     port: process.env.SMTP_PORT || 25,
@@ -105,4 +106,5 @@ export default {
     url: "http://localhost:3001",
   },
   uploads: path.normalize(path.join(__dirname, "..", "uploads")),
+  wsUrl: "ws://localhost:3000",
 }

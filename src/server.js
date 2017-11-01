@@ -21,11 +21,13 @@
 import activator from "activator"
 import bodyParser from "body-parser"
 import express from "express"
-import expressWs from "express-ws"
+import { execute, subscribe } from "graphql"
+import { graphiqlExpress, graphqlExpress } from "graphql-server-express"
 import http from "http"
 import nodemailer from "nodemailer"
 import path from "path"
 import quickthumb from "quickthumb"
+import { SubscriptionServer } from "subscriptions-transport-ws"
 import swagger from "swagger-express-middleware"
 
 import config from "./config"
@@ -33,6 +35,7 @@ import { checkDatabase } from "./database"
 import * as ballotsController from "./controllers/ballots"
 import * as cardsController from "./controllers/cards"
 import * as collectionsController from "./controllers/collections"
+import * as graphqlController from "./controllers/graphql"
 import * as objectsController from "./controllers/objects"
 import * as propertiesController from "./controllers/properties"
 import * as statementsController from "./controllers/statements"
@@ -42,7 +45,7 @@ import * as valuesController from "./controllers/values"
 import { schemaByPath } from "./schemas"
 import swaggerSpecification from "./swagger"
 
-let smtpTransport = nodemailer.createTransport(config.smtp)
+const smtpTransport = nodemailer.createTransport(config.smtp)
 activator.init({
   emailProperty: "email",
   from: config.email,
@@ -53,7 +56,6 @@ activator.init({
 })
 
 const app = express()
-expressWs(app)
 
 app.set("title", config.title)
 app.set("trust proxy", config.proxy)
@@ -63,14 +65,6 @@ app.enable("case sensitive routing")
 app.enable("strict routing")
 
 app.use(bodyParser.json({ limit: "5mb" }))
-
-app.ws("/test", function(ws, req) {
-  ws.on("message", function(msg) {
-    console.log("Received", msg)
-    ws.send(`Ping: ${msg}`)
-  })
-  console.log("socket", req.testing)
-})
 
 app.use("/images", quickthumb.static(path.join(config.uploads, "images"), { type: "resize" }))
 
@@ -100,6 +94,12 @@ swaggerMiddleware.init(
     )
 
     // Non Swagger-based API
+
+    app.use("/graphiql", graphiqlExpress({
+      endpointURL: "/graphql",
+      subscriptionsEndpoint: `${config.wsUrl}/subscriptions`,
+    }))
+    app.use("/graphql", graphqlExpress({ schema: graphqlController.schema }))
 
     app.use(swaggerMiddleware.validateRequest())
 
@@ -265,10 +265,20 @@ swaggerMiddleware.init(
 )
 
 function startExpress() {
-  let host = config.listen.host
-  let port = config.listen.port || config.port
-  let server = app.listen(port, host, () => {
+  const host = config.listen.host
+  const port = config.listen.port || config.port
+  const server = http.createServer(app)
+  server.listen(port, host, () => {
     console.log(`Listening on ${host || "*"}:${port}...`)
+    // Set up the WebSocket for handling GraphQL subscriptions.
+    new SubscriptionServer({
+      execute,
+      schema: graphqlController.schema,
+      subscribe,
+    }, {
+      server,
+      path: "/subscriptions",
+    })
   })
   server.timeout = 30 * 60 * 1000 // 30 minutes (in milliseconds)
 }

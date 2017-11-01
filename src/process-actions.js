@@ -18,9 +18,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import assert from "assert"
 import deepEqual from "deep-equal"
+import Redis from "ioredis"
 
+import config from "./config"
 import { checkDatabase, db, dbSharedConnectionObject } from "./database"
 import { sendMatrixMessage } from "./matrix"
 import {
@@ -43,6 +44,7 @@ let conAndProKeyIds = null // Set by listenToActions
 let debateKeyIds = null // Set by listenToActions
 let conId = null // Set by listenToActions
 let proId = null // Set by listenToActions
+const redis = new Redis(config.redis)
 let trashedKeyId = null // Set by listenToActions
 let trueId = null // Set by listenToActions
 const trendingStartTime = new Date(2016, 12, 1) / 1000
@@ -410,11 +412,15 @@ async function processAction(action) {
     }
     if (object.type === "Property") {
       addAction(object.objectId, action.type)
+      redis.publish("propertyUpserted", object.id)
     }
   } else if (contentChanged) {
     // Propagate change to every reference of object.
     for (let referencedId of referencedIds) {
       addAction(referencedId, action.type)
+    }
+    if (object.type === "Property") {
+      redis.publish("propertyUpserted", object.id)
     }
   }
 }
