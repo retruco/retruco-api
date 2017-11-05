@@ -563,6 +563,13 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:string", ["widget:textarea", "widget:input-text"]]],
   },
   {
+    symbol: "discussion",
+    schemaSymbol: "schema:string",
+    value: "Discussion",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:id", ["widget:autocomplete"]]],
+  },
+  {
     symbol: "duplicate-of",
     schemaSymbol: "schema:string",
     value: "Duplicate of",
@@ -610,6 +617,13 @@ export const symbolizedTypedValues = [
     value: "SourceCode",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
+  },
+  {
+    symbol: "suggestion",
+    schemaSymbol: "schema:string",
+    value: "Suggestion",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:id", ["widget:autocomplete"]]],
   },
   {
     symbol: "tags",
