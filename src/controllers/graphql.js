@@ -20,6 +20,7 @@
 
 import { PubSub, withFilter } from "graphql-subscriptions"
 import { makeExecutableSchema } from "graphql-tools"
+import GraphQLJSON from "graphql-type-json"
 import Redis from "ioredis"
 
 import config from "../config"
@@ -30,11 +31,9 @@ import { getIdFromIdOrSymbol } from "../symbols"
 const pubsub = new PubSub()
 const redis = new Redis(config.redis)
 const typeDefs = `
-  type PropertyItem {
-    keyId: String!
-    valueIds: [String]
-  }
-  interface Statement {
+  scalar JSON
+
+  type Card implements Statement {
     argumentCount: Int!
     ballotId: String
     createdAt: String!
@@ -57,7 +56,23 @@ const typeDefs = `
     ratingSum: Int!
     trashed: Boolean
     type: String!
+    value: Statement!
     valueId: String!
+  }
+  type PropertyItem {
+    keyId: String!
+    valueIds: [String]
+  }
+  interface Statement {
+    argumentCount: Int!
+    ballotId: String
+    createdAt: String!
+    id: String!
+    properties: [PropertyItem!]
+    ratingCount: Int!
+    ratingSum: Int!
+    trashed: Boolean
+    type: String!
   }
   type User implements Statement {
     activated: Boolean!
@@ -74,6 +89,20 @@ const typeDefs = `
     trashed: Boolean
     type: String!
     urlName: String!
+  }
+  type Value implements Statement {
+    argumentCount: Int!
+    ballotId: String
+    createdAt: String!
+    id: String!
+    properties: [PropertyItem!]
+    ratingCount: Int!
+    ratingSum: Int!
+    schemaId: String!
+    trashed: Boolean
+    type: String!
+    value: JSON
+    widgetId: String
   }
 
   # the schema allows the following query:
@@ -97,6 +126,30 @@ const typeDefs = `
   }
 `
 const resolvers = {
+  JSON: GraphQLJSON,
+  Property: {
+    async value(property) {
+      console.log("resolvers.Property.value", property)
+      const value = await getObjectFromId(property.valueId)
+      return await toObjectJson(value)
+    },
+  },
+  // Mutation: {
+  // upvoteStatement: (_, { statementId }) => {
+  //   const post = find(posts, { id: postId });
+  //   if (!post) {
+  //     throw new Error(`Couldn't find post with id ${postId}`);
+  //   }
+  //   post.votes += 1;
+  //   return post;
+  // },
+  // },
+  // Author: {
+  //   posts: (author) => filter(posts, { authorId: author.id }),
+  // },
+  // Post: {
+  //   author: (post) => find(authors, { id: post.authorId }),
+  // },
   Query: {
     async users() {
       const users = (await db.any(
@@ -121,22 +174,11 @@ const resolvers = {
       return user === null ? null : toUserJson(user)
     },
   },
-  // Mutation: {
-  // upvoteStatement: (_, { statementId }) => {
-  //   const post = find(posts, { id: postId });
-  //   if (!post) {
-  //     throw new Error(`Couldn't find post with id ${postId}`);
-  //   }
-  //   post.votes += 1;
-  //   return post;
-  // },
-  // },
-  // Author: {
-  //   posts: (author) => filter(posts, { authorId: author.id }),
-  // },
-  // Post: {
-  //   author: (post) => find(authors, { id: post.authorId }),
-  // },
+  Statement: {
+    __resolveType(statement){
+      return statement.type
+    },
+  },
   Subscription: {
     propertyUpserted: {
       resolve: async (property) => {
