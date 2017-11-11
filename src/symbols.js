@@ -326,12 +326,6 @@ export const symbolizedTypedValues = [
   // Values
 
   {
-    symbol: "discussion",
-    schemaSymbol: "schema:string",
-    value: "Discussion",
-    widgetSymbol: "widget:input-text",
-  },
-  {
     symbol: "false",
     schemaSymbol: "schema:boolean",
     value: false,
