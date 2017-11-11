@@ -25,24 +25,24 @@ import path from "path"
 export default {
   contact: {
     // email:
-    name: process.env.RTAPI_CONTACT || "Retruco-API Team",
+    name: process.env.RETRUCO_CONTACT || "Retruco-API Team",
     // url:
   },
   db: {
-    database: process.env.RTAPI_DB_NAME || "retruco",
-    host: process.env.RTAPI_DB_HOST || "localhost",
-    password: process.env.RTAPI_DB_PASSWORD || "password",
-    port: process.env.RTAPI_DB_PORT || 5432,
-    user: process.env.RTAPI_DB_USER || "username",
+    database: process.env.RETRUCO_DB_NAME || "retruco",
+    host: process.env.RETRUCO_DB_HOST || "localhost",
+    password: process.env.RETRUCO_DB_PASSWORD || "password",
+    port: process.env.RETRUCO_DB_PORT || 5432,
+    user: process.env.RETRUCO_DB_USER || "username",
   },
-  description: process.env.RTAPI_DESCRIPTION || "Bring out shared positions from argumented statements",
-  email: process.env.RTAPI_EMAIL || "retruco@localhost",
-  emailSignKey: process.env.RTAPI_EMAIL_KEY || "Retruco sign key",
+  description: process.env.RETRUCO_DESCRIPTION || "Bring out shared positions from argumented statements",
+  email: process.env.RETRUCO_EMAIL || "retruco@localhost",
+  emailSignKey: process.env.RETRUCO_EMAIL_KEY || "Retruco sign key",
   emailTemplates: path.normalize(path.join(__dirname, "..", "email-templates")),
-  host: process.env.RTAPI_HOST || "localhost",
+  host: process.env.RETRUCO_HOST || "localhost",
   keys: [
     // Keys for Keygrip <https://github.com/crypto-utils/keygrip>, used by signed cookie keys, etc
-    process.env.RTAPI_KEY || "Retruco-API not very secret key, to override",
+    process.env.RETRUCO_KEY || "Retruco-API not very secret key, to override",
   ],
   languages: [
     "bg",
@@ -86,8 +86,8 @@ export default {
   //   serverUrl: "https://localhost:8448",
   // },
   matrix: null,
-  port: process.env.RTAPI_PORT || 3000,
-  proxy: process.env.RTAPI_PROXY || false,  // Is this application used behind a trusted proxy?
+  port: process.env.RETRUCO_PORT || 3000,
+  proxy: process.env.RETRUCO_PROXY || false,  // Is this application used behind a trusted proxy?
   redis: {}, // Cf https://github.com/luin/ioredis
   smtp: {
     host: process.env.SMTP_HOST || "localhost",
@@ -101,7 +101,13 @@ export default {
         rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED || false,  // Accept self-signed certificates.
     },
   },
-  title: process.env.RTAPI_TITLE || "Retruco-API",
+  title: process.env.RETRUCO_TITLE || "Retruco-API",
+  twitter: {
+    access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
+    access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+    consumer_key: process.env.TWITTER_CONSUMER_KEY,
+    consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+  },
   ui: {
     url: "http://localhost:3001",
   },
