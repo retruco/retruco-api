@@ -326,16 +326,16 @@ export const symbolizedTypedValues = [
   // Values
 
   {
+    symbol: "discussion",
+    schemaSymbol: "schema:string",
+    value: "Discussion",
+    widgetSymbol: "widget:input-text",
+  },
+  {
     symbol: "false",
     schemaSymbol: "schema:boolean",
     value: false,
     widgetSymbol: "widget:input-checkbox",
-  },
-  {
-    symbol: "situation",
-    schemaSymbol: "schema:string",
-    value: "Situation",
-    widgetSymbol: "widget:input-text",
   },
   {
     symbol: "true",
@@ -577,6 +577,13 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:id", ["widget:autocomplete"]]],
   },
   {
+    symbol: "intervention",
+    schemaSymbol: "schema:string",
+    value: "Intervention",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:id", ["widget:autocomplete"]]],
+  },
+  {
     symbol: "license",
     schemaSymbol: "schema:string",
     value: "License",
@@ -617,13 +624,6 @@ export const symbolizedTypedValues = [
     value: "SourceCode",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:uri", ["widget:input-url"]]],
-  },
-  {
-    symbol: "suggestion",
-    schemaSymbol: "schema:string",
-    value: "Suggestion",
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:id", ["widget:autocomplete"]]],
   },
   {
     symbol: "tags",
