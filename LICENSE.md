@@ -3,7 +3,7 @@
 >     Emmanuel Raviart <emmanuel@retruco.org>
 >
 > Copyright (C) 2016, 2017 Paula Forteza & Emmanuel Raviart
-> https://git.framasoft.org/retruco/retruco-api
+> https://framagit.org/retruco/retruco-api
 >
 > Retruco-API is free software; you can redistribute it and/or modify
 > it under the terms of the GNU Affero General Public License as
