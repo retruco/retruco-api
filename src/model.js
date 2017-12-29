@@ -1266,7 +1266,7 @@ async function toBallotData(
     showValues = false,
   } = {},
 ) {
-  objectsCache = objectsCache ? { ...objectsCache } : {}
+  objectsCache = objectsCache || {}
   let data = {
     ballots: { [ballot.id]: toBallotJson(ballot) },
     cards: {},
@@ -1324,7 +1324,7 @@ export async function toDataJson(
     showValues = false,
   } = {},
 ) {
-  objectsCache = objectsCache ? { ...objectsCache } : {}
+  objectsCache = objectsCache || {}
   let data = {
     ballots: {},
     cards: {},
@@ -1377,7 +1377,11 @@ export async function toDataJson1(
   if (typeof idOrObject === "number") idOrObject = String(idOrObject)
   if (typeof idOrObject === "string") {
     if (data.visitedIds.has(idOrObject)) return
-    object = await getObjectFromId(idOrObject)
+    object = objectsCache[idOrObject]
+    if (object === undefined) {
+      object = await getObjectFromId(idOrObject)
+      objectsCache[object.id] = object
+    }
     if (object === null) {
       console.log("Missing object for ID:", idOrObject)
       return
@@ -1389,11 +1393,11 @@ export async function toDataJson1(
       return
     }
     if (data.visitedIds.has(object.id)) return
+
+    const cachedObject = objectsCache[object.id]
+    if (cachedObject) object = cachedObject
   }
   data.visitedIds.add(object.id)
-
-  const cachedObject = objectsCache[object.id]
-  if (cachedObject) object = cachedObject
 
   const objectJsonByIdOrSymbol = {
     Card: data.cards,

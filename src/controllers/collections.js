@@ -306,7 +306,7 @@ async function toCollectionData(
     }
   }
 
-  objectsCache = objectsCache ? { ...objectsCache } : {}
+  objectsCache = objectsCache || {}
   let data = {
     ballots: {},
     cards: {},
