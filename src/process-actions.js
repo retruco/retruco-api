@@ -366,18 +366,18 @@ async function processAction(action) {
     let trashedProperty = entryToProperty(
       await db.oneOrNone(
         `
-        SELECT objects.*, statements.*, properties.*, symbol
-        FROM objects
-        INNER JOIN statements ON objects.id = statements.id
-        INNER JOIN properties ON statements.id = properties.id
-        LEFT JOIN symbols ON properties.id = symbols.id
-        WHERE properties.object_id = $<objectId>
-        AND properties.key_id = $<trashedKeyId>
-        AND properties.value_id = $<trueId>
-        AND NOT statements.trashed
-        AND statements.rating_sum > 0
-        LIMIT 1
-      `,
+          SELECT objects.*, statements.*, properties.*, symbol
+          FROM objects
+          INNER JOIN statements ON objects.id = statements.id
+          INNER JOIN properties ON statements.id = properties.id
+          LEFT JOIN symbols ON properties.id = symbols.id
+          WHERE properties.object_id = $<objectId>
+          AND properties.key_id = $<trashedKeyId>
+          AND properties.value_id = $<trueId>
+          AND NOT statements.trashed
+          AND statements.rating_sum > 0
+          LIMIT 1
+        `,
         {
           trashedKeyId,
           trueId,
