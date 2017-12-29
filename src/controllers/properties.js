@@ -113,6 +113,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
 export const getOrCreateProperty = wrapAsyncMiddleware(async function getOrCreateProperty(req, res) {
   // Create a new card (or retrieve the existing one), giving its initial attributes, schemas & widgets.
   let authenticatedUser = req.authenticatedUser
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let propertyInfos = req.body
   let show = req.query.show || []
   let userId = authenticatedUser.id
@@ -190,16 +191,16 @@ export const getOrCreateProperty = wrapAsyncMiddleware(async function getOrCreat
   res.json({
     apiVersion: "1",
     data: await toDataJson(propertyOrProperties, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })
 
 export const listProperties = wrapAsyncMiddleware(async function listProperties(req, res) {
   let keyIds = (req.query.keyId || []).map(getIdFromIdOrSymbol).filter(id => id)
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let objectIds = (req.query.objectId || []).map(getIdFromIdOrSymbol).filter(id => id)
   let show = req.query.show || []
   let trashed = show.includes("trashed")
@@ -245,10 +246,9 @@ export const listProperties = wrapAsyncMiddleware(async function listProperties(
   res.json({
     apiVersion: "1",
     data: await toDataJson(properties, req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })

@@ -20,9 +20,11 @@
 
 import { db } from "../database"
 import { entryToBallot, rateStatement, toBallotData, unrateStatement, wrapAsyncMiddleware } from "../model"
+import { getIdFromIdOrSymbol } from "../symbols"
 
 export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req, res) {
   // Delete a statement rating.
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let statement = req.statement
 
@@ -43,16 +45,16 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
   res.json({
     apiVersion: "1",
     data: await toBallotData(ballot, [statement], req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })
 
 export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) {
   // Respond an existing statement rating.
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let statement = req.statement
 
@@ -68,16 +70,16 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) 
   res.json({
     apiVersion: "1",
     data: await toBallotData(ballot, [statement], req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })
 
 export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req, res) {
   // Insert or update a statement rating.
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let statement = req.statement
   let ratingData = req.body
@@ -88,10 +90,9 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
   res.json({
     apiVersion: "1",
     data: await toBallotData(ballot, [statement], req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })

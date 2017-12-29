@@ -22,10 +22,12 @@ import assert from "assert"
 
 import { db } from "../database"
 import { getObjectFromId, ownsUserId, toDataJson1, wrapAsyncMiddleware } from "../model"
+import { getIdFromIdOrSymbol } from "../symbols"
 
 export const createCollection = wrapAsyncMiddleware(async function createCollection(req, res) {
   let authenticatedUser = req.authenticatedUser
   let collectionInfos = req.body
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let userId = authenticatedUser.id
 
@@ -57,16 +59,16 @@ export const createCollection = wrapAsyncMiddleware(async function createCollect
   res.json({
     apiVersion: "1",
     data: await toCollectionData(collection, req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })
 
 export const deleteCollection = wrapAsyncMiddleware(async function deleteCollection(req, res) {
   let authenticatedUser = req.authenticatedUser
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let collection = req.collection
 
@@ -85,16 +87,16 @@ export const deleteCollection = wrapAsyncMiddleware(async function deleteCollect
   res.json({
     apiVersion: "1",
     data: await toCollectionData(collection, req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })
 
 export const editCollection = wrapAsyncMiddleware(async function editCollection(req, res) {
   let authenticatedUser = req.authenticatedUser
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let collection = req.collection
   let collectionInfos = req.body
@@ -134,10 +136,9 @@ export const editCollection = wrapAsyncMiddleware(async function editCollection(
   res.json({
     apiVersion: "1",
     data: await toCollectionData(collection, req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })
@@ -158,20 +159,21 @@ function entryToCollection(entry) {
 
 export const getCollection = wrapAsyncMiddleware(async function getCollection(req, res) {
   let collection = req.collection || []
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   res.json({
     apiVersion: "1",
     data: await toCollectionData(collection, req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })
 
 export const listCollections = wrapAsyncMiddleware(async function listCollections(req, res) {
   let limit = req.query.limit || 20
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let offset = req.query.offset || 0
   let show = req.query.show || []
   let authenticatedUser = req.authenticatedUser
@@ -205,10 +207,9 @@ export const listCollections = wrapAsyncMiddleware(async function listCollection
     apiVersion: "1",
     count: count,
     data: await toCollectionData(collections, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
     limit: limit,
     offset: offset,
@@ -217,6 +218,7 @@ export const listCollections = wrapAsyncMiddleware(async function listCollection
 
 export const listUserCollections = wrapAsyncMiddleware(async function listUserCollections(req, res) {
   let limit = req.query.limit || 20
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let offset = req.query.offset || 0
   let show = req.query.show || []
   let user = req.user
@@ -254,10 +256,9 @@ export const listUserCollections = wrapAsyncMiddleware(async function listUserCo
     apiVersion: "1",
     count: count,
     data: await toCollectionData(collections, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
     limit: limit,
     offset: offset,
@@ -287,11 +288,10 @@ async function toCollectionData(
   collectionOrCollections,
   user,
   {
-    depth = 0,
+    need = null,
     objectsCache = null,
     showBallots = false,
     showReferences = false,
-    showValues = false,
   } = {},
 ) {
   let collectionJsonById = {}
@@ -324,10 +324,10 @@ async function toCollectionData(
 
   for (let objectId of objectIds) {
     await toDataJson1(objectId, data, objectsCache, user, {
-      depth,
+      depth: 10,
+      need,
       showBallots,
       showReferences,
-      showValues,
     })
   }
 

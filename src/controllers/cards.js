@@ -547,6 +547,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
 export const createCard = wrapAsyncMiddleware(async function createCard(req, res) {
   // Create a new empty card.
   let authenticatedUser = req.authenticatedUser
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let userId = authenticatedUser.id
 
@@ -555,10 +556,9 @@ export const createCard = wrapAsyncMiddleware(async function createCard(req, res
   let result = {
     apiVersion: "1",
     data: await toDataJson(card, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   }
   res.status(201) // Created
@@ -570,6 +570,7 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   let authenticatedUser = req.authenticatedUser
   let cardInfos = req.body
   // let language = cardInfos.language
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let userId = authenticatedUser.id
 
@@ -676,10 +677,9 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
   let result = {
     apiVersion: "1",
     data: await toDataJson(card, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   }
   if (Object.keys(warnings).length > 0) result.warnings = warnings
@@ -777,6 +777,7 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
   let authenticatedUser = req.authenticatedUser
   let language = req.query.language
   let limit = req.query.limit || 20
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let offset = req.query.offset || 0
   let show = req.query.show || []
   let sort = req.query.sort
@@ -913,13 +914,12 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     )).count,
   )
 
-  let orderByClause =
-  sort === "old"
-    ? "ORDER BY created_at ASC"
-    : sort === "popular"
-      ? "ORDER BY rating_sum DESC, created_at DESC"
-      : sort === "trending" ? "ORDER BY trending DESC" : "ORDER BY created_at DESC"
-let cards = (await db.any(
+  let orderByClause = sort === "old"
+      ? "ORDER BY created_at ASC"
+      : sort === "popular"
+        ? "ORDER BY rating_sum DESC, created_at DESC"
+        : sort === "trending" ? "ORDER BY trending DESC" : "ORDER BY created_at DESC"
+  let cards = (await db.any(
     `
       SELECT objects.*, statements.*, cards.*, symbol
       FROM objects
@@ -942,10 +942,9 @@ let cards = (await db.any(
     apiVersion: "1",
     count: count,
     data: await toDataJson(cards, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
     limit: limit,
     offset: offset,

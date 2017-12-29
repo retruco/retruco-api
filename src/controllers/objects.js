@@ -23,19 +23,20 @@ import { entryToProperty, getObjectFromId, toDataJson, toObjectJson, wrapAsyncMi
 import { getIdFromIdOrSymbol, getIdOrSymbolFromId } from "../symbols"
 
 export const getObject = wrapAsyncMiddleware(async function getObject(req, res) {
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   res.json({
     apiVersion: "1",
     data: await toDataJson(req.object, req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })
 
 export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function listObjectSameKeyProperties(req, res) {
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let objectId = req.object.id
   let show = req.query.show || []
 
@@ -80,10 +81,9 @@ export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function li
   res.json({
     apiVersion: "1",
     data: await toDataJson(sameKeyProperties, req.authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   })
 })

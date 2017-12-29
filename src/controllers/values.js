@@ -127,9 +127,10 @@ export const autocompleteValues = wrapAsyncMiddleware(async function autocomplet
 export const createValue = wrapAsyncMiddleware(async function createValue(req, res) {
   // Create a new card, giving its initial attributes, schemas & widgets.
   let authenticatedUser = req.authenticatedUser
-  let valueInfos = req.body
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
   let userId = authenticatedUser.id
+  let valueInfos = req.body
 
   let errors = {}
 
@@ -197,10 +198,9 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
   let result = {
     apiVersion: "1",
     data: await toDataJson(typedValue, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   }
   if (warning !== null) result.warnings = warning
@@ -211,8 +211,9 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
 export const getExistingValue = wrapAsyncMiddleware(async function createValue(req, res) {
   // Create a new card, giving its initial attributes, schemas & widgets.
   let authenticatedUser = req.authenticatedUser
-  let valueInfos = req.body
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let show = req.query.show || []
+  let valueInfos = req.body
 
   let errors = {}
 
@@ -290,10 +291,9 @@ export const getExistingValue = wrapAsyncMiddleware(async function createValue(r
   let result = {
     apiVersion: "1",
     data: await toDataJson(typedValue, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
   }
   if (warning !== null) result.warnings = warning
@@ -304,6 +304,7 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
   let authenticatedUser = req.authenticatedUser
   let language = req.query.language
   let limit = req.query.limit || 20
+  let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let offset = req.query.offset || 0
   let rated = req.query.rated || false
   let show = req.query.show || []
@@ -390,10 +391,9 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
     apiVersion: "1",
     count: count,
     data: await toDataJson(values, authenticatedUser, {
-      depth: req.query.depth || 0,
+      need,
       showBallots: show.includes("ballots"),
       showReferences: show.includes("references"),
-      showValues: show.includes("values"),
     }),
     limit: limit,
     offset: offset,

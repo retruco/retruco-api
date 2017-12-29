@@ -111,13 +111,13 @@ const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/depthParam",
-          },
-          {
             $ref: "#/parameters/languageParam",
           },
           {
             $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/offsetQueryParam",
@@ -542,10 +542,10 @@ const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/limitQueryParam",
           },
           {
-            $ref: "#/parameters/limitQueryParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/offsetQueryParam",
@@ -645,7 +645,7 @@ const SPEC = {
             $ref: "#/parameters/idPathParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -694,7 +694,7 @@ const SPEC = {
             $ref: "#/parameters/idPathParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -743,7 +743,7 @@ const SPEC = {
             $ref: "#/parameters/idPathParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -854,7 +854,7 @@ const SPEC = {
             $ref: "#/parameters/idOrSymbolPathParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -987,7 +987,7 @@ const SPEC = {
             $ref: "#/parameters/keyIdOrSymbolPathParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -1035,10 +1035,10 @@ const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/keyIdsOrSymbolsQueryParam",
           },
           {
-            $ref: "#/parameters/keyIdsOrSymbolsQueryParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/objectIdsOrSymbolsQueryParam",
@@ -1195,7 +1195,7 @@ const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -1244,7 +1244,7 @@ const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -1293,7 +1293,7 @@ const SPEC = {
             $ref: "#/parameters/statementIdParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/showParam",
@@ -1794,10 +1794,10 @@ const SPEC = {
             $ref: "#/parameters/userNamePathParam",
           },
           {
-            $ref: "#/parameters/depthParam",
+            $ref: "#/parameters/limitQueryParam",
           },
           {
-            $ref: "#/parameters/limitQueryParam",
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/offsetQueryParam",
@@ -1964,13 +1964,13 @@ const SPEC = {
         // produces: ["application/json"],
         parameters: [
           {
-            $ref: "#/parameters/depthParam",
-          },
-          {
             $ref: "#/parameters/languageParam",
           },
           {
             $ref: "#/parameters/limitQueryParam",
+          },
+          {
+            $ref: "#/parameters/needQueryParam",
           },
           {
             $ref: "#/parameters/offsetQueryParam",
@@ -2694,13 +2694,6 @@ const SPEC = {
       type: "string",
       format: "date-time",
     },
-    depthParam: {
-      // description: "",
-      in: "query",
-      minimum: 0,
-      name: "depth",
-      type: "integer",
-    },
     idOrSymbolPathParam: {
       description: "Either an object ID or an object symbol",
       in: "path",
@@ -2752,6 +2745,16 @@ const SPEC = {
       minimum: 1,
       name: "limit",
       type: "integer",
+    },
+    needQueryParam: {
+      description: "ID or symbol of a key. Properties having this key must have their value returned",
+      in: "query",
+      name: "need",
+      type: "array",
+      items: {
+        type: "string",
+      },
+      collectionFormat: "multi",
     },
     objectIdsOrSymbolsQueryParam: {
       description: "Either an object ID or an object symbol for a property key",

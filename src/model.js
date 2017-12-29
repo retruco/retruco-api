@@ -26,7 +26,6 @@ import { db } from "./database"
 import { getIdFromIdOrSymbol, getIdFromSymbol, getIdOrSymbolFromId, getValueFromSymbol } from "./symbols"
 
 const configLanguages = config.languages
-const configLanguageIds = new Set(configLanguages.map(getIdFromSymbol))
 
 export const languageConfigurationNameByCode = {
   bg: "simple",
@@ -656,6 +655,7 @@ async function getLanguageText(
     return null
   }
   visitedIds.add(typedValue.id)
+  const configLanguageIds = new Set(configLanguages.map(getIdFromSymbol))
   for (let [otherLanguageId, textIds] of Object.entries(properties)) {
     if (!configLanguageIds.has(otherLanguageId)) {
       // This is not the ID of a language => Skip it.
@@ -1259,11 +1259,10 @@ async function toBallotData(
   statementOrStatements,
   user,
   {
-    depth = 0,
+    need = null,
     objectsCache = null,
     showBallots = false,
     showReferences = false,
-    showValues = false,
   } = {},
 ) {
   objectsCache = objectsCache || {}
@@ -1281,19 +1280,19 @@ async function toBallotData(
     if (Array.isArray(statementOrStatements)) {
       for (let object of statementOrStatements) {
         await toDataJson1(object, data, objectsCache, user, {
-          depth,
+          depth: 10,
+          need,
           showBallots,
           showReferences,
-          showValues,
         })
       }
     } else {
       assert.ok(statementOrStatements)
       await toDataJson1(statementOrStatements, data, objectsCache, user, {
-        depth,
+        depth: 10,
+        need,
         showBallots,
         showReferences,
-        showValues,
       })
     }
   }
@@ -1317,11 +1316,10 @@ export async function toDataJson(
   objectOrObjects,
   user,
   {
-    depth = 0,
+    need = null,
     objectsCache = null,
     showBallots = false,
     showReferences = false,
-    showValues = false,
   } = {},
 ) {
   objectsCache = objectsCache || {}
@@ -1339,20 +1337,20 @@ export async function toDataJson(
       data.ids = objectOrObjects.map(object => object.symbol || object.id)
       for (let object of objectOrObjects) {
         await toDataJson1(object, data, objectsCache, user, {
-          depth,
+          depth: 10,
+          need,
           showBallots,
           showReferences,
-          showValues,
         })
       }
     } else {
       assert.ok(objectOrObjects)
       data.id = objectOrObjects.symbol || objectOrObjects.id
       await toDataJson1(objectOrObjects, data, objectsCache, user, {
-        depth,
+        depth: 10,
+        need,
         showBallots,
         showReferences,
-        showValues,
       })
     }
   }
@@ -1371,7 +1369,7 @@ export async function toDataJson1(
   data,
   objectsCache,
   user,
-  { depth = 0, showBallots = false, showReferences = false, showValues = false } = {},
+  { depth = 0, need = null, showBallots = false, showReferences = false } = {},
 ) {
   let object
   if (typeof idOrObject === "number") idOrObject = String(idOrObject)
@@ -1380,7 +1378,7 @@ export async function toDataJson1(
     object = objectsCache[idOrObject]
     if (object === undefined) {
       object = await getObjectFromId(idOrObject)
-      objectsCache[object.id] = object
+      objectsCache[idOrObject] = object
     }
     if (object === null) {
       console.log("Missing object for ID:", idOrObject)
@@ -1447,9 +1445,9 @@ export async function toDataJson1(
     for (let referencedId of referencedIds) {
       await toDataJson1(referencedId, data, objectsCache, user, {
         depth: depth - 1,
+        need,
         showBallots,
         showReferences,
-        showValues,
       })
     }
 
@@ -1469,72 +1467,75 @@ export async function toDataJson1(
     }
   }
 
-  if (showValues && depth > 0) {
+  if (depth > 0) {
     if (object.type == "Property") {
       await toDataJson1(object.keyId, data, objectsCache, user, {
         depth: depth - 1,
+        need,
         showBallots,
-        showValues,
       })
       await toDataJson1(object.objectId, data, objectsCache, user, {
         depth: depth - 1,
+        need,
         showBallots,
-        showValues,
       })
       await toDataJson1(object.valueId, data, objectsCache, user, {
         depth: depth - 1,
+        need,
         showBallots,
-        showValues,
       })
     } else if (object.type == "Value") {
       if (object.schemaId === getIdFromSymbol("schema:ids-array")) {
         for (let itemId of object.value) {
           await toDataJson1(itemId, data, objectsCache, user, {
             depth: depth - 1,
+            need,
             showBallots,
-            showValues,
           })
         }
       }
     }
 
-    for (let [keyId, valueIds] of Object.entries(object.properties || {})) {
-      await toDataJson1(keyId, data, objectsCache, user, {
-        depth: depth - 1,
-        showBallots,
-        showValues,
-      })
-      if (!Array.isArray(valueIds)) valueIds = [valueIds]
-      for (let valueId of valueIds) {
-        await toDataJson1(valueId, data, objectsCache, user, {
+    if (object.properties && need) {
+      for (let [keyId, valueIds] of Object.entries(object.properties || {})) {
+        if (!need.has(keyId)) continue
+        await toDataJson1(keyId, data, objectsCache, user, {
           depth: depth - 1,
+          need,
           showBallots,
-          showValues,
         })
+        if (!Array.isArray(valueIds)) valueIds = [valueIds]
+        for (let valueId of valueIds) {
+          await toDataJson1(valueId, data, objectsCache, user, {
+            depth: depth - 1,
+            need,
+            showBallots,
+          })
+        }
       }
     }
 
     for (let subTypeId of object.subTypeIds || []) {
       await toDataJson1(subTypeId, data, objectsCache, user, {
         depth: depth - 1,
+        need,
         showBallots,
-        showValues,
       })
     }
 
     for (let tagId of object.tagIds || []) {
       await toDataJson1(tagId, data, objectsCache, user, {
         depth: depth - 1,
+        need,
         showBallots,
-        showValues,
       })
     }
 
     for (let usageId of object.usageIds || []) {
       await toDataJson1(usageId, data, objectsCache, user, {
         depth: depth - 1,
+        need,
         showBallots,
-        showValues,
       })
     }
   }
