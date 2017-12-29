@@ -199,7 +199,6 @@ export const createValue = wrapAsyncMiddleware(async function createValue(req, r
     data: await toDataJson(typedValue, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -293,7 +292,6 @@ export const getExistingValue = wrapAsyncMiddleware(async function createValue(r
     data: await toDataJson(typedValue, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -394,7 +392,6 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
     data: await toDataJson(values, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),

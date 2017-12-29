@@ -557,7 +557,6 @@ export const createCard = wrapAsyncMiddleware(async function createCard(req, res
     data: await toDataJson(card, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -679,7 +678,6 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
     data: await toDataJson(card, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -946,7 +944,6 @@ let cards = (await db.any(
     data: await toDataJson(cards, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),

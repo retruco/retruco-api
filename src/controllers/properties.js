@@ -192,7 +192,6 @@ export const getOrCreateProperty = wrapAsyncMiddleware(async function getOrCreat
     data: await toDataJson(propertyOrProperties, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -248,7 +247,6 @@ export const listProperties = wrapAsyncMiddleware(async function listProperties(
     data: await toDataJson(properties, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),

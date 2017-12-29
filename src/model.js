@@ -1263,7 +1263,6 @@ async function toBallotData(
     depth = 0,
     objectsCache = null,
     showBallots = false,
-    showProperties = false,
     showReferences = false,
     showValues = false,
   } = {},
@@ -1285,7 +1284,6 @@ async function toBallotData(
         await toDataJson1(object, data, objectsCache, user, {
           depth,
           showBallots,
-          showProperties,
           showReferences,
           showValues,
         })
@@ -1295,7 +1293,6 @@ async function toBallotData(
       await toDataJson1(statementOrStatements, data, objectsCache, user, {
         depth,
         showBallots,
-        showProperties,
         showReferences,
         showValues,
       })
@@ -1324,7 +1321,6 @@ export async function toDataJson(
     depth = 0,
     objectsCache = null,
     showBallots = false,
-    showProperties = false,
     showReferences = false,
     showValues = false,
   } = {},
@@ -1346,7 +1342,6 @@ export async function toDataJson(
         await toDataJson1(object, data, objectsCache, user, {
           depth,
           showBallots,
-          showProperties,
           showReferences,
           showValues,
         })
@@ -1357,7 +1352,6 @@ export async function toDataJson(
       await toDataJson1(objectOrObjects, data, objectsCache, user, {
         depth,
         showBallots,
-        showProperties,
         showReferences,
         showValues,
       })
@@ -1378,7 +1372,7 @@ export async function toDataJson1(
   data,
   objectsCache,
   user,
-  { depth = 0, showBallots = false, showProperties = false, showReferences = false, showValues = false } = {},
+  { depth = 0, showBallots = false, showReferences = false, showValues = false } = {},
 ) {
   let object
   if (typeof idOrObject === "number") idOrObject = String(idOrObject)
@@ -1451,7 +1445,6 @@ export async function toDataJson1(
       await toDataJson1(referencedId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
-        showProperties,
         showReferences,
         showValues,
       })
@@ -1478,19 +1471,16 @@ export async function toDataJson1(
       await toDataJson1(object.keyId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
-        showProperties,
         showValues,
       })
       await toDataJson1(object.objectId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
-        showProperties,
         showValues,
       })
       await toDataJson1(object.valueId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
-        showProperties,
         showValues,
       })
     } else if (object.type == "Value") {
@@ -1499,7 +1489,6 @@ export async function toDataJson1(
           await toDataJson1(itemId, data, objectsCache, user, {
             depth: depth - 1,
             showBallots,
-            showProperties,
             showValues,
           })
         }
@@ -1510,7 +1499,6 @@ export async function toDataJson1(
       await toDataJson1(keyId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
-        showProperties,
         showValues,
       })
       if (!Array.isArray(valueIds)) valueIds = [valueIds]
@@ -1518,7 +1506,6 @@ export async function toDataJson1(
         await toDataJson1(valueId, data, objectsCache, user, {
           depth: depth - 1,
           showBallots,
-          showProperties,
           showValues,
         })
       }
@@ -1528,7 +1515,6 @@ export async function toDataJson1(
       await toDataJson1(subTypeId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
-        showProperties,
         showValues,
       })
     }
@@ -1537,7 +1523,6 @@ export async function toDataJson1(
       await toDataJson1(tagId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
-        showProperties,
         showValues,
       })
     }
@@ -1546,7 +1531,6 @@ export async function toDataJson1(
       await toDataJson1(usageId, data, objectsCache, user, {
         depth: depth - 1,
         showBallots,
-        showProperties,
         showValues,
       })
     }

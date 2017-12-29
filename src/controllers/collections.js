@@ -59,7 +59,6 @@ export const createCollection = wrapAsyncMiddleware(async function createCollect
     data: await toCollectionData(collection, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -88,7 +87,6 @@ export const deleteCollection = wrapAsyncMiddleware(async function deleteCollect
     data: await toCollectionData(collection, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -138,7 +136,6 @@ export const editCollection = wrapAsyncMiddleware(async function editCollection(
     data: await toCollectionData(collection, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -167,7 +164,6 @@ export const getCollection = wrapAsyncMiddleware(async function getCollection(re
     data: await toCollectionData(collection, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -211,7 +207,6 @@ export const listCollections = wrapAsyncMiddleware(async function listCollection
     data: await toCollectionData(collections, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -261,7 +256,6 @@ export const listUserCollections = wrapAsyncMiddleware(async function listUserCo
     data: await toCollectionData(collections, authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -296,7 +290,6 @@ async function toCollectionData(
     depth = 0,
     objectsCache = null,
     showBallots = false,
-    showProperties = false,
     showReferences = false,
     showValues = false,
   } = {},
@@ -333,7 +326,6 @@ async function toCollectionData(
     await toDataJson1(objectId, data, objectsCache, user, {
       depth,
       showBallots,
-      showProperties,
       showReferences,
       showValues,
     })

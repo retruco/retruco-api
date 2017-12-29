@@ -45,7 +45,6 @@ export const deleteBallot = wrapAsyncMiddleware(async function deleteBallot(req,
     data: await toBallotData(ballot, [statement], req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -71,7 +70,6 @@ export const getBallot = wrapAsyncMiddleware(async function getBallot(req, res) 
     data: await toBallotData(ballot, [statement], req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -92,7 +90,6 @@ export const upsertBallot = wrapAsyncMiddleware(async function upsertBallot(req,
     data: await toBallotData(ballot, [statement], req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),

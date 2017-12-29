@@ -29,7 +29,6 @@ export const getObject = wrapAsyncMiddleware(async function getObject(req, res) 
     data: await toDataJson(req.object, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
@@ -83,7 +82,6 @@ export const listObjectSameKeyProperties = wrapAsyncMiddleware(async function li
     data: await toDataJson(sameKeyProperties, req.authenticatedUser, {
       depth: req.query.depth || 0,
       showBallots: show.includes("ballots"),
-      showProperties: show.includes("properties"),
       showReferences: show.includes("references"),
       showValues: show.includes("values"),
     }),
