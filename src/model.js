@@ -412,7 +412,7 @@ export async function generateObjectTextSearch(object) {
   if (object === null) return
   let autocompleteByLanguage = {}
   let englishId = getIdFromSymbol("en")
-  let objectByIdCache = { [object.id]: object }
+  let objectsCache = { [object.id]: object }
   let preferredLanguageFound
   let searchableTextsByWeightByLanguage = {}
   let table = null
@@ -432,7 +432,7 @@ export async function generateObjectTextSearch(object) {
             if (valueIds === undefined) continue
             if (!Array.isArray(valueIds)) valueIds = [valueIds]
             for (let valueId of valueIds) {
-              autocomplete = await getLanguageTextFromId(valueId, preferredLanguageId, { objectByIdCache })
+              autocomplete = await getLanguageTextFromId(valueId, preferredLanguageId, { objectsCache })
               if (autocomplete !== null) break
             }
             if (autocomplete !== null) break
@@ -453,7 +453,7 @@ export async function generateObjectTextSearch(object) {
             if (valueIds === undefined) continue
             if (!Array.isArray(valueIds)) valueIds = [valueIds]
             for (let valueId of valueIds) {
-              let text = await getLanguageTextFromId(valueId, preferredLanguageId, { objectByIdCache })
+              let text = await getLanguageTextFromId(valueId, preferredLanguageId, { objectsCache })
               if (text === null) continue
               let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
               if (searchableTextsByWeight === undefined) {
@@ -472,7 +472,7 @@ export async function generateObjectTextSearch(object) {
         weight = "B"
         for (let preferredLanguageId of preferredLanguageIds) {
           for (let valueId of object.tagIds || []) {
-            let text = await getLanguageTextFromId(valueId, preferredLanguageId, { objectByIdCache })
+            let text = await getLanguageTextFromId(valueId, preferredLanguageId, { objectsCache })
             if (text === null) continue
             let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
             if (searchableTextsByWeight === undefined) {
@@ -490,7 +490,7 @@ export async function generateObjectTextSearch(object) {
         weight = "C"
         for (let preferredLanguageId of preferredLanguageIds) {
           for (let valueId of object.usageIds || []) {
-            let text = await getLanguageTextFromId(valueId, preferredLanguageId, { objectByIdCache })
+            let text = await getLanguageTextFromId(valueId, preferredLanguageId, { objectsCache })
             if (text === null) continue
             let searchableTextsByWeight = searchableTextsByWeightByLanguage[language]
             if (searchableTextsByWeight === undefined) {
@@ -530,7 +530,7 @@ export async function generateObjectTextSearch(object) {
       let languageId = getIdFromSymbol(language)
       let preferredLanguageIds = languageId === englishId ? [languageId, null] : [languageId, englishId, null]
       for (let preferredLanguageId of preferredLanguageIds) {
-        let text = await getLanguageText(object, preferredLanguageId, { objectByIdCache })
+        let text = await getLanguageText(object, preferredLanguageId, { objectsCache })
         if (text === null) continue
         autocompleteByLanguage[language] = text
         searchableTextsByWeightByLanguage[language] = { A: [text] }
@@ -618,7 +618,7 @@ export async function generateObjectTextSearch(object) {
 async function getLanguageText(
   typedValue,
   languageId,
-  { objectByIdCache = null, visitedIds = null } = null,
+  { objectsCache = null, visitedIds = null } = null,
 ) {
   if (typedValue === null) {
     return null
@@ -645,7 +645,7 @@ async function getLanguageText(
     if (textId === typedValue.id) {
       return typedValue.value
     }
-    return await getLanguageTextFromId(textId, null, { objectByIdCache, visitedIds })
+    return await getLanguageTextFromId(textId, null, { objectsCache, visitedIds })
   }
 
   // There is no direct localization for the requested language.
@@ -663,7 +663,7 @@ async function getLanguageText(
     }
     if (!Array.isArray(textIds)) textIds = [textIds]
     for (let textId of textIds) {
-      let text = await getLanguageTextFromId(textId, languageId, { objectByIdCache, visitedIds })
+      let text = await getLanguageTextFromId(textId, languageId, { objectsCache, visitedIds })
       if (text !== null) {
         return text
       }
@@ -677,18 +677,18 @@ async function getLanguageText(
 async function getLanguageTextFromId(
   valueId,
   languageId,
-  { objectByIdCache = null, visitedIds = null } = null,
+  { objectsCache = null, visitedIds = null } = null,
 ) {
   let typedValue
-  if (objectByIdCache === null) {
+  if (objectsCache === null) {
     typedValue = await getObjectFromId(valueId)
   } else {
-    typedValue = objectByIdCache[valueId]
+    typedValue = objectsCache[valueId]
     if (typedValue === undefined) {
-      objectByIdCache[valueId] = typedValue = await getObjectFromId(valueId)
+      objectsCache[valueId] = typedValue = await getObjectFromId(valueId)
     }
   }
-  return await getLanguageText(typedValue, languageId, { objectByIdCache, visitedIds })
+  return await getLanguageText(typedValue, languageId, { objectsCache, visitedIds })
 }
 
 export async function getObjectFromId(id) {
