@@ -847,6 +847,14 @@ async function configureDatabase() {
   if (version.number < 32) {
     // await db.none(`UPDATE symbols SET symbol = 'discussion' WHERE symbol = 'situation'`)
     // await db.none(`UPDATE values SET value = '"Discussion"' WHERE value = '"Situation"'`)
+    await db.none("UPDATE properties SET key_id = $2 WHERE key_id = $1", [
+      idBySymbol["situation"],
+      idBySymbol["discussion"],
+    ])
+    await db.none("UPDATE properties SET value_id = $2 WHERE value_id = $1", [
+      idBySymbol["situation"],
+      idBySymbol["discussion"],
+    ])
     await db.none("UPDATE symbols SET symbol = 'intervention' WHERE symbol = 'suggestion'")
     await db.none(`UPDATE values SET value = '"Intervention"' WHERE value = '"Suggestion"'`)
   }

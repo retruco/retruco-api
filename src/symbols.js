@@ -547,6 +547,30 @@ export const symbolizedTypedValues = [
     schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
   },
 
+  // Keys of discussion properties
+
+  {
+    symbol: "idea",
+    schemaSymbol: "schema:string",
+    value: "Idea",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
+  },
+  {
+    symbol: "intervention",
+    schemaSymbol: "schema:string",
+    value: "Intervention",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
+  },
+  {
+    symbol: "question",
+    schemaSymbol: "schema:string",
+    value: "Question",
+    widgetSymbol: "widget:input-text",
+    schemasWidgetsOrder: [["schema:value-ids-array", ["widget:rated-item-or-set"]]],
+  },
+
   // Keys of other properties
 
   {
@@ -567,13 +591,6 @@ export const symbolizedTypedValues = [
     symbol: "duplicate-of",
     schemaSymbol: "schema:string",
     value: "Duplicate of",
-    widgetSymbol: "widget:input-text",
-    schemasWidgetsOrder: [["schema:id", ["widget:autocomplete"]]],
-  },
-  {
-    symbol: "intervention",
-    schemaSymbol: "schema:string",
-    value: "Intervention",
     widgetSymbol: "widget:input-text",
     schemasWidgetsOrder: [["schema:id", ["widget:autocomplete"]]],
   },
