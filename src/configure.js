@@ -826,10 +826,10 @@ async function configureDatabase() {
   }
 
   if (version.number < 30) {
-    await db.none(`UPDATE symbols SET symbol = 'con' WHERE symbol = 'cons'`)
+    await db.none("UPDATE symbols SET symbol = 'con' WHERE symbol = 'cons'")
     await db.none(`UPDATE values SET value = '"Con"' WHERE value = '"Cons"'`)
 
-    await db.none(`UPDATE symbols SET symbol = 'pro' WHERE symbol = 'pros'`)
+    await db.none("UPDATE symbols SET symbol = 'pro' WHERE symbol = 'pros'")
     await db.none(`UPDATE values SET value = '"Pro"' WHERE value = '"Pros"'`)
 
     await db.none("UPDATE symbols SET symbol = 'option' WHERE symbol = 'options'")
@@ -840,14 +840,14 @@ async function configureDatabase() {
   }
 
   if (version.number < 31) {
-    await db.none(`UPDATE symbols SET symbol = 'type' WHERE symbol = 'types'`)
+    await db.none("UPDATE symbols SET symbol = 'type' WHERE symbol = 'types'")
     await db.none(`UPDATE values SET value = '"Type"' WHERE value = '"Types"'`)
   }
 
   if (version.number < 32) {
     // await db.none(`UPDATE symbols SET symbol = 'discussion' WHERE symbol = 'situation'`)
     // await db.none(`UPDATE values SET value = '"Discussion"' WHERE value = '"Situation"'`)
-    await db.none(`UPDATE symbols SET symbol = 'intervention' WHERE symbol = 'suggestion'`)
+    await db.none("UPDATE symbols SET symbol = 'intervention' WHERE symbol = 'suggestion'")
     await db.none(`UPDATE values SET value = '"Intervention"' WHERE value = '"Suggestion"'`)
   }
 
