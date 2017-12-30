@@ -25,7 +25,7 @@ import Redis from "ioredis"
 
 import config from "../config"
 import { db } from "../database"
-import { entryToUser, getObjectFromId, toObjectJson, toUserJson } from "../model"
+import { entryToUser, getObjectFromId, toDataJson, toObjectJson, toUserJson } from "../model"
 import { getIdFromIdOrSymbol } from "../symbols"
 
 const pubsub = new PubSub()
@@ -33,16 +33,30 @@ const redis = new Redis(config.redis)
 const typeDefs = `
   scalar JSON
 
+  type Ballot {
+    id: String!
+    rating: Int!
+    statementId: String!
+    updatedAt: String!
+    voterId: String!
+  }
   type Card implements Statement {
     argumentCount: Int!
     ballotId: String
     createdAt: String!
     id: String!
-    properties: [PropertyItem!]
+    properties: [ValueIdsItem!]
     ratingCount: Int!
     ratingSum: Int!
     trashed: Boolean
     type: String!
+  }
+  type DataId {
+    ballots: [Ballot!]
+    cards: [Card!]
+    id: String!
+    properties: [Property!]
+    values: [Value!]
   }
   type Property implements Statement {
     argumentCount: Int!
@@ -51,7 +65,7 @@ const typeDefs = `
     id: String!
     keyId: String!
     objectId: String!
-    properties: [PropertyItem!]
+    properties: [ValueIdsItem!]
     ratingCount: Int!
     ratingSum: Int!
     trashed: Boolean
@@ -59,16 +73,12 @@ const typeDefs = `
     value: Statement!
     valueId: String!
   }
-  type PropertyItem {
-    keyId: String!
-    valueIds: [String]
-  }
   interface Statement {
     argumentCount: Int!
     ballotId: String
     createdAt: String!
     id: String!
-    properties: [PropertyItem!]
+    properties: [ValueIdsItem!]
     ratingCount: Int!
     ratingSum: Int!
     trashed: Boolean
@@ -83,7 +93,7 @@ const typeDefs = `
     id: String!
     isAdmin: Boolean!
     name: String!
-    properties: [PropertyItem!]
+    properties: [ValueIdsItem!]
     ratingCount: Int!
     ratingSum: Int!
     trashed: Boolean
@@ -95,7 +105,7 @@ const typeDefs = `
     ballotId: String
     createdAt: String!
     id: String!
-    properties: [PropertyItem!]
+    properties: [ValueIdsItem!]
     ratingCount: Int!
     ratingSum: Int!
     schemaId: String!
@@ -103,6 +113,10 @@ const typeDefs = `
     type: String!
     value: JSON
     widgetId: String
+  }
+  type ValueIdsItem {
+    keyId: String!
+    valueIds: [String]
   }
 
   # the schema allows the following query:
@@ -118,6 +132,9 @@ const typeDefs = `
   #   ): Statement
   # }
   type Subscription {
+    objectUpserted (
+      need: [String!]
+    ) : DataId
     propertyUpserted (
       objectIds: [String!]
       keyIds: [String!]
@@ -180,13 +197,35 @@ const resolvers = {
     },
   },
   Subscription: {
+    objectUpserted: {
+      resolve: async (object, {need}) => {
+        need = new Set((need || []).map(getIdFromIdOrSymbol))
+        const dataId = await toDataJson(object, null /* TODO: user */, {need, showBallots: false /* TODO */})
+        for (let name of ["ballots", "cards", "properties", "users", "values"]) {
+          if (dataId[name]) {
+            dataId[name] = Object.values(dataId[name])
+          }
+        }
+        return dataId
+      },
+      subscribe: withFilter(
+        () => pubsub.asyncIterator("objectUpserted"),
+        () => {
+          return true
+        },
+      ),
+    },
     propertyUpserted: {
       resolve: async (property) => {
         return await toObjectJson(property)
       },
       subscribe: withFilter(
-        () => pubsub.asyncIterator("propertyUpserted"),
-        (property, {keyIds, objectIds, valueIds}) => {
+        () => pubsub.asyncIterator("objectUpserted"),
+        (object, {keyIds, objectIds, valueIds}) => {
+          if (object.type !== "Property") {
+            return false
+          }
+          const property = object
           if (keyIds && keyIds.length > 0) {
             keyIds = keyIds.map(getIdFromIdOrSymbol)
             if (!keyIds.includes(property.keyId)) {
@@ -218,13 +257,13 @@ export const schema = makeExecutableSchema({
 })
 
 redis.on("message", async function (channel, message) {
-    if (channel === "propertyUpserted") {
-      const propertyId = message
-      const property = await getObjectFromId(propertyId)
-      pubsub.publish("propertyUpserted", property)
+    if (channel === "objectUpserted") {
+      const id = message
+      const object = await getObjectFromId(id)
+      pubsub.publish("objectUpserted", object)
     } else {
       console.warn(`Received Redis message ignored: ${channel} - ${message}`)
     }
   })
 
-redis.subscribe("propertyUpserted")
+redis.subscribe("objectUpserted")

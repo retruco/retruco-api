@@ -412,16 +412,16 @@ async function processAction(action) {
     }
     if (object.type === "Property") {
       addAction(object.objectId, action.type)
-      redis.publish("propertyUpserted", object.id)
     }
   } else if (contentChanged) {
     // Propagate change to every reference of object.
     for (let referencedId of referencedIds) {
       addAction(referencedId, action.type)
     }
-    if (object.type === "Property") {
-      redis.publish("propertyUpserted", object.id)
-    }
+  }
+
+  if (contentChanged || ratingChanged || trashedChanged) {
+    redis.publish("objectUpserted", object.id)
   }
 }
 
