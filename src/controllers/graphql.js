@@ -45,7 +45,7 @@ const typeDefs = `
     ballotId: String
     createdAt: String!
     id: String!
-    properties: [ValueIdsItem!]
+    qualities: [QualityItem!]
     ratingCount: Int!
     ratingSum: Int!
     trashed: Boolean
@@ -65,7 +65,7 @@ const typeDefs = `
     id: String!
     keyId: String!
     objectId: String!
-    properties: [ValueIdsItem!]
+    qualities: [QualityItem!]
     ratingCount: Int!
     ratingSum: Int!
     trashed: Boolean
@@ -73,12 +73,16 @@ const typeDefs = `
     value: Statement!
     valueId: String!
   }
+  type QualityItem {
+    keyId: String!
+    valueIds: [String]
+  }
   interface Statement {
     argumentCount: Int!
     ballotId: String
     createdAt: String!
     id: String!
-    properties: [ValueIdsItem!]
+    qualities: [QualityItem!]
     ratingCount: Int!
     ratingSum: Int!
     trashed: Boolean
@@ -93,7 +97,7 @@ const typeDefs = `
     id: String!
     isAdmin: Boolean!
     name: String!
-    properties: [ValueIdsItem!]
+    qualities: [QualityItem!]
     ratingCount: Int!
     ratingSum: Int!
     trashed: Boolean
@@ -105,7 +109,7 @@ const typeDefs = `
     ballotId: String
     createdAt: String!
     id: String!
-    properties: [ValueIdsItem!]
+    qualities: [QualityItem!]
     ratingCount: Int!
     ratingSum: Int!
     schemaId: String!
@@ -113,10 +117,6 @@ const typeDefs = `
     type: String!
     value: JSON
     widgetId: String
-  }
-  type ValueIdsItem {
-    keyId: String!
-    valueIds: [String]
   }
 
   # the schema allows the following query:
@@ -148,7 +148,7 @@ const resolvers = {
     async value(property) {
       console.log("resolvers.Property.value", property)
       const value = await getObjectFromId(property.valueId)
-      return await toObjectJson(value)
+      return await toObjectJson(value, {graphql: true})
     },
   },
   // Mutation: {
@@ -200,7 +200,7 @@ const resolvers = {
     objectUpserted: {
       resolve: async (object, {need}) => {
         need = new Set((need || []).map(getIdFromIdOrSymbol))
-        const dataId = await toDataJson(object, null /* TODO: user */, {need, showBallots: false /* TODO */})
+        const dataId = await toDataJson(object, null /* TODO: user */, {graphql: true, need, showBallots: false /* TODO */})
         for (let name of ["ballots", "cards", "properties", "users", "values"]) {
           if (dataId[name]) {
             dataId[name] = Object.values(dataId[name])
@@ -217,7 +217,7 @@ const resolvers = {
     },
     propertyUpserted: {
       resolve: async (property) => {
-        return await toObjectJson(property)
+        return await toObjectJson(property, {graphql: true})
       },
       subscribe: withFilter(
         () => pubsub.asyncIterator("objectUpserted"),

@@ -111,7 +111,7 @@ export const autocompletePropertiesKeys = wrapAsyncMiddleware(async function aut
 })
 
 export const getOrCreateProperty = wrapAsyncMiddleware(async function getOrCreateProperty(req, res) {
-  // Create a new card (or retrieve the existing one), giving its initial attributes, schemas & widgets.
+  // Create a new property (or retrieve the existing one), giving its initial object, key and value.
   let authenticatedUser = req.authenticatedUser
   let need = new Set((req.query.need || []).map(getIdFromIdOrSymbol))
   let propertyInfos = req.body

@@ -82,7 +82,7 @@ export async function regenerateArguments(statementId, debateKeyIds) {
   }
 }
 
-export async function regeneratePropertiesItem(objectId, keyId) {
+export async function regenerateQualities(objectId, keyId) {
   let object = await getObjectFromId(objectId)
   assert.ok(object, `Missing objet at ID ${objectId}`)
 
@@ -116,25 +116,25 @@ export async function regeneratePropertiesItem(objectId, keyId) {
     }
   }
 
-  let objectPropertiesChanged = false
+  let objectQualitiesChanged = false
   if (uniqueValueIds.length > 0) {
-    if (!object.properties) object.properties = {}
+    if (!object.qualities) object.qualities = {}
     if (uniqueValueIds.length === 1) uniqueValueIds = uniqueValueIds[0]
-    if (!deepEqual(object.properties[keyId], uniqueValueIds)) {
-      object.properties[keyId] = uniqueValueIds
-      objectPropertiesChanged = true
+    if (!deepEqual(object.qualities[keyId], uniqueValueIds)) {
+      object.qualities[keyId] = uniqueValueIds
+      objectQualitiesChanged = true
     }
-  } else if (object.properties && object.properties[keyId]) {
-    delete object.properties[keyId]
-    if (Object.keys(object.properties).length === 0) object.properties = null
-    objectPropertiesChanged = true
+  } else if (object.qualities && object.qualities[keyId]) {
+    delete object.qualities[keyId]
+    if (Object.keys(object.qualities).length === 0) object.qualities = null
+    objectQualitiesChanged = true
   }
 
-  if (objectPropertiesChanged) {
+  if (objectQualitiesChanged) {
     await db.none(
       `
         UPDATE objects
-        SET properties = $<properties:json>
+        SET qualities = $<qualities:json>
         WHERE id = $<id>
       `,
       object,

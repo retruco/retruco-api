@@ -31,13 +31,13 @@ import {
   describeHtml,
   generateObjectTextSearch,
   getObjectFromId,
-  getSubTypeIdsFromProperties,
-  getTagIdsFromProperties,
+  getSubTypeIdsFromQualities,
+  getTagIdsFromQualities,
   entryToAction,
   entryToBallot,
   entryToProperty,
 } from "./model"
-import { regenerateArguments, regeneratePropertiesItem } from "./regenerators"
+import { regenerateArguments, regenerateQualities } from "./regenerators"
 import { getIdFromSymbol, debateKeySymbols } from "./symbols"
 
 let conAndProKeyIds = null // Set by listenToActions
@@ -108,12 +108,12 @@ async function processAction(action) {
   let description = await describe(object)
   console.log(`Processing ${action.type} of ${action.createdAt.toISOString()} for ${description}...`)
 
-  // Compute object references from properties.
+  // Compute object references from qualities.
   let contentChanged = false
-  let properties = object.properties || {}
+  let qualities = object.qualities || {}
   let referencedIds = new Set()
   let textSearchUpdateNeeded = false
-  for (let valueIds of Object.values(properties)) {
+  for (let valueIds of Object.values(qualities)) {
     if (!Array.isArray(valueIds)) {
       // valueIds is a single ID.
       valueIds = [valueIds]
@@ -121,12 +121,12 @@ async function processAction(action) {
     for (let valueId of valueIds) {
       let typedValue = await getObjectFromId(valueId)
       if (typedValue === null) {
-        console.log("Skipping missing property value:", valueId)
+        console.log("Skipping missing quality value:", valueId)
         continue
       }
       let schema = (await getObjectFromId(typedValue.schemaId)).value
       if (schema === undefined) {
-        console.log("Skipping property value without schema:", typedValue)
+        console.log("Skipping quality value without schema:", typedValue)
         continue
       }
       await addReferences(referencedIds, schema, typedValue.value)
@@ -163,8 +163,8 @@ async function processAction(action) {
     contentChanged = true
   }
 
-  // Compute object sub types from properties.
-  let subTypeIds = await getSubTypeIdsFromProperties(properties)
+  // Compute object sub types from qualities.
+  let subTypeIds = await getSubTypeIdsFromQualities(qualities)
   if (!deepEqual(subTypeIds, object.subTypeIds)) {
     await db.none("UPDATE objects SET sub_types = $<subTypeIds> WHERE id = $<id>", {
       id: object.id,
@@ -206,8 +206,8 @@ async function processAction(action) {
     // await addAction(object.id, "update")  TODO?
   }
 
-  // Compute object tags from properties.
-  let tagIds = await getTagIdsFromProperties(properties)
+  // Compute object tags from qualities.
+  let tagIds = await getTagIdsFromQualities(qualities)
   // Add usage to tags, to index them.
   if (usageIds !== null) {
     if (tagIds === null) tagIds = usageIds
@@ -263,8 +263,8 @@ async function processAction(action) {
 
     if (object.type === "Card") {
       // Compute card specific rating.
-      let keyIds = Object.keys(object.properties || {})
-      // When there is at least 5 properties, score is multiplied by up to two.
+      let keyIds = Object.keys(object.qualities || {})
+      // When there is at least 5 qualities, score is multiplied by up to two.
       let ogpToolboxScore = Math.atan(keyIds.length / 5) * 4 / Math.PI
       if (keyIds.includes(getIdFromSymbol("logo")) || keyIds.includes(getIdFromSymbol("screenshot"))) {
         ogpToolboxScore *= 10
@@ -274,7 +274,7 @@ async function processAction(action) {
       )
       ogpToolboxScore *= Math.max(referencesCount, 0.5)
       let locationsCount = 0
-      let locationsId = (object.properties || {})[getIdFromSymbol("location")]
+      let locationsId = (object.qualities || {})[getIdFromSymbol("location")]
       if (locationsId) {
         let typedLocation = await getObjectFromId(locationsId)
         if (typedLocation !== null && typedLocation.schemaId === getIdFromSymbol("schema:ids-array")) {
@@ -355,7 +355,7 @@ async function processAction(action) {
       }
 
       if (object.type === "Property") {
-        await regeneratePropertiesItem(object.objectId, object.keyId)
+        await regenerateQualities(object.objectId, object.keyId)
         if (debateKeyIds.includes(object.keyId)) {
           await regenerateArguments(object.objectId, debateKeyIds)
         }

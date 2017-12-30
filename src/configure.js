@@ -24,8 +24,8 @@ import slugify from "slug"
 import config from "./config"
 import { db, versionNumber } from "./database"
 import { entryToValue, getValue, types } from "./model"
-import { regenerateActions, regeneratePropertiesItem } from "./regenerators"
-import { cleanupObjectsProperties, collectGarbage, replaceId } from "./repairs"
+import { regenerateActions, regenerateQualities } from "./regenerators"
+import { cleanupObjectsQualities, collectGarbage, replaceId } from "./repairs"
 import { getIdFromSymbol, symbolizedTypedValues, idBySymbol, symbolById } from "./symbols"
 
 async function configureDatabase() {
@@ -207,7 +207,7 @@ async function configureDatabase() {
       CREATE TABLE IF NOT EXISTS objects(
         created_at timestamp without time zone NOT NULL,
         id bigserial NOT NULL PRIMARY KEY,
-        properties jsonb,
+        qualities jsonb,
         sub_types text[],
         tags text[],
         type object_type NOT NULL,
@@ -857,6 +857,8 @@ async function configureDatabase() {
     ])
     await db.none("UPDATE symbols SET symbol = 'intervention' WHERE symbol = 'suggestion'")
     await db.none(`UPDATE values SET value = '"Intervention"' WHERE value = '"Suggestion"'`)
+
+    await db.none("ALTER TABLE objects RENAME COLUMN properties TO qualities")
   }
 
   await configureSymbols()
@@ -901,9 +903,9 @@ async function configureDatabase() {
   }
 
   if (requiresPropertiesRegeneration) {
-    await cleanupObjectsProperties()
+    await cleanupObjectsQualities()
 
-    console.log("Regenerating properties...")
+    console.log("Regenerating qualities...")
     let entries = await db.any(
       `
         SELECT object_id, key_id
@@ -915,13 +917,13 @@ async function configureDatabase() {
     let previousObjectId = null
     for (let entry of entries) {
       if (entry.object_id !== previousObjectId) {
-        console.log(`  Regenerating properties of object ${entry.object_id}...`)
+        console.log(`  Regenerating qualities of object ${entry.object_id}...`)
         previousObjectId = entry.object_id
       }
-      await regeneratePropertiesItem(entry.object_id, entry.key_id)
+      await regenerateQualities(entry.object_id, entry.key_id)
     }
     requiresGarbageCollection = true
-    console.log("All properties have been regenerated.")
+    console.log("All qualities have been regenerated.")
   }
 
   if (requiresArgumentsRegeneration) {
@@ -1127,7 +1129,7 @@ export async function getOrNewValueWithSymbol(schemaId, widgetId, value, { symbo
     typedValue = {
       createdAt: result.created_at,
       id: result.id,
-      properties: null,
+      qualities: null,
       schemaId,
       symbol,
       type: result.type,

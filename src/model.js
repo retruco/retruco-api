@@ -345,7 +345,7 @@ export function entryToObject(entry) {
     : {
         createdAt: entry.created_at,
         id: entry.id,
-        properties: entry.properties,
+        qualities: entry.qualities,
         subTypeIds: entry.sub_types,
         symbol: entry.symbol, // Given only when JOIN with table symbols
         tagIds: entry.tags,
@@ -418,8 +418,8 @@ export async function generateObjectTextSearch(object) {
   let weight
   if (object.type === "Card") {
     table = "cards"
-    let valueIdByKeyId = object.properties
-    if (valueIdByKeyId) {
+    let qualities = object.qualities
+    if (qualities) {
       for (let language of configLanguages) {
         let autocomplete = null
         let languageId = getIdFromSymbol(language)
@@ -427,7 +427,7 @@ export async function generateObjectTextSearch(object) {
 
         for (let preferredLanguageId of preferredLanguageIds) {
           for (let keySymbol of ["name", "title", "twitter-name"]) {
-            let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+            let valueIds = qualities[getIdFromSymbol(keySymbol)]
             if (valueIds === undefined) continue
             if (!Array.isArray(valueIds)) valueIds = [valueIds]
             for (let valueId of valueIds) {
@@ -448,7 +448,7 @@ export async function generateObjectTextSearch(object) {
             ["title", "A"],
             ["twitter-name", "A"],
           ]) {
-            let valueIds = valueIdByKeyId[getIdFromSymbol(keySymbol)]
+            let valueIds = qualities[getIdFromSymbol(keySymbol)]
             if (valueIds === undefined) continue
             if (!Array.isArray(valueIds)) valueIds = [valueIds]
             for (let valueId of valueIds) {
@@ -633,11 +633,11 @@ async function getLanguageText(
   if (!stringSchemaIds.has(typedValue.schemaId)) {
     return null
   }
-  let properties = typedValue.properties
-  if (!properties) {
+  let qualities = typedValue.qualities
+  if (!qualities) {
     return null
   }
-  let textIds = properties[languageId]
+  let textIds = qualities[languageId]
   if (textIds !== undefined) {
     // Some values for the requested language have bien found, return the best value (aka the first one).
     let textId = Array.isArray(textIds) ? textIds[0] : textIds
@@ -656,7 +656,7 @@ async function getLanguageText(
   }
   visitedIds.add(typedValue.id)
   const configLanguageIds = new Set(configLanguages.map(getIdFromSymbol))
-  for (let [otherLanguageId, textIds] of Object.entries(properties)) {
+  for (let [otherLanguageId, textIds] of Object.entries(qualities)) {
     if (!configLanguageIds.has(otherLanguageId)) {
       // This is not the ID of a language => Skip it.
       continue
@@ -800,14 +800,14 @@ export async function getOrNewLocalizedString(
   language,
   string,
   widgetIdOrSymbol,
-  { cache = null, inactiveStatementIds = null, properties = null, userId = null } = {},
+  { cache = null, inactiveStatementIds = null, qualities = null, userId = null } = {},
 ) {
   assert.strictEqual(typeof string, "string")
   let widgetId = getIdFromIdOrSymbol(widgetIdOrSymbol)
   let typedString = await getOrNewValue(getIdFromSymbol("schema:string"), widgetId, string, {
     cache,
     inactiveStatementIds,
-    properties,
+    qualities,
     userId,
   })
   if (userId) {
@@ -818,29 +818,29 @@ export async function getOrNewLocalizedString(
       userId,
     })
     // Do optimistic optimization.
-    properties = typedString.properties
-    let propertiesChanged = false
-    if (properties === null) {
-      typedString.properties = properties = {}
+    qualities = typedString.qualities
+    let qualitiesChanged = false
+    if (qualities === null) {
+      typedString.qualities = qualities = {}
     }
-    let valueIds = properties[languageId]
+    let valueIds = qualities[languageId]
     if (valueIds === undefined) {
-      properties[languageId] = typedString.id
-      propertiesChanged = true
+      qualities[languageId] = typedString.id
+      qualitiesChanged = true
     } else if (Array.isArray(valueIds)) {
       if (!valueIds.includes(typedString.id)) {
-        properties[languageId] = [...valueIds, typedString.id]
-        propertiesChanged = true
+        qualities[languageId] = [...valueIds, typedString.id]
+        qualitiesChanged = true
       }
     } else if (valueIds !== typedString.id) {
-      properties[languageId] = [valueIds, typedString.id]
-      propertiesChanged = true
+      qualities[languageId] = [valueIds, typedString.id]
+      qualitiesChanged = true
     }
-    if (propertiesChanged) {
+    if (qualitiesChanged) {
       await db.none(
         `
           UPDATE objects
-          SET properties = $<properties:json>
+          SET qualities = $<qualities:json>
           WHERE id = $<id>
         `,
         typedString,
@@ -855,21 +855,21 @@ export async function getOrNewProperty(
   keyId,
   valueId,
   rating, // One of undefined, null, -1, 0, 1
-  { inactiveStatementIds = null, properties = null, userId = null } = {},
+  { inactiveStatementIds = null, qualities = null, userId = null } = {},
 ) {
   assert.strictEqual(typeof objectId, "string")
   assert.strictEqual(typeof keyId, "string")
   assert.strictEqual(typeof valueId, "string")
-  if (properties) assert(userId, "Properties can only be set when userId is not null.")
+  if (qualities) assert(userId, "Qualities can only be set when userId is not null.")
 
   // TODO: Remove ? Split arrays into atomic properties.
   let typedValue = await getObjectFromId(valueId)
   if (typedValue.schemaId === getIdFromSymbol("schema:ids-array")) {
-    assert(properties === null)
+    assert(qualities === null)
     let splitProperties = []
     for (let itemId of typedValue.value) {
       splitProperties.push(
-        await getOrNewProperty(objectId, keyId, itemId, rating, { inactiveStatementIds, properties, userId }),
+        await getOrNewProperty(objectId, keyId, itemId, rating, { inactiveStatementIds, qualities, userId }),
       )
     }
     return splitProperties
@@ -896,12 +896,12 @@ export async function getOrNewProperty(
   if (property === null) {
     let result = await db.one(
       `
-        INSERT INTO objects(created_at, properties, type)
-        VALUES (current_timestamp, $<properties:json>, 'Property')
-        RETURNING created_at, id, properties, sub_types, tags, type, usages
+        INSERT INTO objects(created_at, qualities, type)
+        VALUES (current_timestamp, $<qualities:json>, 'Property')
+        RETURNING created_at, id, qualities, sub_types, tags, type, usages
       `,
       {
-        properties, // Note: Properties are typically set for optimistic optimization.
+        qualities, // Note: Qualities are typically set for optimistic optimization.
       },
     )
     property = {
@@ -909,7 +909,7 @@ export async function getOrNewProperty(
       id: result.id,
       keyId,
       objectId,
-      properties,
+      qualities,
       subTypeIds: result.sub_types,
       tagIds: result.tags,
       type: result.type,
@@ -945,8 +945,8 @@ export async function getOrNewProperty(
     if ([-1, 0, 1].includes(rating)) await rateStatement(property, userId, rating)
     if (inactiveStatementIds) inactiveStatementIds.delete(property.id)
   }
-  if (properties) {
-    for (let [keyId, valueId] of Object.entries(properties)) {
+  if (qualities) {
+    for (let [keyId, valueId] of Object.entries(qualities)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
       await getOrNewProperty(property.id, keyId, valueId, 1, {
@@ -962,10 +962,10 @@ export async function getOrNewValue(
   schemaId,
   widgetId,
   value,
-  { cache = null, inactiveStatementIds = null, properties = null, userId = null } = {},
+  { cache = null, inactiveStatementIds = null, qualities = null, userId = null } = {},
 ) {
   assert(typeof schemaId === "string")
-  if (properties) assert(userId, "Properties can only be set when userId is not null.")
+  if (qualities) assert(userId, "Qualities can only be set when userId is not null.")
 
   let cacheKey
   if (cache !== null) {
@@ -978,18 +978,18 @@ export async function getOrNewValue(
   if (typedValue === null) {
     let result = await db.one(
       `
-        INSERT INTO objects(created_at, properties, type)
-        VALUES (current_timestamp, $<properties:json>, 'Value')
-        RETURNING created_at, id, properties, sub_types, tags, type, usages
+        INSERT INTO objects(created_at, qualities, type)
+        VALUES (current_timestamp, $<qualities:json>, 'Value')
+        RETURNING created_at, id, qualities, sub_types, tags, type, usages
       `,
       {
-        properties, // Note: Properties are typically set for optimistic optimization.
+        qualities, // Note: Properties are typically set for optimistic optimization.
       },
     )
     typedValue = {
       createdAt: result.created_at,
       id: result.id,
-      properties,
+      qualities,
       schemaId,
       subTypeIds: result.sub_types,
       tagIds: result.tags,
@@ -1007,8 +1007,8 @@ export async function getOrNewValue(
     )
     await generateObjectTextSearch(typedValue)
   }
-  if (properties) {
-    for (let [keyId, valueId] of Object.entries(properties)) {
+  if (qualities) {
+    for (let [keyId, valueId] of Object.entries(qualities)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
       await getOrNewProperty(typedValue.id, keyId, valueId, 1, {
@@ -1024,10 +1024,10 @@ export async function getOrNewValue(
   return typedValue
 }
 
-export async function getSubTypeIdsFromProperties(properties) {
+export async function getSubTypeIdsFromQualities(qualities) {
   let subTypeIds = null
-  if (properties) {
-    subTypeIds = properties[getIdFromSymbol("type")]
+  if (qualities) {
+    subTypeIds = qualities[getIdFromSymbol("type")]
     if (subTypeIds === undefined) {
       subTypeIds = null
     } else {
@@ -1056,10 +1056,10 @@ export async function getSubTypeIdsFromProperties(properties) {
   return subTypeIds
 }
 
-export async function getTagIdsFromProperties(properties) {
+export async function getTagIdsFromQualities(qualities) {
   let tagIds = null
-  if (properties) {
-    tagIds = properties[getIdFromSymbol("tags")]
+  if (qualities) {
+    tagIds = qualities[getIdFromSymbol("tags")]
     if (tagIds === undefined) {
       tagIds = null
     } else {
@@ -1111,23 +1111,23 @@ export async function getValue(schemaId, widgetId, value) {
   )
 }
 
-export async function newCard({ inactiveStatementIds = null, properties = null, userId = null } = {}) {
-  if (properties) assert(userId, "Properties can only be set when userId is not null.")
+export async function newCard({ inactiveStatementIds = null, qualities = null, userId = null } = {}) {
+  if (qualities) assert(userId, "Properties can only be set when userId is not null.")
 
-  // Compute object subTypeIds from properties for optimistic optimization.
-  let subTypeIds = await getSubTypeIdsFromProperties(properties)
+  // Compute object subTypeIds from qualities for optimistic optimization.
+  let subTypeIds = await getSubTypeIdsFromQualities(qualities)
 
-  // Compute object tagIds from properties for optimistic optimization.
-  let tagIds = await getTagIdsFromProperties(properties)
+  // Compute object tagIds from qualities for optimistic optimization.
+  let tagIds = await getTagIdsFromQualities(qualities)
 
   let result = await db.one(
     `
-      INSERT INTO objects(created_at, properties, sub_types, tags, type)
-      VALUES (current_timestamp, $<properties:json>, $<subTypeIds>, $<tagIds>, 'Card')
+      INSERT INTO objects(created_at, qualities, sub_types, tags, type)
+      VALUES (current_timestamp, $<qualities:json>, $<subTypeIds>, $<tagIds>, 'Card')
       RETURNING created_at, id, type, usages
     `,
     {
-      properties, // Note: Properties are typically set for optimistic optimization.
+      qualities, // Note: Properties are typically set for optimistic optimization.
       subTypeIds,
       tagIds,
     },
@@ -1135,7 +1135,7 @@ export async function newCard({ inactiveStatementIds = null, properties = null, 
   let card = {
     createdAt: result.created_at,
     id: result.id,
-    properties,
+    qualities,
     subTypeIds,
     tagIds,
     type: result.type,
@@ -1168,8 +1168,8 @@ export async function newCard({ inactiveStatementIds = null, properties = null, 
   if (userId) {
     await rateStatement(card, userId, 1)
   }
-  if (properties) {
-    for (let [keyId, valueId] of Object.entries(properties)) {
+  if (qualities) {
+    for (let [keyId, valueId] of Object.entries(qualities)) {
       assert.strictEqual(typeof keyId, "string")
       assert.strictEqual(typeof valueId, "string")
       await getOrNewProperty(card.id, keyId, valueId, 1, { inactiveStatementIds, userId })
@@ -1259,6 +1259,7 @@ async function toBallotData(
   statementOrStatements,
   user,
   {
+    graphql = false,
     need = null,
     objectsCache = null,
     showBallots = false,
@@ -1281,6 +1282,7 @@ async function toBallotData(
       for (let object of statementOrStatements) {
         await toDataJson1(object, data, objectsCache, user, {
           depth: 10,
+          graphql,
           need,
           showBallots,
           showReferences,
@@ -1290,6 +1292,7 @@ async function toBallotData(
       assert.ok(statementOrStatements)
       await toDataJson1(statementOrStatements, data, objectsCache, user, {
         depth: 10,
+        graphql,
         need,
         showBallots,
         showReferences,
@@ -1316,6 +1319,7 @@ export async function toDataJson(
   objectOrObjects,
   user,
   {
+    graphql = false,
     need = null,
     objectsCache = null,
     showBallots = false,
@@ -1338,6 +1342,7 @@ export async function toDataJson(
       for (let object of objectOrObjects) {
         await toDataJson1(object, data, objectsCache, user, {
           depth: 10,
+          graphql,
           need,
           showBallots,
           showReferences,
@@ -1348,6 +1353,7 @@ export async function toDataJson(
       data.id = objectOrObjects.symbol || objectOrObjects.id
       await toDataJson1(objectOrObjects, data, objectsCache, user, {
         depth: 10,
+        graphql,
         need,
         showBallots,
         showReferences,
@@ -1369,7 +1375,7 @@ export async function toDataJson1(
   data,
   objectsCache,
   user,
-  { depth = 0, need = null, showBallots = false, showReferences = false } = {},
+  { depth = 0, graphql = false, need = null, showBallots = false, showReferences = false } = {},
 ) {
   let object
   if (typeof idOrObject === "number") idOrObject = String(idOrObject)
@@ -1404,7 +1410,7 @@ export async function toDataJson1(
     Value: data.values,
   }[object.type]
   assert.notStrictEqual(objectJsonByIdOrSymbol, undefined)
-  const objectJson = await toObjectJson(object)
+  const objectJson = await toObjectJson(object, {graphql})
   objectJsonByIdOrSymbol[object.symbol || object.id] = objectJson
 
   if (showBallots && user) {
@@ -1445,6 +1451,7 @@ export async function toDataJson1(
     for (let referencedId of referencedIds) {
       await toDataJson1(referencedId, data, objectsCache, user, {
         depth: depth - 1,
+        graphql,
         need,
         showBallots,
         showReferences,
@@ -1471,16 +1478,19 @@ export async function toDataJson1(
     if (object.type == "Property") {
       await toDataJson1(object.keyId, data, objectsCache, user, {
         depth: depth - 1,
+        graphql,
         need,
         showBallots,
       })
       await toDataJson1(object.objectId, data, objectsCache, user, {
         depth: depth - 1,
+        graphql,
         need,
         showBallots,
       })
       await toDataJson1(object.valueId, data, objectsCache, user, {
         depth: depth - 1,
+        graphql,
         need,
         showBallots,
       })
@@ -1489,6 +1499,7 @@ export async function toDataJson1(
         for (let itemId of object.value) {
           await toDataJson1(itemId, data, objectsCache, user, {
             depth: depth - 1,
+            graphql,
             need,
             showBallots,
           })
@@ -1496,11 +1507,12 @@ export async function toDataJson1(
       }
     }
 
-    if (object.properties && need) {
-      for (let [keyId, valueIds] of Object.entries(object.properties || {})) {
+    if (object.qualities && need) {
+      for (let [keyId, valueIds] of Object.entries(object.qualities || {})) {
         if (!need.has(keyId)) continue
         await toDataJson1(keyId, data, objectsCache, user, {
           depth: depth - 1,
+          graphql,
           need,
           showBallots,
         })
@@ -1508,6 +1520,7 @@ export async function toDataJson1(
         for (let valueId of valueIds) {
           await toDataJson1(valueId, data, objectsCache, user, {
             depth: depth - 1,
+            graphql,
             need,
             showBallots,
           })
@@ -1518,6 +1531,7 @@ export async function toDataJson1(
     for (let subTypeId of object.subTypeIds || []) {
       await toDataJson1(subTypeId, data, objectsCache, user, {
         depth: depth - 1,
+        graphql,
         need,
         showBallots,
       })
@@ -1526,6 +1540,7 @@ export async function toDataJson1(
     for (let tagId of object.tagIds || []) {
       await toDataJson1(tagId, data, objectsCache, user, {
         depth: depth - 1,
+        graphql,
         need,
         showBallots,
       })
@@ -1534,6 +1549,7 @@ export async function toDataJson1(
     for (let usageId of object.usageIds || []) {
       await toDataJson1(usageId, data, objectsCache, user, {
         depth: depth - 1,
+        graphql,
         need,
         showBallots,
       })
@@ -1563,17 +1579,18 @@ export async function toSchemaValueJson(schema, value) {
   }
 }
 
-export async function toObjectJson(object, { showApiKey = false, showEmail = false } = {}) {
+export async function toObjectJson(object, { graphql = false, showApiKey = false, showEmail = false } = {}) {
   let objectJson = { ...object }
   objectJson.createdAt = objectJson.createdAt.toISOString()
-  if (objectJson.properties) {
-    let properties = (objectJson.properties = { ...objectJson.properties })
-    for (let [keyId, valueIds] of Object.entries(properties)) {
+  if (objectJson.qualities) {
+    let qualities = { ...objectJson.qualities }
+    for (let [keyId, valueIds] of Object.entries(qualities)) {
       let keySymbol = getIdOrSymbolFromId(keyId)
       if (!Array.isArray(valueIds)) valueIds = [valueIds]
-      properties[keySymbol] = valueIds.map(getIdOrSymbolFromId)
-      if (keySymbol !== keyId) delete properties[keyId]
+      qualities[keySymbol] = valueIds.map(getIdOrSymbolFromId)
+      if (keySymbol !== keyId) delete qualities[keyId]
     }
+    objectJson.qualities = graphql ? Object.entries(qualities): qualities
   }
   if (objectJson.subTypeIds) {
     objectJson.subTypeIds = object.subTypeIds.map(getIdOrSymbolFromId)

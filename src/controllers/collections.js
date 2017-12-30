@@ -288,6 +288,7 @@ async function toCollectionData(
   collectionOrCollections,
   user,
   {
+    graphql = false,
     need = null,
     objectsCache = null,
     showBallots = false,
@@ -325,6 +326,7 @@ async function toCollectionData(
   for (let objectId of objectIds) {
     await toDataJson1(objectId, data, objectsCache, user, {
       depth: 10,
+      graphql,
       need,
       showBallots,
       showReferences,

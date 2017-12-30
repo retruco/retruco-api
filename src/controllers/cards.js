@@ -486,7 +486,7 @@ export const bundleCards = wrapAsyncMiddleware(async function bundleCards(req, r
       if (card === null) {
         card = await newCard({
           inactiveStatementIds,
-          properties: { [keyNameId]: keyValueId },
+          qualities: { [keyNameId]: keyValueId },
           userId,
         })
       } else {
@@ -643,10 +643,10 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
     return
   }
 
-  // Create new card with its properties.
+  // Create new card with its qualities.
   let cache = {}
   let inactiveStatementIds = null // No existings objects to remove when creating a new card.
-  let properties = {}
+  let qualities = {}
   let warnings = {}
   for (let [name, value] of Object.entries(cardInfos.values)) {
     // Convert attribute name to a typed value.
@@ -666,11 +666,11 @@ export const createCardEasy = wrapAsyncMiddleware(async function createCardEasy(
       warnings[name] = warning
     }
     if (typedValue === null) continue
-    properties[nameId] = typedValue.id
+    qualities[nameId] = typedValue.id
   }
   let card = await newCard({
     inactiveStatementIds,
-    properties,
+    qualities,
     userId,
   })
 

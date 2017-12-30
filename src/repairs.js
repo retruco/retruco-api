@@ -22,21 +22,21 @@ import { db } from "./database"
 import { describe, entryToValue } from "./model"
 import { getIdFromSymbol } from "./symbols"
 
-export async function cleanupObjectsProperties() {
-  console.log('Removing dangling keys and values from "properties" attribute of objects...')
+export async function cleanupObjectsQualities() {
+  console.log('Removing dangling keys and values from "qualities" attribute of objects...')
   let objects = await db.any(
     `
       SELECT *
       FROM objects
-      WHERE properties IS NOT null
+      WHERE qualities IS NOT null
       ORDER BY id
     `,
   )
   for (let object of objects) {
     let changed = false
-    for (let [key_id, value_ids] of Object.entries({ ...object.properties })) {
+    for (let [key_id, value_ids] of Object.entries({ ...object.qualities })) {
       if (!(await db.one("SELECT EXISTS (SELECT 1 FROM objects WHERE id = $1)", key_id)).exists) {
-        delete object.properties[key_id]
+        delete object.qualities[key_id]
         changed = true
         continue
       }
@@ -54,28 +54,28 @@ export async function cleanupObjectsProperties() {
       }
       if (valueIdsChanged) {
         if (value_ids.length === 0) {
-          delete object.properties[key_id]
+          delete object.qualities[key_id]
         } else {
           if (value_ids.length === 1) {
             value_ids = value_ids[0]
           }
-          object.properties[key_id] = value_ids
+          object.qualities[key_id] = value_ids
         }
       }
     }
     if (changed) {
-      console.log(`  Cleaned up "properties" attribute of object ${object.id}...`)
+      console.log(`  Cleaned up "qualities" attribute of object ${object.id}...`)
       await db.none(
         `
           UPDATE objects
-          SET properties = $<properties:json>
+          SET qualities = $<qualities:json>
           WHERE id = $<id>
         `,
         object,
       )
     }
   }
-  console.log('All "properties" attributes of objects have been cleaned up.')
+  console.log('All "qualities" attributes of objects have been cleaned up.')
 }
 
 export async function collectGarbage() {
