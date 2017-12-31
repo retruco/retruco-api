@@ -89,10 +89,11 @@ export function authenticate(require) {
       if (userName.indexOf("@") >= 0) {
         user = entryToUser(
           await db.oneOrNone(
-            `SELECT * FROM objects
-            INNER JOIN users ON objects.id = users.id
-            WHERE email = $1
-          `,
+            `
+              SELECT * FROM objects
+              INNER JOIN users ON objects.id = users.id
+              WHERE email = $1
+            `,
             userName,
           ),
         )
@@ -109,10 +110,11 @@ export function authenticate(require) {
         let urlName = slugify(userName, { mode: "rfc3986" })
         user = entryToUser(
           await db.oneOrNone(
-            `SELECT * FROM objects
-            INNER JOIN users ON objects.id = users.id
-            WHERE url_name = $1
-          `,
+            `
+              SELECT * FROM objects
+              INNER JOIN users ON objects.id = users.id
+              WHERE url_name = $1
+            `,
             urlName,
           ),
         )
@@ -156,10 +158,11 @@ export function authenticate(require) {
       }
       user = entryToUser(
         await db.oneOrNone(
-          `SELECT * FROM objects
-          INNER JOIN users ON objects.id = users.id
-          WHERE api_key = $1
-        `,
+          `
+            SELECT * FROM objects
+            INNER JOIN users ON objects.id = users.id
+            WHERE api_key = $1
+          `,
           apiKey,
         ),
       )
@@ -195,10 +198,10 @@ export function completeActivateAfterActivator(req, res) {
     db
       .oneOrNone(
         `
-        SELECT * FROM objects
-        INNER JOIN users ON objects.id = users.id
-        WHERE objects.id = $1
-      `,
+          SELECT * FROM objects
+          INNER JOIN users ON objects.id = users.id
+          WHERE objects.id = $1
+        `,
         req.params.user,
       )
       .then(function(user) {
