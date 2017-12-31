@@ -51,7 +51,7 @@ const typeDefs = `
     trashed: Boolean
     type: String!
   }
-  type DataId {
+  type DataWithId {
     ballots: [Ballot!]
     cards: [Card!]
     id: String!
@@ -139,7 +139,7 @@ const typeDefs = `
     ) : Property
     statementUpserted (
       need: [String!]
-    ) : DataId
+    ) : DataWithId
   }
 `
 const resolvers = {
@@ -233,13 +233,13 @@ const resolvers = {
     statementUpserted: {
       resolve: async (object, {need}) => {
         need = new Set((need || []).map(getIdFromIdOrSymbol))
-        const dataId = await toDataJson(object, null /* TODO: user */, {graphql: true, need, showBallots: false /* TODO */})
+        const dataWithId = await toDataJson(object, null /* TODO: user */, {graphql: true, need, showBallots: false /* TODO */})
         for (let name of ["ballots", "cards", "properties", "users", "values"]) {
-          if (dataId[name]) {
-            dataId[name] = Object.values(dataId[name])
+          if (dataWithId[name]) {
+            dataWithId[name] = Object.values(dataWithId[name])
           }
         }
-        return dataId
+        return dataWithId
       },
       subscribe: withFilter(
         () => pubsub.asyncIterator("statementUpserted"),

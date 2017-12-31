@@ -154,7 +154,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataIdsList",
+                  $ref: "#/definitions/DataWithIds",
                 },
               },
               required: ["apiVersion", "data"],
@@ -194,7 +194,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
                 warnings: {
                   type: "object",
@@ -338,7 +338,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
                 warnings: {
                   type: "object",
@@ -418,7 +418,7 @@ const SPEC = {
                         },
                         required: ["count", "tag"],
                       },
-                      $ref: "#/definitions/DataIdsList",
+                      $ref: "#/definitions/DataWithIds",
                     },
                     values: {
                       type: "object",
@@ -504,7 +504,7 @@ const SPEC = {
                         },
                         required: ["count", "tag"],
                       },
-                      $ref: "#/definitions/DataIdsList",
+                      $ref: "#/definitions/DataWithIds",
                     },
                     values: {
                       type: "object",
@@ -567,7 +567,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataIdsList",
+                  $ref: "#/definitions/DataWithIds",
                 },
               },
               required: ["apiVersion", "data"],
@@ -610,7 +610,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
                 warnings: {
                   type: "object",
@@ -664,7 +664,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
               },
               required: ["apiVersion", "data"],
@@ -713,7 +713,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
               },
               required: ["apiVersion", "data"],
@@ -765,7 +765,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
               },
               required: ["apiVersion", "data"],
@@ -873,7 +873,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
               },
               required: ["apiVersion", "data"],
@@ -1006,7 +1006,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataIdsList",
+                  $ref: "#/definitions/DataWithIds",
                 },
               },
               required: ["apiVersion", "data"],
@@ -1063,7 +1063,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataIdsList",
+                  $ref: "#/definitions/DataWithIds",
                 },
               },
               required: ["apiVersion", "data"],
@@ -1106,7 +1106,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
                 warnings: {
                   type: "object",
@@ -1214,7 +1214,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
               },
               required: ["apiVersion", "data"],
@@ -1263,7 +1263,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
               },
               required: ["apiVersion", "data"],
@@ -1315,7 +1315,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
               },
               required: ["apiVersion", "data"],
@@ -1330,7 +1330,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
               },
               required: ["apiVersion", "data"],
@@ -1819,7 +1819,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataIdsList",
+                  $ref: "#/definitions/DataWithIds",
                 },
               },
               required: ["apiVersion", "data"],
@@ -2001,7 +2001,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataIdsList",
+                  $ref: "#/definitions/DataWithIds",
                 },
               },
               required: ["apiVersion", "data"],
@@ -2044,7 +2044,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
                 warnings: {
                   type: "object",
@@ -2146,7 +2146,7 @@ const SPEC = {
                   type: "string",
                 },
                 data: {
-                  $ref: "#/definitions/DataId",
+                  $ref: "#/definitions/DataWithId",
                 },
                 warnings: {
                   type: "object",
@@ -2330,7 +2330,7 @@ const SPEC = {
         "name",
       ],
     },
-    DataId: {
+    DataWithId: {
       type: "object",
       properties: {
         ballots: {
@@ -2375,7 +2375,7 @@ const SPEC = {
       },
       required: ["id"],
     },
-    DataIdsList: {
+    DataWithIds: {
       type: "object",
       properties: {
         ballots: {
