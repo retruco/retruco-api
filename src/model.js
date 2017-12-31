@@ -1590,7 +1590,7 @@ export async function toObjectJson(object, { graphql = false, showApiKey = false
       qualities[keySymbol] = valueIds.map(getIdOrSymbolFromId)
       if (keySymbol !== keyId) delete qualities[keyId]
     }
-    objectJson.qualities = graphql ? Object.entries(qualities): qualities
+    objectJson.qualities = graphql ? Object.entries(qualities).map(couple => ({keyId: couple[0], valueIds: couple[1]})) : qualities
   }
   if (objectJson.subTypeIds) {
     objectJson.subTypeIds = object.subTypeIds.map(getIdOrSymbolFromId)
