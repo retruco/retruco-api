@@ -132,14 +132,14 @@ const typeDefs = `
   #   ): Statement
   # }
   type Subscription {
-    objectUpserted (
-      need: [String!]
-    ) : DataId
     propertyUpserted (
       objectIds: [String!]
       keyIds: [String!]
       valueIds: [String!]
     ) : Property
+    statementUpserted (
+      need: [String!]
+    ) : DataId
   }
 `
 const resolvers = {
@@ -197,30 +197,12 @@ const resolvers = {
     },
   },
   Subscription: {
-    objectUpserted: {
-      resolve: async (object, {need}) => {
-        need = new Set((need || []).map(getIdFromIdOrSymbol))
-        const dataId = await toDataJson(object, null /* TODO: user */, {graphql: true, need, showBallots: false /* TODO */})
-        for (let name of ["ballots", "cards", "properties", "users", "values"]) {
-          if (dataId[name]) {
-            dataId[name] = Object.values(dataId[name])
-          }
-        }
-        return dataId
-      },
-      subscribe: withFilter(
-        () => pubsub.asyncIterator("objectUpserted"),
-        () => {
-          return true
-        },
-      ),
-    },
     propertyUpserted: {
       resolve: async (property) => {
         return await toObjectJson(property, {graphql: true})
       },
       subscribe: withFilter(
-        () => pubsub.asyncIterator("objectUpserted"),
+        () => pubsub.asyncIterator("statementUpserted"),
         (object, {keyIds, objectIds, valueIds}) => {
           if (object.type !== "Property") {
             return false
@@ -248,6 +230,24 @@ const resolvers = {
         },
       ),
     },
+    statementUpserted: {
+      resolve: async (object, {need}) => {
+        need = new Set((need || []).map(getIdFromIdOrSymbol))
+        const dataId = await toDataJson(object, null /* TODO: user */, {graphql: true, need, showBallots: false /* TODO */})
+        for (let name of ["ballots", "cards", "properties", "users", "values"]) {
+          if (dataId[name]) {
+            dataId[name] = Object.values(dataId[name])
+          }
+        }
+        return dataId
+      },
+      subscribe: withFilter(
+        () => pubsub.asyncIterator("statementUpserted"),
+        () => {
+          return true
+        },
+      ),
+    },
   },
 }
 
@@ -257,13 +257,13 @@ export const schema = makeExecutableSchema({
 })
 
 redis.on("message", async function (channel, message) {
-    if (channel === "objectUpserted") {
+    if (channel === "statementUpserted") {
       const id = message
       const object = await getObjectFromId(id)
-      pubsub.publish("objectUpserted", object)
+      pubsub.publish("statementUpserted", object)
     } else {
       console.warn(`Received Redis message ignored: ${channel} - ${message}`)
     }
   })
 
-redis.subscribe("objectUpserted")
+redis.subscribe("statementUpserted")
