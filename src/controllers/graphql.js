@@ -138,6 +138,7 @@ const typeDefs = `
       valueIds: [String!]
     ) : Property
     statementUpserted (
+      apiKey: String
       need: [String!]
     ) : DataWithId
   }
@@ -231,13 +232,28 @@ const resolvers = {
       ),
     },
     statementUpserted: {
-      resolve: async (object, { need }) => {
+      resolve: async (object, { apiKey, need }) => {
+        let user = null
+        if (apiKey) {
+          user = entryToUser(
+            await db.oneOrNone(
+              `
+                SELECT * FROM objects
+                INNER JOIN users ON objects.id = users.id
+                WHERE api_key = $1
+              `,
+              apiKey,
+            ),
+          )
+        }
         need = new Set((need || []).map(getIdFromIdOrSymbol))
-        const dataWithId = await toDataJson(object, null /* TODO: user */, {
+        const dataWithId = await toDataJson(object, user, {
           graphql: true,
           need,
-          showBallots: false /* TODO */,
+          showBallots: !!user,
         })
+
+        // Convert dictionaries to lists.
         for (let name of ["ballots", "cards", "properties", "users", "values"]) {
           if (dataWithId[name]) {
             dataWithId[name] = Object.values(dataWithId[name])
