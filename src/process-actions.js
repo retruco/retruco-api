@@ -355,9 +355,12 @@ async function processAction(action) {
       }
 
       if (object.type === "Property") {
-        await regenerateQualities(object.objectId, object.keyId)
+        let objectChanged = await regenerateQualities(object.objectId, object.keyId)
         if (debateKeyIds.includes(object.keyId)) {
-          await regenerateArguments(object.objectId, debateKeyIds)
+          objectChanged = await regenerateArguments(object.objectId, debateKeyIds) || objectChanged
+        }
+        if (objectChanged) {
+          redis.publish("objectUpserted", object.objectId)
         }
       }
     }

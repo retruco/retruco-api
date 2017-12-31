@@ -80,6 +80,7 @@ export async function regenerateArguments(statementId, debateKeyIds) {
       object,
     )
   }
+  return argumentCountChanged
 }
 
 export async function regenerateQualities(objectId, keyId) {
@@ -142,4 +143,5 @@ export async function regenerateQualities(objectId, keyId) {
     await generateObjectTextSearch(object)
     await addAction(object.id, "update")
   }
+  return objectQualitiesChanged
 }
