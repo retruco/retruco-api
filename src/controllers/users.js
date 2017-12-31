@@ -58,8 +58,12 @@ export const activatorUser = {
   },
   setPassword: function(id, password, callback) {
     // See http://security.stackexchange.com/a/27971 for explaination of digest and salt size.
-    let salt = randomBytes(16).toString("base64").replace(/=/g, "")
-    let passwordDigest = pbkdf2Sync(password, salt, 4096, 16, "sha512").toString("base64").replace(/=/g, "")
+    let salt = randomBytes(16)
+      .toString("base64")
+      .replace(/=/g, "")
+    let passwordDigest = pbkdf2Sync(password, salt, 4096, 16, "sha512")
+      .toString("base64")
+      .replace(/=/g, "")
     db
       .none("UPDATE users SET activated = TRUE, password_digest = $<passwordDigest>, salt = $<salt> WHERE id = $<id>", {
         id,
@@ -287,10 +291,16 @@ export const createUser = wrapAsyncMiddleware(async function createUser(req, res
   }
 
   if (user.password) {
-    user.apiKey = randomBytes(16).toString("base64").replace(/=/g, "") // 128 bits API key
+    user.apiKey = randomBytes(16)
+      .toString("base64")
+      .replace(/=/g, "") // 128 bits API key
     // See http://security.stackexchange.com/a/27971 for explaination of digest and salt size.
-    user.salt = randomBytes(16).toString("base64").replace(/=/g, "")
-    user.passwordDigest = pbkdf2Sync(user.password, user.salt, 4096, 16, "sha512").toString("base64").replace(/=/g, "")
+    user.salt = randomBytes(16)
+      .toString("base64")
+      .replace(/=/g, "")
+    user.passwordDigest = pbkdf2Sync(user.password, user.salt, 4096, 16, "sha512")
+      .toString("base64")
+      .replace(/=/g, "")
     delete user.password
   }
 
@@ -446,7 +456,9 @@ export const login = wrapAsyncMiddleware(async function login(req, res) {
       return
     }
   }
-  let passwordDigest = pbkdf2Sync(password, user.salt, 4096, 16, "sha512").toString("base64").replace(/=/g, "")
+  let passwordDigest = pbkdf2Sync(password, user.salt, 4096, 16, "sha512")
+    .toString("base64")
+    .replace(/=/g, "")
   if (passwordDigest != user.passwordDigest) {
     res.status(401) // Unauthorized
     res.json({

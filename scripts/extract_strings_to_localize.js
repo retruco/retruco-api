@@ -185,7 +185,9 @@ async function extractLocalizedStrings() {
   process.exit(0)
 }
 
-checkDatabase().then(extractLocalizedStrings).catch(error => {
-  console.log(error.stack || error)
-  process.exit(1)
-})
+checkDatabase()
+  .then(extractLocalizedStrings)
+  .catch(error => {
+    console.log(error.stack || error)
+    process.exit(1)
+  })

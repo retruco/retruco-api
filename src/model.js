@@ -580,9 +580,7 @@ export async function generateObjectTextSearch(object) {
           A: (searchableTextsByWeight["A"] || []).join(" "),
           B: (searchableTextsByWeight["B"] || []).join(" "),
         }
-        let {
-          vector,
-        } = await db.one(
+        let { vector } = await db.one(
           "SELECT setweight(to_tsvector($1, $2), 'A') || setweight(to_tsvector($1, $3), 'B') AS vector",
           [languageConfigurationName, searchableTextByWeight["A"], searchableTextByWeight["B"]],
         )
@@ -614,11 +612,7 @@ export async function generateObjectTextSearch(object) {
   }
 }
 
-async function getLanguageText(
-  typedValue,
-  languageId,
-  { objectsCache = null, visitedIds = null } = null,
-) {
+async function getLanguageText(typedValue, languageId, { objectsCache = null, visitedIds = null } = null) {
   if (typedValue === null) {
     return null
   }
@@ -674,11 +668,7 @@ async function getLanguageText(
   return null
 }
 
-async function getLanguageTextFromId(
-  valueId,
-  languageId,
-  { objectsCache = null, visitedIds = null } = null,
-) {
+async function getLanguageTextFromId(valueId, languageId, { objectsCache = null, visitedIds = null } = null) {
   let typedValue
   if (objectsCache === null) {
     typedValue = await getObjectFromId(valueId)
@@ -1258,13 +1248,7 @@ async function toBallotData(
   ballot,
   statementOrStatements,
   user,
-  {
-    graphql = false,
-    need = null,
-    objectsCache = null,
-    showBallots = false,
-    showReferences = false,
-  } = {},
+  { graphql = false, need = null, objectsCache = null, showBallots = false, showReferences = false } = {},
 ) {
   objectsCache = objectsCache || {}
   let data = {
@@ -1318,13 +1302,7 @@ function toBallotJson(ballot) {
 export async function toDataJson(
   objectOrObjects,
   user,
-  {
-    graphql = false,
-    need = null,
-    objectsCache = null,
-    showBallots = false,
-    showReferences = false,
-  } = {},
+  { graphql = false, need = null, objectsCache = null, showBallots = false, showReferences = false } = {},
 ) {
   objectsCache = objectsCache || {}
   let data = {
@@ -1410,7 +1388,7 @@ export async function toDataJson1(
     Value: data.values,
   }[object.type]
   assert.notStrictEqual(objectJsonByIdOrSymbol, undefined)
-  const objectJson = await toObjectJson(object, {graphql})
+  const objectJson = await toObjectJson(object, { graphql })
   objectJsonByIdOrSymbol[object.symbol || object.id] = objectJson
 
   if (showBallots && user) {
@@ -1590,7 +1568,9 @@ export async function toObjectJson(object, { graphql = false, showApiKey = false
       qualities[keySymbol] = valueIds.map(getIdOrSymbolFromId)
       if (keySymbol !== keyId) delete qualities[keyId]
     }
-    objectJson.qualities = graphql ? Object.entries(qualities).map(couple => ({keyId: couple[0], valueIds: couple[1]})) : qualities
+    objectJson.qualities = graphql
+      ? Object.entries(qualities).map(couple => ({ keyId: couple[0], valueIds: couple[1] }))
+      : qualities
   }
   if (objectJson.subTypeIds) {
     objectJson.subTypeIds = object.subTypeIds.map(getIdOrSymbolFromId)

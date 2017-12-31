@@ -55,7 +55,9 @@ async function generateTextSearch() {
   process.exit(0)
 }
 
-checkDatabase({ ignoreTextSearchVersion: true }).then(generateTextSearch).catch(error => {
-  console.log(error.stack || error)
-  process.exit(1)
-})
+checkDatabase({ ignoreTextSearchVersion: true })
+  .then(generateTextSearch)
+  .catch(error => {
+    console.log(error.stack || error)
+    process.exit(1)
+  })

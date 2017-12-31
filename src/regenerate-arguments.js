@@ -33,7 +33,9 @@ async function generateArguments() {
   process.exit(0)
 }
 
-checkDatabase().then(generateArguments).catch(error => {
-  console.log(error.stack || error)
-  process.exit(1)
-})
+checkDatabase()
+  .then(generateArguments)
+  .catch(error => {
+    console.log(error.stack || error)
+    process.exit(1)
+  })

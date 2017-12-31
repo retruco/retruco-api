@@ -303,9 +303,9 @@ async function processAction(action) {
 
       if (action.type !== "reset") {
         sendMatrixMessage(
-          `${await describeHtml(
-            object,
-          )} rating has changed from ${object.ratingSum}/${object.ratingCount} to ${ratingSum}/${ratingCount}.`,
+          `${await describeHtml(object)} rating has changed from ${object.ratingSum}/${
+            object.ratingCount
+          } to ${ratingSum}/${ratingCount}.`,
         )
       }
 
@@ -357,7 +357,7 @@ async function processAction(action) {
       if (object.type === "Property") {
         let objectChanged = await regenerateQualities(object.objectId, object.keyId)
         if (debateKeyIds.includes(object.keyId)) {
-          objectChanged = await regenerateArguments(object.objectId, debateKeyIds) || objectChanged
+          objectChanged = (await regenerateArguments(object.objectId, debateKeyIds)) || objectChanged
         }
         if (objectChanged) {
           redis.publish("statementUpserted", object.objectId)
@@ -428,7 +428,9 @@ async function processAction(action) {
   }
 }
 
-checkDatabase().then(listenToActions).catch(error => {
-  console.log(error.stack || error)
-  process.exit(1)
-})
+checkDatabase()
+  .then(listenToActions)
+  .catch(error => {
+    console.log(error.stack || error)
+    process.exit(1)
+  })

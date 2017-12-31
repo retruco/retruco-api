@@ -914,7 +914,8 @@ export const listCards = wrapAsyncMiddleware(async function listCards(req, res) 
     )).count,
   )
 
-  let orderByClause = sort === "old"
+  let orderByClause =
+    sort === "old"
       ? "ORDER BY created_at ASC"
       : sort === "popular"
         ? "ORDER BY rating_sum DESC, created_at DESC"

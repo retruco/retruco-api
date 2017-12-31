@@ -69,200 +69,193 @@ app.use(bodyParser.json({ limit: "5mb" }))
 app.use("/images", quickthumb.static(path.join(config.uploads, "images"), { type: "resize" }))
 
 const swaggerMiddleware = new swagger.Middleware()
-swaggerMiddleware.init(
-  swaggerSpecification,
-  function(/* err */) {
-    app.use(swaggerMiddleware.metadata())
-    app.use(swaggerMiddleware.CORS())
-    app.use(
-      swaggerMiddleware.files({
-        apiPath: "/swagger.json", // Serve the Swagger API from "/swagger.json" instead of "/api-docs/".
-        rawFilesPath: false, // Disable serving the raw Swagger files.
-      }),
-    )
-    app.use(
-      swaggerMiddleware.parseRequest({
-        // Configure the cookie parser to use secure cookies.
-        cookie: {
-          secret: config.keys[0],
-        },
-        // Don't allow JSON content over 1mb (default is 1mb).
-        json: {
-          limit: "1mb",
-        },
-      }),
-    )
+swaggerMiddleware.init(swaggerSpecification, function(/* err */) {
+  app.use(swaggerMiddleware.metadata())
+  app.use(swaggerMiddleware.CORS())
+  app.use(
+    swaggerMiddleware.files({
+      apiPath: "/swagger.json", // Serve the Swagger API from "/swagger.json" instead of "/api-docs/".
+      rawFilesPath: false, // Disable serving the raw Swagger files.
+    }),
+  )
+  app.use(
+    swaggerMiddleware.parseRequest({
+      // Configure the cookie parser to use secure cookies.
+      cookie: {
+        secret: config.keys[0],
+      },
+      // Don't allow JSON content over 1mb (default is 1mb).
+      json: {
+        limit: "1mb",
+      },
+    }),
+  )
 
-    // Non Swagger-based API
+  // Non Swagger-based API
 
-    app.use("/graphiql", graphiqlExpress({
+  app.use(
+    "/graphiql",
+    graphiqlExpress({
       endpointURL: "/graphql",
       subscriptionsEndpoint: `${config.wsUrl}/subscriptions`,
-    }))
-    app.use("/graphql", graphqlExpress({ schema: graphqlController.schema }))
+    }),
+  )
+  app.use("/graphql", graphqlExpress({ schema: graphqlController.schema }))
 
-    app.use(swaggerMiddleware.validateRequest())
+  app.use(swaggerMiddleware.validateRequest())
 
-    // Swagger-based API
+  // Swagger-based API
 
-    app.get("/", function(req, res) {
-      res.json({
-        api: 1,
-        title: config.title,
-      })
+  app.get("/", function(req, res) {
+    res.json({
+      api: 1,
+      title: config.title,
     })
+  })
 
-    app.get("/cards", usersController.authenticate(false), cardsController.listCards)
-    app.post("/cards", usersController.authenticate(true), cardsController.createCard)
-    app.get("/cards/autocomplete", cardsController.autocompleteCards)
-    app.post("/cards/bundle", usersController.authenticate(true), cardsController.bundleCards)
-    app.post("/cards/easy", usersController.authenticate(true), cardsController.createCardEasy)
-    app.get("/cards/tags-popularity", usersController.authenticate(false), cardsController.listTagsPopularity)
-    app.get("/cards/tags-popularity-ogp", usersController.authenticate(false), cardsController.listTagsPopularityOgp)
+  app.get("/cards", usersController.authenticate(false), cardsController.listCards)
+  app.post("/cards", usersController.authenticate(true), cardsController.createCard)
+  app.get("/cards/autocomplete", cardsController.autocompleteCards)
+  app.post("/cards/bundle", usersController.authenticate(true), cardsController.bundleCards)
+  app.post("/cards/easy", usersController.authenticate(true), cardsController.createCardEasy)
+  app.get("/cards/tags-popularity", usersController.authenticate(false), cardsController.listTagsPopularity)
+  app.get("/cards/tags-popularity-ogp", usersController.authenticate(false), cardsController.listTagsPopularityOgp)
 
-    app.get("/collections", usersController.authenticate(false), collectionsController.listCollections)
-    app.post("/collections", usersController.authenticate(true), collectionsController.createCollection)
-    app.delete(
-      "/collections/:id",
-      usersController.authenticate(true),
-      collectionsController.requireCollection,
-      collectionsController.deleteCollection,
-    )
-    app.get(
-      "/collections/:id",
-      usersController.authenticate(false),
-      collectionsController.requireCollection,
-      collectionsController.getCollection,
-    )
-    app.post(
-      "/collections/:id",
-      usersController.authenticate(true),
-      collectionsController.requireCollection,
-      collectionsController.editCollection,
-    )
+  app.get("/collections", usersController.authenticate(false), collectionsController.listCollections)
+  app.post("/collections", usersController.authenticate(true), collectionsController.createCollection)
+  app.delete(
+    "/collections/:id",
+    usersController.authenticate(true),
+    collectionsController.requireCollection,
+    collectionsController.deleteCollection,
+  )
+  app.get(
+    "/collections/:id",
+    usersController.authenticate(false),
+    collectionsController.requireCollection,
+    collectionsController.getCollection,
+  )
+  app.post(
+    "/collections/:id",
+    usersController.authenticate(true),
+    collectionsController.requireCollection,
+    collectionsController.editCollection,
+  )
 
-    app.post("/login", usersController.login)
+  app.post("/login", usersController.login)
 
-    for (let [path, schema] of Object.entries(schemaByPath)) {
-      app.get(path, (req, res) => res.json(schema))
-    }
+  for (let [path, schema] of Object.entries(schemaByPath)) {
+    app.get(path, (req, res) => res.json(schema))
+  }
 
-    app.get(
-      "/objects/:idOrSymbol",
-      usersController.authenticate(false),
-      objectsController.requireObject,
-      objectsController.getObject,
-    )
-    app.get(
-      "/objects/:idOrSymbol/next-properties",
-      usersController.authenticate(false),
-      objectsController.requireObject,
-      objectsController.nextProperties,
-    )
-    app.get(
-      "/objects/:idOrSymbol/properties/:keyIdOrSymbol",
-      usersController.authenticate(false),
-      objectsController.requireObject,
-      objectsController.listObjectSameKeyProperties,
-    )
+  app.get(
+    "/objects/:idOrSymbol",
+    usersController.authenticate(false),
+    objectsController.requireObject,
+    objectsController.getObject,
+  )
+  app.get(
+    "/objects/:idOrSymbol/next-properties",
+    usersController.authenticate(false),
+    objectsController.requireObject,
+    objectsController.nextProperties,
+  )
+  app.get(
+    "/objects/:idOrSymbol/properties/:keyIdOrSymbol",
+    usersController.authenticate(false),
+    objectsController.requireObject,
+    objectsController.listObjectSameKeyProperties,
+  )
 
-    app.get("/properties", usersController.authenticate(false), propertiesController.listProperties)
-    app.post("/properties", usersController.authenticate(true), propertiesController.getOrCreateProperty)
-    app.get("/properties/keys/autocomplete", propertiesController.autocompletePropertiesKeys)
+  app.get("/properties", usersController.authenticate(false), propertiesController.listProperties)
+  app.post("/properties", usersController.authenticate(true), propertiesController.getOrCreateProperty)
+  app.get("/properties/keys/autocomplete", propertiesController.autocompletePropertiesKeys)
 
-    app.delete(
-      "/statements/:idOrSymbol/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      ballotsController.deleteBallot,
-    )
-    app.get(
-      "/statements/:idOrSymbol/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      ballotsController.getBallot,
-    )
-    app.post(
-      "/statements/:idOrSymbol/rating",
-      usersController.authenticate(true),
-      statementsController.requireStatement,
-      ballotsController.upsertBallot,
-    )
+  app.delete(
+    "/statements/:idOrSymbol/rating",
+    usersController.authenticate(true),
+    statementsController.requireStatement,
+    ballotsController.deleteBallot,
+  )
+  app.get(
+    "/statements/:idOrSymbol/rating",
+    usersController.authenticate(true),
+    statementsController.requireStatement,
+    ballotsController.getBallot,
+  )
+  app.post(
+    "/statements/:idOrSymbol/rating",
+    usersController.authenticate(true),
+    statementsController.requireStatement,
+    ballotsController.upsertBallot,
+  )
 
-    app.post("/uploads/images", usersController.authenticate(true), uploadsController.uploadImage)
-    app.post("/uploads/images/json", usersController.authenticate(true), uploadsController.uploadImageJson)
+  app.post("/uploads/images", usersController.authenticate(true), uploadsController.uploadImage)
+  app.post("/uploads/images/json", usersController.authenticate(true), uploadsController.uploadImageJson)
 
-    app.get("/users", usersController.listUsersUrlName)
-    app.post(
-      "/users",
-      usersController.createUser,
-      activator.createActivateNext,
-      usersController.createUserAfterActivator,
-    )
-    // app.put("/users", usersController.updateUser)
-    app.post(
-      "/users/reset-password",
-      usersController.resetPassword,
-      activator.createPasswordResetNext,
-      usersController.resetPasswordAfterActivator,
-    )
-    app.delete(
-      "/users/:userName",
-      usersController.requireUser,
-      usersController.authenticate(true),
-      usersController.deleteUser,
-    )
-    app.get(
-      "/users/:userName",
-      usersController.requireUser,
-      usersController.authenticate(false),
-      usersController.getUser,
-    )
-    // app.patch("/users/:userName", usersController.requireUser, usersController.patchUser)
-    app.get("/users/:user/activate", activator.completeActivateNext, usersController.completeActivateAfterActivator)
-    app.get(
-      "/users/:userName/collections",
-      usersController.requireUser,
-      usersController.authenticate(false),
-      collectionsController.listUserCollections,
-    )
-    app.post(
-      "/users/:user/reset-password",
-      activator.completePasswordResetNext,
-      usersController.completeResetPasswordAfterActivator,
-    )
-    app.get(
-      "/users/:userName/send-activation",
-      usersController.requireUser,
-      usersController.authenticate(true),
-      usersController.sendActivation,
-      activator.createActivateNext,
-      usersController.sendActivationAfterActivator,
-    )
+  app.get("/users", usersController.listUsersUrlName)
+  app.post("/users", usersController.createUser, activator.createActivateNext, usersController.createUserAfterActivator)
+  // app.put("/users", usersController.updateUser)
+  app.post(
+    "/users/reset-password",
+    usersController.resetPassword,
+    activator.createPasswordResetNext,
+    usersController.resetPasswordAfterActivator,
+  )
+  app.delete(
+    "/users/:userName",
+    usersController.requireUser,
+    usersController.authenticate(true),
+    usersController.deleteUser,
+  )
+  app.get("/users/:userName", usersController.requireUser, usersController.authenticate(false), usersController.getUser)
+  // app.patch("/users/:userName", usersController.requireUser, usersController.patchUser)
+  app.get("/users/:user/activate", activator.completeActivateNext, usersController.completeActivateAfterActivator)
+  app.get(
+    "/users/:userName/collections",
+    usersController.requireUser,
+    usersController.authenticate(false),
+    collectionsController.listUserCollections,
+  )
+  app.post(
+    "/users/:user/reset-password",
+    activator.completePasswordResetNext,
+    usersController.completeResetPasswordAfterActivator,
+  )
+  app.get(
+    "/users/:userName/send-activation",
+    usersController.requireUser,
+    usersController.authenticate(true),
+    usersController.sendActivation,
+    activator.createActivateNext,
+    usersController.sendActivationAfterActivator,
+  )
 
-    app.get("/values", usersController.authenticate(false), valuesController.listValues)
-    app.post("/values", usersController.authenticate(true), valuesController.createValue)
-    app.get("/values/autocomplete", valuesController.autocompleteValues)
-    app.post("/values/existing", usersController.authenticate(false), valuesController.getExistingValue)
+  app.get("/values", usersController.authenticate(false), valuesController.listValues)
+  app.post("/values", usersController.authenticate(true), valuesController.createValue)
+  app.get("/values/autocomplete", valuesController.autocompleteValues)
+  app.post("/values/existing", usersController.authenticate(false), valuesController.getExistingValue)
 
-    app.use(function(err, req, res, next) {  // eslint-disable-line no-unused-vars
-      // Error handling middleware (must be last use of app)
-      // Don't remove the next parameter above: It is needed, otherwise it is called with (req, res, next) without err.
-      const status = err.status || 500
-      if (status === 500) console.error(err.stack)
-      res.status(status).json({
-        apiVersion: "1",
-        code: status,
-        message: err.message || http.STATUS_CODES[status],
-      })
+  app.use(function(err, req, res, next) {
+    // eslint-disable-line no-unused-vars
+    // Error handling middleware (must be last use of app)
+    // Don't remove the next parameter above: It is needed, otherwise it is called with (req, res, next) without err.
+    const status = err.status || 500
+    if (status === 500) console.error(err.stack)
+    res.status(status).json({
+      apiVersion: "1",
+      code: status,
+      message: err.message || http.STATUS_CODES[status],
     })
+  })
 
-    checkDatabase().then(startExpress).catch(error => {
+  checkDatabase()
+    .then(startExpress)
+    .catch(error => {
       console.log(error.stack || error)
       process.exit(1)
     })
-  },
-)
+})
 
 function startExpress() {
   const host = config.listen.host
@@ -271,14 +264,17 @@ function startExpress() {
   server.listen(port, host, () => {
     console.log(`Listening on ${host || "*"}:${port}...`)
     // Set up the WebSocket for handling GraphQL subscriptions.
-    new SubscriptionServer({
-      execute,
-      schema: graphqlController.schema,
-      subscribe,
-    }, {
-      server,
-      path: "/subscriptions",
-    })
+    new SubscriptionServer(
+      {
+        execute,
+        schema: graphqlController.schema,
+        subscribe,
+      },
+      {
+        server,
+        path: "/subscriptions",
+      },
+    )
   })
   server.timeout = 30 * 60 * 1000 // 30 minutes (in milliseconds)
 }

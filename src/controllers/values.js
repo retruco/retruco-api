@@ -352,9 +352,11 @@ export const listValues = wrapAsyncMiddleware(async function listValues(req, res
       SELECT count(*) as count
       FROM objects
       INNER JOIN values ON objects.id = values.id
-      ${rated
-        ? "INNER JOIN statements ON objects.id = statements.id"
-        : !trashed ? "LEFT JOIN statements ON objects.id = statements.id" : ""}
+      ${
+        rated
+          ? "INNER JOIN statements ON objects.id = statements.id"
+          : !trashed ? "LEFT JOIN statements ON objects.id = statements.id" : ""
+      }
       ${whereClause}
     `,
       coreArguments,

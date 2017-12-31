@@ -38,10 +38,12 @@ if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir)
 
 async function convertAndCopyImage(sourcePath, targetPath) {
   return new Promise(function(resolve, reject) {
-    imageMagick(sourcePath).strip().write(targetPath, function(err) {
-      if (err) reject(err)
-      else resolve()
-    })
+    imageMagick(sourcePath)
+      .strip()
+      .write(targetPath, function(err) {
+        if (err) reject(err)
+        else resolve()
+      })
   })
 }
 
@@ -84,7 +86,10 @@ export const uploadImage = wrapAsyncMiddleware(async function uploadImage(req, r
 
 export const uploadImageJson = wrapAsyncMiddleware(async function uploadImageJson(req, res) {
   let uploadBuffer = dataUriToBuffer(req.body.file)
-  let hash = crypto.createHash("md5").update(uploadBuffer).digest("hex")
+  let hash = crypto
+    .createHash("md5")
+    .update(uploadBuffer)
+    .digest("hex")
   let uploadFilename = `${hash}-upload`
   let uploadFilePath = path.join(tempDir, uploadFilename)
   fs.writeFileSync(uploadFilePath, uploadBuffer)

@@ -287,13 +287,7 @@ export { toCollectionData }
 async function toCollectionData(
   collectionOrCollections,
   user,
-  {
-    graphql = false,
-    need = null,
-    objectsCache = null,
-    showBallots = false,
-    showReferences = false,
-  } = {},
+  { graphql = false, need = null, objectsCache = null, showBallots = false, showReferences = false } = {},
 ) {
   let collectionJsonById = {}
   let collections = Array.isArray(collectionOrCollections) ? collectionOrCollections : [collectionOrCollections]

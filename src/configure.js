@@ -1176,7 +1176,9 @@ async function getUpdatedIdForSymbol(symbol) {
   return entry.id
 }
 
-configureDatabase().then(() => process.exit(0)).catch(error => {
-  console.log(error.stack || error)
-  process.exit(1)
-})
+configureDatabase()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.log(error.stack || error)
+    process.exit(1)
+  })
