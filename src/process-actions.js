@@ -360,7 +360,7 @@ async function processAction(action) {
           objectChanged = (await regenerateArguments(object.objectId, debateKeyIds)) || objectChanged
         }
         if (objectChanged) {
-          redis.publish("objectUŝerted", object.objectId)
+          redis.publish("objectUpŝerted", object.objectId)
         }
       }
     }
@@ -424,7 +424,7 @@ async function processAction(action) {
   }
 
   if (contentChanged || ratingChanged || trashedChanged) {
-    redis.publish("objectUŝerted", object.id)
+    redis.publish("objectUpŝerted", object.id)
   }
 }
 
