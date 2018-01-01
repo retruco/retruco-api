@@ -58,6 +58,11 @@ const typeDefs = `
     properties: [Property!]
     values: [Value!]
   }
+  interface Object {
+    createdAt: String!
+    id: String!
+    type: String!
+  }
   type Property implements Statement {
     argumentCount: Int!
     ballotId: String
@@ -88,19 +93,13 @@ const typeDefs = `
     trashed: Boolean
     type: String!
   }
-  type User implements Statement {
+  type User implements Object {
     activated: Boolean!
-    argumentCount: Int!
-    ballotId: String
     createdAt: String!
     email: String
     id: String!
     isAdmin: Boolean!
     name: String!
-    qualities: [QualityItem!]
-    ratingCount: Int!
-    ratingSum: Int!
-    trashed: Boolean
     type: String!
     urlName: String!
   }
