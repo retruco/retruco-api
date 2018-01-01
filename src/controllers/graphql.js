@@ -132,15 +132,15 @@ const typeDefs = `
   #   ): Statement
   # }
   type Subscription {
+    objectUŝerted (
+      apiKey: String
+      need: [String!]
+    ) : DataWithId
     propertyUpserted (
       objectIds: [String!]
       keyIds: [String!]
       valueIds: [String!]
     ) : Property
-    statementUpserted (
-      apiKey: String
-      need: [String!]
-    ) : DataWithId
   }
 `
 const resolvers = {
@@ -198,40 +198,7 @@ const resolvers = {
     },
   },
   Subscription: {
-    propertyUpserted: {
-      resolve: async property => {
-        return await toObjectJson(property, { graphql: true })
-      },
-      subscribe: withFilter(
-        () => pubsub.asyncIterator("statementUpserted"),
-        (object, { keyIds, objectIds, valueIds }) => {
-          if (object.type !== "Property") {
-            return false
-          }
-          const property = object
-          if (keyIds && keyIds.length > 0) {
-            keyIds = keyIds.map(getIdFromIdOrSymbol)
-            if (!keyIds.includes(property.keyId)) {
-              return false
-            }
-          }
-          if (objectIds && objectIds.length > 0) {
-            objectIds = objectIds.map(getIdFromIdOrSymbol)
-            if (!objectIds.includes(property.objectId)) {
-              return false
-            }
-          }
-          if (valueIds && valueIds.length > 0) {
-            valueIds = valueIds.map(getIdFromIdOrSymbol)
-            if (!valueIds.includes(property.valueId)) {
-              return false
-            }
-          }
-          return true
-        },
-      ),
-    },
-    statementUpserted: {
+    objectUŝerted: {
       resolve: async (object, { apiKey, need }) => {
         let user = null
         if (apiKey) {
@@ -262,8 +229,41 @@ const resolvers = {
         return dataWithId
       },
       subscribe: withFilter(
-        () => pubsub.asyncIterator("statementUpserted"),
+        () => pubsub.asyncIterator("objectUŝerted"),
         () => {
+          return true
+        },
+      ),
+    },
+    propertyUpserted: {
+      resolve: async property => {
+        return await toObjectJson(property, { graphql: true })
+      },
+      subscribe: withFilter(
+        () => pubsub.asyncIterator("objectUŝerted"),
+        (object, { keyIds, objectIds, valueIds }) => {
+          if (object.type !== "Property") {
+            return false
+          }
+          const property = object
+          if (keyIds && keyIds.length > 0) {
+            keyIds = keyIds.map(getIdFromIdOrSymbol)
+            if (!keyIds.includes(property.keyId)) {
+              return false
+            }
+          }
+          if (objectIds && objectIds.length > 0) {
+            objectIds = objectIds.map(getIdFromIdOrSymbol)
+            if (!objectIds.includes(property.objectId)) {
+              return false
+            }
+          }
+          if (valueIds && valueIds.length > 0) {
+            valueIds = valueIds.map(getIdFromIdOrSymbol)
+            if (!valueIds.includes(property.valueId)) {
+              return false
+            }
+          }
           return true
         },
       ),
@@ -277,13 +277,13 @@ export const schema = makeExecutableSchema({
 })
 
 redis.on("message", async function(channel, message) {
-  if (channel === "statementUpserted") {
+  if (channel === "objectUŝerted") {
     const id = message
     const object = await getObjectFromId(id)
-    pubsub.publish("statementUpserted", object)
+    pubsub.publish("objectUŝerted", object)
   } else {
     console.warn(`Received Redis message ignored: ${channel} - ${message}`)
   }
 })
 
-redis.subscribe("statementUpserted")
+redis.subscribe("objectUŝerted")
