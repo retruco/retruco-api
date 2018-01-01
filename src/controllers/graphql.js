@@ -132,7 +132,7 @@ const typeDefs = `
   #   ): Statement
   # }
   type Subscription {
-    objectUpŝerted (
+    objectUpserted (
       apiKey: String
       need: [String!]
     ) : DataWithId
@@ -198,7 +198,7 @@ const resolvers = {
     },
   },
   Subscription: {
-    objectUpŝerted: {
+    objectUpserted: {
       resolve: async (object, { apiKey, need }) => {
         let user = null
         if (apiKey) {
@@ -229,7 +229,7 @@ const resolvers = {
         return dataWithId
       },
       subscribe: withFilter(
-        () => pubsub.asyncIterator("objectUpŝerted"),
+        () => pubsub.asyncIterator("objectUpserted"),
         () => {
           return true
         },
@@ -240,7 +240,7 @@ const resolvers = {
         return await toObjectJson(property, { graphql: true })
       },
       subscribe: withFilter(
-        () => pubsub.asyncIterator("objectUpŝerted"),
+        () => pubsub.asyncIterator("objectUpserted"),
         (object, { keyIds, objectIds, valueIds }) => {
           if (object.type !== "Property") {
             return false
@@ -277,13 +277,13 @@ export const schema = makeExecutableSchema({
 })
 
 redis.on("message", async function(channel, message) {
-  if (channel === "objectUpŝerted") {
+  if (channel === "objectUpserted") {
     const id = message
     const object = await getObjectFromId(id)
-    pubsub.publish("objectUpŝerted", object)
+    pubsub.publish("objectUpserted", object)
   } else {
     console.warn(`Received Redis message ignored: ${channel} - ${message}`)
   }
 })
 
-redis.subscribe("objectUpŝerted")
+redis.subscribe("objectUpserted")
