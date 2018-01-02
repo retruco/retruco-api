@@ -229,7 +229,7 @@ const resolvers = {
       },
       subscribe: withFilter(
         () => pubsub.asyncIterator("objectUpserted"),
-        () => {
+        (/* object, variables, context, info */) => {
           return true
         },
       ),
